@@ -26,7 +26,7 @@ Use this for **Claude Code**:
 
 ```
 Install Faces skill:
-1. git clone --single-branch --depth 1 https://github.com/facessh/faces-skill.git ~/.claude/skills/faces
+1. git clone --single-branch --depth 1 https://github.com/facessh/faces-skill.git ~/.claude/skills/faces-skill && cd ~/.claude/skills/faces-skill && ./setup
 2. list the available skills: /faces, /face, /team, /manyface
 3. set me up to use faces: ask if I have an account, else help me get one
 ```
@@ -68,14 +68,16 @@ faces billing:balance --json | jq '.is_active'
 
 ```bash
 git clone --depth 1 https://github.com/facessh/faces-skill.git ~/.claude/skills/faces-skill
+cd ~/.claude/skills/faces-skill && ./setup
 ```
 
-Claude Code auto-discovers all SKILL.md files in subdirectories. You now have `/face`, `/team`, `/manyface`, and `/faces` available as slash commands.
+The setup script symlinks each skill into `~/.claude/skills/` so Claude Code discovers them. You now have `/face`, `/team`, `/manyface`, and `/faces` available as slash commands.
 
 ### OpenClaw
 
 ```bash
 git clone --depth 1 https://github.com/facessh/faces-skill.git ~/.openclaw/workspace/skills/faces-skill
+cd ~/.openclaw/workspace/skills/faces-skill && ./setup
 ```
 
 ## See it work

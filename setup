@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -e
+SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
+PARENT_DIR="$(dirname "$SKILL_DIR")"
+
+for dir in "$SKILL_DIR"/*/; do
+  [ -f "$dir/SKILL.md" ] || continue
+  name="$(basename "$dir")"
+  ln -sfn "$dir" "$PARENT_DIR/$name"
+  echo "Linked /$name"
+done
+
+echo "Done. Available skills: /faces, /face, /team, /manyface"
