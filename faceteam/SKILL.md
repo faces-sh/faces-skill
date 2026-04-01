@@ -280,9 +280,27 @@ Use AskUserQuestion:
 >
 > Faces needing compilation: [list any with compiled_tokens: 0]
 >
-> A) Looks good — I'll compile the faces and start using the team
+> A) Looks good — compile all the faces for me now
 > B) I want to change the roster or protocol
 > C) Show me the full TEAM.md so I can review the details
+> D) Don't compile yet — I want to review the FACE.md recipes first
 >
-> The team doesn't work until its faces are compiled. Use `/face` to compile
-> each one, or use the `/faces` skill directly for CLI compilation commands.
+> RECOMMENDATION: Choose A — the team doesn't work until its faces are compiled.
+
+### Step 6: Compile the team's faces
+
+If the user chose A (or comes back after reviewing), compile each face that
+has `compiled_tokens: 0`. For each face, follow the `/face` skill's Step 5
+(compile) flow:
+
+1. Read the face's FACE.md from `~/.faces/catalog/<alias>/FACE.md`
+2. Walk through each Queued item using `--no-wait`:
+   - YouTube: `faces compile:import <alias> --url "<url>" --type document --no-wait --json`
+   - Local file: `faces compile:doc <alias> --file <path> --no-wait --json`
+3. Fire all compiles in parallel — don't wait for one to finish before starting the next
+4. Poll all at the end: `faces compile:doc:get ID --json | jq '{prepare_status}'`
+5. Update each FACE.md: check boxes in Queued, add entries to Sources
+
+Compile all team members before telling the user the team is ready. The goal
+is a fully operational team at the end of `/faceteam`, not a set of recipes
+the user has to finish themselves.
