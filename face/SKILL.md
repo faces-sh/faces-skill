@@ -284,29 +284,34 @@ Revise until they're satisfied.
 
 ### Step 5: Compile
 
-When the user is ready, walk through each Queued item:
+When the user is ready, walk through each Queued item. Always use `--no-wait`
+so you're not blocked — poll on your own schedule or do other work in between.
 
 ```bash
-# YouTube video (async — CLI polls until transcription completes)
+# YouTube video
 faces compile:import <alias> --url "<youtube-url>" --type document \
-  --perspective first-person
+  --perspective first-person --no-wait --json
 
 # If YouTube blocks: download locally, extract audio, upload
 yt-dlp --cookies-from-browser chrome -o video.mp4 "<youtube-url>"
 ffmpeg -i video.mp4 -vn -acodec libmp3lame -q:a 4 audio.mp3
 THREAD_ID=$(faces compile:upload <alias> --file audio.mp3 --kind thread \
-  --json | jq -r '.thread_id // .id')
-# CLI polls for transcription automatically
-faces compile:thread:get "$THREAD_ID"                              # review speakers
-faces compile:thread:edit "$THREAD_ID" --face-speaker "Speaker B"  # remap
-faces compile:thread:make "$THREAD_ID"                             # compile
+  --no-wait --json | jq -r '.thread_id // .id')
+# Poll for transcription:
+faces compile:thread:get "$THREAD_ID" --json | jq '{prepare_status}'
+# When done, review and remap speaker:
+faces compile:thread:get "$THREAD_ID"
+faces compile:thread:edit "$THREAD_ID" --face-speaker "Speaker B"
+faces compile:thread:make "$THREAD_ID" --no-wait --json
 
-# Local text/PDF file (synchronous)
-faces compile:doc <alias> --file <path>
+# Local text/PDF file
+faces compile:doc <alias> --file <path> --no-wait --json
 
 # Interview (agent-as-interviewer)
 # See ../faces/references/INTERVIEWS.md for the full workflow
 ```
+
+Poll status: `faces compile:thread:get ID --json | jq '{prepare_status, chunks_completed, chunks_total}'`
 
 For audio/video sources, always review the transcript with the user before
 compiling — transcription quality varies and speaker labels may need correction.

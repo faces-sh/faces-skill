@@ -65,61 +65,65 @@ See [references/INTERVIEWS.md](references/INTERVIEWS.md) for both modes (agent-a
 
 **Document (essay, notes, PDF):**
 ```bash
-faces compile:doc alias --file document.txt
+faces compile:doc alias --file document.txt --no-wait --json
+# Poll: faces compile:doc:get DOC_ID --json | jq '{prepare_status}'
 ```
 
 **YouTube solo talk → document:**
 ```bash
-faces compile:import alias --url "URL" --type document --perspective first-person
+faces compile:import alias --url "URL" --type document --perspective first-person --no-wait --json
+# Returns doc_id immediately. Poll for transcription then compilation.
 ```
 
 **YouTube multi-speaker → thread:**
 ```bash
-faces compile:import alias --url "URL" --type thread --face-speaker A
+faces compile:import alias --url "URL" --type thread --no-wait --json
+# Returns thread_id. After transcription completes, remap speaker:
+faces compile:thread:edit THREAD_ID --face-speaker "Speaker A"
+faces compile:thread:make THREAD_ID --no-wait --json
 ```
 
 **Upload a local file (text, PDF, audio, video):**
 ```bash
-# Document (text/PDF — synchronous)
-DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --json | jq -r '.document_id // .id')
-faces compile:doc:make "$DOC_ID"
+# Document (text/PDF)
+DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --no-wait --json | jq -r '.document_id // .id')
+faces compile:doc:make "$DOC_ID" --no-wait --json
 
 # Thread from text transcript (you know the speakers — pass --face-speaker)
-THREAD_ID=$(faces compile:upload alias --file transcript.txt --kind thread --face-speaker "Name" --json | jq -r '.thread_id // .id')
-faces compile:thread:make "$THREAD_ID"
+THREAD_ID=$(faces compile:upload alias --file transcript.txt --kind thread --face-speaker "Name" --no-wait --json | jq -r '.thread_id // .id')
+faces compile:thread:make "$THREAD_ID" --no-wait --json
 
 # Thread from audio/video — DON'T pass --face-speaker at upload
-# Speaker labels don't exist until after transcription
-THREAD_ID=$(faces compile:upload alias --file recording.mp4 --kind thread --json | jq -r '.thread_id // .id')
-# CLI polls until transcription completes
-# Review transcript to see speaker labels (Speaker A, Speaker B, etc.):
+THREAD_ID=$(faces compile:upload alias --file recording.mp4 --kind thread --no-wait --json | jq -r '.thread_id // .id')
+# Poll for transcription:
+faces compile:thread:get "$THREAD_ID" --json | jq '{prepare_status}'
+# When transcription done (prepare_status: null), review and remap:
 faces compile:thread:get "$THREAD_ID"
-# Remap the correct speaker as the face:
 faces compile:thread:edit "$THREAD_ID" --face-speaker "Speaker B"
-# Compile:
-faces compile:thread:make "$THREAD_ID"
+faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 
-Audio/video uploads and imports are asynchronous — the server returns 202
-immediately and transcribes in the background. The CLI polls automatically
-until done. Always review the transcript before compiling.
+**Always use `--no-wait`** for compile and upload operations. This lets you do
+other work while transcription/compilation runs. Poll on your own schedule:
+```bash
+faces compile:thread:get ID --json | jq '{prepare_status, chunks_completed, chunks_total}'
+faces compile:doc:get ID --json | jq '{prepare_status}'
+```
 
-Status lifecycle for audio/video:
-`transcribing` → `null` (ready) → `preparing` → `syncing` → `synced`
+Status lifecycle:
+- Transcription: `transcribing` → `null` (done) or `failed`
+- Compilation: `preparing` → `syncing` → `synced` or `stalled` or `failed`
 
 **If YouTube blocks the download** ("Sign in to confirm you're not a bot"):
-`compile:import` downloads server-side and can't use your browser cookies.
-Download locally with yt-dlp, extract audio with ffmpeg (much lighter upload
-than video), then upload:
+Download locally with yt-dlp, extract audio with ffmpeg, upload:
 ```bash
 yt-dlp --cookies-from-browser chrome -o episode.mp4 "https://youtube.com/watch?v=VIDEO_ID"
 ffmpeg -i episode.mp4 -vn -acodec libmp3lame -q:a 4 episode.mp3
-# Upload without --face-speaker — labels don't exist yet
-THREAD_ID=$(faces compile:upload alias --file episode.mp3 --kind thread --json | jq -r '.thread_id // .id')
-# CLI polls for transcription automatically
-faces compile:thread:get "$THREAD_ID"                           # review transcript
-faces compile:thread:edit "$THREAD_ID" --face-speaker "Speaker A"  # remap speaker
-faces compile:thread:make "$THREAD_ID"                          # compile
+THREAD_ID=$(faces compile:upload alias --file episode.mp3 --kind thread --no-wait --json | jq -r '.thread_id // .id')
+# Poll for transcription, then review, remap, compile:
+faces compile:thread:get "$THREAD_ID"
+faces compile:thread:edit "$THREAD_ID" --face-speaker "Speaker A"
+faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 Use `--kind document` for solo speakers. For diarized audio, speakers are labeled A, B, etc.
 
@@ -152,7 +156,7 @@ Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
 |---|---|
 | `faces: command not found` | `npm install -g faces-cli` |
 | `401 Unauthorized` | `faces auth:login` or check `FACES_API_KEY` via `faces config:show` |
-| status "transcribing" | Audio/video transcription in progress — CLI polls automatically, just wait |
+| status "transcribing" | Audio/video transcription in progress — poll with `compile:thread:get ID --json` |
 | status "preparing" | Compilation in progress — poll with `compile:doc:get ID --json` or `compile:thread:get ID --json` |
 | `422` on thread import | Retry with `--type document` |
 

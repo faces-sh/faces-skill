@@ -16,7 +16,7 @@ faces face:get          <alias>
 faces face:update       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--formula EXPR]  [--attr KEY=VALUE]...
 faces face:delete       <alias>  [--yes]
 faces face:stats
-faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]
+faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]  [--no-wait]
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
 faces face:neighbors    <alias>  [--k N]  [--component face|beta|delta|epsilon]  [--direction nearest|furthest]
 
@@ -25,11 +25,11 @@ faces chat:chat         <face_alias>  -m MSG  [--llm MODEL]  [--system]  [--stre
 faces chat:messages     <face@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]
 faces chat:responses    <face@model | model>  -m MSG  [--instructions]  [--stream]
 
-faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--perspective first-person|third-person]  [--face-speaker LABEL]
+faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--perspective first-person|third-person]  [--face-speaker LABEL]  [--no-wait]
 
-faces compile:doc          <alias>  (--content TEXT | --file PATH)  [--label]  [--perspective first-person|third-person]  [--timeout N]
+faces compile:doc          <alias>  (--content TEXT | --file PATH)  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--no-wait]
 faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  [--perspective first-person|third-person]
-faces compile:doc:make     <doc_id>  [--timeout N]
+faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
 faces compile:doc:list     <alias>
 faces compile:doc:get      <doc_id>
 faces compile:doc:edit     <doc_id>  [--label]  [--content TEXT | --file PATH]  [--perspective first-person|third-person]
@@ -40,7 +40,7 @@ faces compile:thread:list     <alias>
 faces compile:thread:get      <thread_id>
 faces compile:thread:edit     <thread_id>  [--label TEXT]  [--face-speaker NAME]
 faces compile:thread:message  <thread_id>  -m MSG
-faces compile:thread:make     <thread_id>  [--timeout N]
+faces compile:thread:make     <thread_id>  [--timeout N]  [--no-wait]
 faces compile:thread:sync     <thread_id>
 faces compile:thread:delete   <thread_id>  [--yes]
 

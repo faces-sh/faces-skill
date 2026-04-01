@@ -78,14 +78,14 @@ Pick one or more methods depending on what the human has:
 
 **Local file (text, PDF):**
 ```bash
-DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --json | jq -r '.document_id // .id')
+DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --no-wait --json | jq -r '.document_id // .id')
 ```
 
 **YouTube video (solo speaker):**
 ```bash
 IMPORT=$(faces compile:import alice \
   --url "https://www.youtube.com/watch?v=VIDEO_ID" \
-  --type document --perspective first-person --json)
+  --type document --perspective first-person --no-wait --json)
 DOC_ID=$(echo "$IMPORT" | jq -r '.document_id // .doc_id // .id')
 ```
 
@@ -93,8 +93,10 @@ DOC_ID=$(echo "$IMPORT" | jq -r '.document_id // .doc_id // .id')
 ```bash
 IMPORT=$(faces compile:import alice \
   --url "https://www.youtube.com/watch?v=VIDEO_ID" \
-  --type thread --perspective first-person --face-speaker "Alice" --json)
+  --type thread --no-wait --json)
 THREAD_ID=$(echo "$IMPORT" | jq -r '.thread_id // .id')
+# After transcription completes, review and remap speaker:
+# faces compile:thread:edit "$THREAD_ID" --face-speaker "Speaker A"
 ```
 
 If `--type thread` fails with 422, retry with `--type document`.
@@ -110,20 +112,22 @@ For documents (including uploads and YouTube-as-document):
 
 ```bash
 # Compile an existing document
-faces compile:doc:make "$DOC_ID"
+faces compile:doc:make "$DOC_ID" --no-wait --json
 ```
 
 Or, if you created the document inline (step 4, "Raw text"), you can create and compile in one step:
 
 ```bash
-faces compile:doc alice --file essay.txt
+faces compile:doc alice --file essay.txt --no-wait --json
 ```
 
 For threads:
 
 ```bash
-faces compile:thread:make "$THREAD_ID"
+faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
+
+Poll status: `faces compile:thread:get THREAD_ID --json | jq '{prepare_status, chunks_completed, chunks_total}'`
 
 ## 6. Chat
 

@@ -20,7 +20,7 @@ RESULT=$(faces compile:thread:message "$THREAD_ID" -m "user's answer" --json)
 # Repeat until the user is done (minimum 3 responses)
 
 # 3. Compile
-faces compile:thread:make "$THREAD_ID"
+faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 
 Every call to `compile:thread:message` stores the user's answer AND generates the next AI question. The transcript stays coherent because both sides live in the thread.
@@ -45,7 +45,7 @@ Johnny: Reading philosophy as a teenager changed everything.
 ```bash
 THREAD_ID=$(faces compile:upload alias --file transcript.txt --kind thread \
   --face-speaker "Johnny" --json | jq -r '.thread_id // .id')
-faces compile:thread:make "$THREAD_ID"
+faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 
 `--face-speaker` tells the backend which speaker IS the face (mapped to `role=user`). All other speakers become `role=assistant`. Only user messages are compiled. If `--face-speaker` is omitted, the backend fuzzy-matches speaker names against the face's display name and alias.
