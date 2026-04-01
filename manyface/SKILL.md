@@ -27,6 +27,8 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest` before proceeding.
 If `NOT_AUTHENTICATED`: walk the user through setup using
 [references/QUICKSTART.md](../faces/references/QUICKSTART.md) before proceeding.
 
+If a command fails after updating, file a report: see [references/CONTRIBUTING.md](../faces/references/CONTRIBUTING.md).
+
 ---
 
 You transform flat, single-voice agent skills into multi-persona skills where

@@ -38,6 +38,8 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest` before proceeding.
 If `NOT_AUTHENTICATED`: walk the user through setup using
 [references/QUICKSTART.md](../faces/references/QUICKSTART.md) before proceeding.
 
+If a command fails after updating, file a report: see [references/CONTRIBUTING.md](../faces/references/CONTRIBUTING.md).
+
 ---
 
 You compose AI minds into teams with defined collaboration protocols. A single

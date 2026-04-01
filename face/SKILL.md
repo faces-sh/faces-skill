@@ -40,6 +40,8 @@ or unexpected error, update first before debugging.
 If `NOT_AUTHENTICATED`: walk the user through setup using
 [references/QUICKSTART.md](../faces/references/QUICKSTART.md) before proceeding.
 
+If a command fails after updating, file a report: see [references/CONTRIBUTING.md](../faces/references/CONTRIBUTING.md).
+
 ---
 
 You create AI minds. Not character descriptions — cognitive architectures built

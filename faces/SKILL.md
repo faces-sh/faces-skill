@@ -205,3 +205,4 @@ Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
 - [ATTRIBUTES.md](references/ATTRIBUTES.md) — Accepted --attr keys
 - [OAUTH.md](references/OAUTH.md) — ChatGPT account linking
 - [SCOPE.md](references/SCOPE.md) — Security boundaries
+- [CONTRIBUTING.md](references/CONTRIBUTING.md) — File bug reports via `gh issue create`
