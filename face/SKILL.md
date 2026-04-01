@@ -3,7 +3,7 @@ name: face
 description: >
   Use this skill when the user wants to create an AI persona from scratch — a
   digital twin, an archetype, a composite mind, or a face of a public figure.
-  Invoke as /face "Garry Tan" for quick mode (skip interview, go straight to
+  Invoke as /face "Name" for quick mode (skip interview, go straight to
   research), or /face with no argument for the full guided flow. This skill
   walks through the entire process: interview, research real source material,
   sketch a FACE.md recipe, iterate with the user, compile, and optionally
@@ -31,23 +31,109 @@ find the actual talks, the actual writings, the actual interviews. The user
 reviews and edits. Then you compile. Then you hand them a slash command they can
 use from anywhere.
 
+## Response posture
+
+- **Be direct.** If the user describes something vague ("a helpful mentor"),
+  push: "That's what every AI already is. What makes this mind think
+  differently?" A good face starts from a specific cognitive profile, not a
+  generic role.
+- **Take a position.** When you think the user wants something different from
+  what they described, say so: "Based on what you've told me, I think you
+  actually want X more than Y. Here's why."
+- **Never say "great idea."** Challenge whether the face they described is
+  what they actually need. The first answer is usually the polished version.
+  The real answer comes after a push.
+- **Push once, then push again.** "You said 'skeptical.' Skeptical how?
+  There's a big difference between a VC who's seen 10,000 pitches and a
+  scientist who demands reproducible evidence. Those are different minds."
+
 ## The flow
 
 ### Step 1: Interview
 
 **Quick mode** — user provides a name or role inline:
-`/face "Garry Tan"` or `/face "skeptical Series A investor"`
+`/face "Some Person"` or `/face "skeptical Series A investor"`
 
 Skip the interview. Determine if this is a public figure (search for them) or
 an archetype (identify exemplars). Go straight to Step 2.
 
-**Full mode** — no argument. Ask:
-- Who is this face? (a real person, an archetype, a composite?)
-- What task or role do they fill?
-- What cognitive traits matter most?
-- Any specific people who exemplify what you're looking for?
+**Full mode** — no argument. Ask questions ONE AT A TIME. Wait for the answer
+before asking the next one. Push on vague answers.
 
-Keep it to 3-5 questions. You're casting, not therapizing.
+#### Q1: Who
+
+Ask the user (using AskUserQuestion if you have it):
+
+> Who do you want to build? A specific real person, a type of thinker
+> (archetype), or a blend of multiple minds (composite)?
+
+This determines which branch the interview follows.
+
+#### Q2: Why (branches by type)
+
+**If real person:**
+
+Ask the user (using AskUserQuestion if you have it):
+
+> A real person contains multitudes — they think differently as a parent than
+> as a CEO than as a comedian. Which version of this person do you want? What's
+> the context you need them in?
+
+Push: if they give a generic answer ("as an advisor"), push for the specific
+cognitive mode: "Their advice on what? An advisor giving product feedback is a
+different mind than the same person giving life advice. What question do you
+want to ask them?"
+
+**If archetype or composite:**
+
+Ask the user (using AskUserQuestion if you have it):
+
+> What job does this mind do for you? What question do you want to ask them
+> that a generic AI can't answer well?
+
+Push: if they say "give me advice," push — "Advice about what? The best faces
+are built for a specific cognitive task, not general helpfulness."
+
+#### Q3: Cognitive core (branches by type)
+
+**If real person:**
+
+Ask the user (using AskUserQuestion if you have it):
+
+> What's the thing about how this person thinks that you can't get from a
+> generic AI? Not their opinions — their reasoning style, their instincts,
+> the way they cut through a problem. Can you give a specific example — a
+> decision or statement where you thought "that's the way I want this mind
+> to reason"?
+
+Push: if they give a surface trait ("they're smart"), push for the mechanism —
+"Smart how? What do they see that other smart people miss?"
+
+**If archetype or composite:**
+
+Ask the user (using AskUserQuestion if you have it):
+
+> What's the cognitive trait that matters most — the thing that makes this
+> mind different from a smart generalist? And is there someone you've worked
+> with, read, or admired who thinks this way? That person might be the source
+> material.
+
+Push: "You said 'analytical.' Analytical like a management consultant who
+builds frameworks, or analytical like a physicist who reduces everything to
+first principles? Those produce very different output."
+
+#### Q4: Confirm
+
+Synthesize what you've heard:
+
+> Here's the mind I'm going to build: [description]. The cognitive core is
+> [trait/reasoning style]. I'll draw from [sources/exemplars for this facet].
+> Sound right, or should I adjust?
+
+Wait for confirmation or correction. Then move to Step 2.
+
+**Total interview: 3-4 questions max, 2-3 minutes.** You're casting, not
+therapizing.
 
 ### Step 2: Research
 
@@ -60,11 +146,13 @@ cat ~/.faces/catalog.json
 If a suitable face exists, recommend reuse over duplication. If you need more
 detail on a candidate: `cat ~/.faces/catalog/<alias>/FACE.md`
 
-For new faces, use WebSearch to find real source material:
+For new faces, use WebSearch to find real source material. Do the legwork — find
+actual URLs, not suggestions of what to look for.
 
 **Public figures:** Wikipedia page, 2-3 YouTube talks or long-form interviews,
 notable writing (blog posts, essays, books). Prioritize sources where the person
-speaks in their own voice at length.
+speaks in their own voice at length. Choose sources that capture the specific
+facet the user identified in Q2, not just general biographical material.
 
 **Archetypes:** Identify 2-3 real people who exemplify the archetype. Find
 source material for each. Note which cognitive aspects to extract from each.
@@ -106,7 +194,7 @@ formula: null
 
 ## Queued
 
-- [ ] <url> — <what this source contributes>
+- [ ] <url> — <what this source contributes to the cognitive profile>
 
 ## Sources
 
@@ -114,19 +202,29 @@ formula: null
 
 ## Notes
 
-<why this face was cast, cognitive traits that matter, etc.>
+<why this face was cast, which facet/cognitive mode was targeted, what
+reasoning style to extract from the sources, etc.>
 ```
 
 ### Step 4: Iterate
 
-Present the FACE.md to the user. This is co-creation — they may want to:
+Present the FACE.md to the user. This is co-creation — ask the user
+(using AskUserQuestion if you have it):
+
+> Here's the recipe. Review it — does the description capture the mind you
+> want? Are the queued sources right? Anything to add, remove, or change
+> before we compile?
+
+They may want to:
 - Add or remove sources from Queued
 - Change the description or role
 - Adjust the cognitive traits in Notes
 - Switch from archetype to public-figure or vice versa
 
-Revise until they're satisfied. The FACE.md is a design doc, not a one-shot
-output.
+Push if the recipe feels generic: "This reads like a job description, not a
+mind. What's the thing this face would say that no other face would say?"
+
+Revise until they're satisfied.
 
 ### Step 5: Compile
 
