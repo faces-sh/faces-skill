@@ -55,10 +55,14 @@ npm install -g faces-cli
 You can register manually at the [faces.sh](https://faces.sh/) website, or via the cli:
 
 ```bash
+# Free plan ($5 activation, pay-per-token)
 faces auth:register --email you@example.com --password 'your-password' --username your-username
+
+# Connect plan ($17/month, 100k compile tokens, ChatGPT passthrough)
+faces auth:register --email you@example.com --password 'your-password' --username your-username --plan connect
 ```
 
-This returns a Stripe Checkout URL for a $5 minimum activation payment (added as API credits). Complete payment in your browser, then verify:
+This returns a Stripe Checkout URL. Complete payment in your browser, then verify:
 
 ```bash
 faces billing:balance --json | jq '.is_active'

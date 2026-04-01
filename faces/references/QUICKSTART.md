@@ -27,18 +27,25 @@ Before creating the account, explain the two plans and ask the human which they 
 >
 > Which plan would you like?
 
-Then register:
+Then register with the chosen plan:
 
+**Free plan:**
 ```bash
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --json)
 echo "$RESULT" | jq -r '.activation_checkout_url'
 ```
 
-This creates the account on the free plan and returns a Stripe Checkout URL for the $5 activation payment. The account is not yet active.
+Tell the human:
+> Paste this link into your browser and complete the payment ($5 minimum, added as API credits). When you see the confirmation page, come back and let me know.
+
+**Connect plan:**
+```bash
+RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --plan connect --json)
+echo "$RESULT" | jq -r '.activation_checkout_url'
+```
 
 Tell the human:
-
-> Paste this link into your browser and complete the payment ($5 minimum, added as API credits). When you see the confirmation page, come back and let me know.
+> Paste this link into your browser to start your Connect subscription ($17/month). When you see the confirmation page, come back and let me know.
 
 Wait for the human to confirm, then verify:
 
@@ -47,14 +54,6 @@ faces billing:balance --json | jq '.is_active'
 ```
 
 If `true`, proceed. If `false`, the payment may not have gone through — ask the human to try the link again.
-
-If the human chose the Connect plan, upgrade after activation:
-
-```bash
-CHECKOUT=$(faces billing:checkout --plan connect --json | jq -r '.checkout_url')
-```
-
-Give the human the checkout URL for the $17/month subscription, wait for confirmation, then verify with `faces billing:subscription --json`.
 
 ## 3. Create a Face
 

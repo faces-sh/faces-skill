@@ -6,15 +6,26 @@ Registration requires a credit card payment to activate. The flow is:
 
 ### Step 1 — Create the account
 
+Ask the user which plan they want, then register with `--plan`:
+
 ```bash
+# Free plan ($5 activation, pay-per-token with 5% markup)
 faces auth:register \
   --email user@example.com \
   --password 'SecurePass123!' \
   --username alice \
   --json
+
+# Connect plan ($17/month, 100k compile tokens, ChatGPT passthrough)
+faces auth:register \
+  --email user@example.com \
+  --password 'SecurePass123!' \
+  --username alice \
+  --plan connect \
+  --json
 ```
 
-`--name` is optional — if omitted, the username is used as the display name.
+`--plan` defaults to `free` if omitted. `--name` is optional — if omitted, the username is used as the display name.
 
 The response includes:
 
@@ -54,7 +65,7 @@ Check that `is_active` is `true`. If not, tell the user the payment may not have
 ### Full example
 
 ```bash
-# 1. Register
+# 1. Register (use --plan connect for Connect plan)
 RESULT=$(faces auth:register --email user@example.com --password 'SecurePass123!' --username alice --json)
 URL=$(echo "$RESULT" | jq -r '.activation_checkout_url')
 
