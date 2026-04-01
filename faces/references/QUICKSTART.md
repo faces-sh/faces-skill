@@ -2,6 +2,8 @@
 
 End-to-end guide for getting a human from zero to chatting with a Face. Follow these steps in order.
 
+**Website:** https://faces.sh — **Docs:** https://docs.faces.sh — **API:** api.faces.sh
+
 ## 1. Install the CLI
 
 ```bash
