@@ -78,16 +78,18 @@ faces compile:import alias --url "URL" --type thread --face-speaker A
 DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --json | jq -r '.document_id // .id')
 faces compile:doc:make "$DOC_ID"
 
-# Thread from text transcript
+# Thread from text transcript (you know the speakers — pass --face-speaker)
 THREAD_ID=$(faces compile:upload alias --file transcript.txt --kind thread --face-speaker "Name" --json | jq -r '.thread_id // .id')
 faces compile:thread:make "$THREAD_ID"
 
-# Thread from audio/video — async, CLI polls automatically
-THREAD_ID=$(faces compile:upload alias --file recording.mp4 --kind thread --face-speaker "Guest" --json | jq -r '.thread_id // .id')
-# CLI polls until transcription completes, then returns
-# Review the transcript before compiling:
+# Thread from audio/video — DON'T pass --face-speaker yet
+# You can't know speaker labels until after transcription
+THREAD_ID=$(faces compile:upload alias --file recording.mp4 --kind thread --json | jq -r '.thread_id // .id')
+# CLI polls until transcription completes
+# Review transcript to see speaker labels (A, B, etc.):
 faces compile:thread:get "$THREAD_ID"
-# When satisfied:
+# Identify which speaker is the face, then re-upload with correct mapping:
+THREAD_ID=$(faces compile:upload alias --file recording.mp4 --kind thread --face-speaker "A" --json | jq -r '.thread_id // .id')
 faces compile:thread:make "$THREAD_ID"
 ```
 
@@ -105,9 +107,12 @@ than video), then upload:
 ```bash
 yt-dlp --cookies-from-browser chrome -o episode.mp4 "https://youtube.com/watch?v=VIDEO_ID"
 ffmpeg -i episode.mp4 -vn -acodec libmp3lame -q:a 4 episode.mp3
-THREAD_ID=$(faces compile:upload alias --file episode.mp3 --kind thread --face-speaker "Guest" --json | jq -r '.thread_id // .id')
+# Upload without --face-speaker — you don't know labels yet
+THREAD_ID=$(faces compile:upload alias --file episode.mp3 --kind thread --json | jq -r '.thread_id // .id')
 # CLI polls for transcription automatically
-faces compile:thread:get "$THREAD_ID"    # review transcript
+faces compile:thread:get "$THREAD_ID"    # review transcript, identify speakers
+# Re-upload with correct speaker mapping:
+THREAD_ID=$(faces compile:upload alias --file episode.mp3 --kind thread --face-speaker "A" --json | jq -r '.thread_id // .id')
 faces compile:thread:make "$THREAD_ID"   # compile when ready
 ```
 Use `--kind document` for solo speakers. For diarized audio, speakers are labeled A, B, etc.

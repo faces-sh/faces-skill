@@ -291,13 +291,16 @@ When the user is ready, walk through each Queued item:
 faces compile:import <alias> --url "<youtube-url>" --type document \
   --perspective first-person
 
-# If YouTube blocks: download locally, extract audio (lighter upload), upload
+# If YouTube blocks: download locally, extract audio, upload WITHOUT --face-speaker
 yt-dlp --cookies-from-browser chrome -o video.mp4 "<youtube-url>"
 ffmpeg -i video.mp4 -vn -acodec libmp3lame -q:a 4 audio.mp3
 THREAD_ID=$(faces compile:upload <alias> --file audio.mp3 --kind thread \
-  --face-speaker "Speaker" --json | jq -r '.thread_id // .id')
+  --json | jq -r '.thread_id // .id')
 # CLI polls for transcription automatically
-faces compile:thread:get "$THREAD_ID"    # review transcript with user
+faces compile:thread:get "$THREAD_ID"    # review transcript, identify speakers
+# Ask the user which speaker is the face (A, B, etc.), then re-upload:
+THREAD_ID=$(faces compile:upload <alias> --file audio.mp3 --kind thread \
+  --face-speaker "A" --json | jq -r '.thread_id // .id')
 faces compile:thread:make "$THREAD_ID"   # compile when satisfied
 
 # Local text/PDF file (synchronous)
