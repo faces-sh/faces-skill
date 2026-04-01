@@ -5,7 +5,7 @@ description: >
   a version where each step is run by a specialized AI persona, or wants to
   design a new multi-persona skill from scratch. Invoke as /manyface. This
   skill decomposes a workflow into steps, determines which need a solo face
-  vs. a team vs. no face at all, uses /face and /team to cast, and outputs a
+  vs. a team vs. no face at all, uses /face and /faceteam to cast, and outputs a
   new manyfaced- skill directory. Trigger when the user says "manyface this
   skill", "add personas to my skill", "make this skill manyfaced", or wants
   different cognitive profiles at different steps of a workflow.
@@ -49,7 +49,7 @@ The user provides a path to an existing SKILL.md (or skill directory).
    - **Solo face** — one perspective is enough. Judgment calls, creative work,
      domain expertise. Use `/face` to create.
    - **Team** — multiple perspectives needed. Advisory panels, debates, review
-     pipelines, deliberation. Use `/team` to compose.
+     pipelines, deliberation. Use `/faceteam` to compose.
    - **Faceless** — mechanical step. File operations, git commands, API calls,
      data transforms. No face, no team. Leave as-is.
 
@@ -57,7 +57,7 @@ The user provides a path to an existing SKILL.md (or skill directory).
    expertise, or empathy. Mechanical steps stay faceless.
 
 3. **Cast.** For solo roles, use `/face` (or follow the same process: research,
-   sketch FACE.md, write to catalog). For team roles, use `/team` (which
+   sketch FACE.md, write to catalog). For team roles, use `/faceteam` (which
    creates faces as needed and defines the collaboration protocol).
 
 4. **Write the manyfaced skill.** Output a new directory:
@@ -105,7 +105,7 @@ Use `faces chat:chat <alias> -m "<prompt>"` or reference via `${<alias>}`.
 **Team:** `<team-name>` — <why this team>
 
 Run this step using the protocol defined in
-`~/.faces/teams/<team-name>/TEAM.md`.
+`~/.faces/faceteams/<team-name>/TEAM.md`.
 
 <instructions — how to feed input, what to do with output>
 ```
@@ -136,7 +136,7 @@ compile using the `/faces` skill.
 
 | Role | Team | Protocol | Faces |
 |------|------|----------|-------|
-| <role> | `<team-name>` | `~/.faces/teams/<team-name>/TEAM.md` | alias-1, alias-2, alias-3 |
+| <role> | `<team-name>` | `~/.faces/faceteams/<team-name>/TEAM.md` | alias-1, alias-2, alias-3 |
 
 Faces with `compiled_tokens: 0` need compilation before use. See each FACE.md's
 Queued section for source material.

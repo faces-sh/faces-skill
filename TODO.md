@@ -6,7 +6,7 @@
 faces-skill/
 ├── faces/           → /faces          — core CLI operations, compilation, chat
 ├── face/            → /face           — guided face creation (interview → compile → slash command)
-├── team/            → /team           — compose faces into teams with protocols
+├── faceteam/        → /faceteam       — compose faces into teams with protocols
 └── manyface/        → /manyface       — decompose skills into multi-persona versions
 ```
 

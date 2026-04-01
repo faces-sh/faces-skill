@@ -1,9 +1,9 @@
 ---
-name: team
+name: faceteam
 description: >
   Use this skill when the user needs multiple AI minds working together on a
   task — an advisory panel, a debate, a review pipeline, or any collaboration
-  that requires more than one perspective. Invoke as /team. This skill composes
+  that requires more than one perspective. Invoke as /faceteam. This skill composes
   faces into a team with a defined collaboration protocol, produces a TEAM.md
   file with a mermaid flowchart diagram showing exactly how the minds interact,
   and stores it in ~/.faces/teams/. Uses /face to create any new faces needed.
@@ -12,7 +12,7 @@ description: >
   perspectives in concert.
 ---
 
-# /team — Compose Minds into Teams
+# /faceteam — Compose Minds into Teams
 
 ## Preamble
 

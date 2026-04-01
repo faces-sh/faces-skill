@@ -7,7 +7,7 @@ The Faces Platform compiles source texts — documents, interviews, YouTube talk
 **faces-skill** is a bundle of four slash commands that turn Claude Code (or OpenClaw) into a face creation and orchestration system:
 
 - **`/face`** — Create a single AI mind from scratch. Interview, research, compile, chat.
-- **`/team`** — Compose multiple minds into a team with a collaboration protocol.
+- **`/faceteam`** — Compose multiple minds into a team with a collaboration protocol.
 - **`/manyface`** — Transform any agent skill into a multi-persona version where every step is run by the ideal mind for the job.
 - **`/faces`** — Core CLI operations. The power-user interface for direct platform access.
 
@@ -27,7 +27,7 @@ Use this for **Claude Code**:
 ```
 Install Faces skill:
 1. git clone --single-branch --depth 1 https://github.com/facessh/faces-skill.git ~/.claude/skills/faces-skill && cd ~/.claude/skills/faces-skill && ./setup
-2. list the available skills: /faces, /face, /team, /manyface
+2. list the available skills: /faces, /face, /faceteam, /manyface
 3. set me up to use faces: ask if I have an account, else help me get one
 ```
 
@@ -71,7 +71,7 @@ git clone --depth 1 https://github.com/facessh/faces-skill.git ~/.claude/skills/
 cd ~/.claude/skills/faces-skill && ./setup
 ```
 
-The setup script symlinks each skill into `~/.claude/skills/` so Claude Code discovers them. You now have `/face`, `/team`, `/manyface`, and `/faces` available as slash commands.
+The setup script symlinks each skill into `~/.claude/skills/` so Claude Code discovers them. You now have `/face`, `/faceteam`, `/manyface`, and `/faces` available as slash commands.
 
 ### OpenClaw
 
@@ -118,7 +118,7 @@ Garry:  Before I answer that — what's your retention look like on the
 ### Build a team
 
 ```
-You:    /team "I need an advisory board to evaluate my pivot decision"
+You:    /faceteam "I need an advisory board to evaluate my pivot decision"
 Claude: [checks catalog — finds garry-tan, creates 2 new faces]
         [designs round-robin protocol with mermaid diagram]
 
@@ -130,7 +130,7 @@ Claude: [checks catalog — finds garry-tan, creates 2 new faces]
         │ product-fit  │    │  feasibility  │    │ assumptions │
         └─────────────┘    └──────────────┘    └─────────────┘
 
-        TEAM.md saved to ~/.faces/teams/pivot-advisory-board/
+        TEAM.md saved to ~/.faces/faceteams/pivot-advisory-board/
 ```
 
 ### Manyface a skill
@@ -161,7 +161,7 @@ Claude: [reads the skill, decomposes into 5 steps]
 | Skill | What it does |
 |-------|-------------|
 | `/face` | **Guided face creation.** Six steps: interview → research (real URLs via web search) → sketch FACE.md → iterate with user → compile → generate `/face-alias` slash command. Quick mode: `/face "Person Name"` skips the interview. |
-| `/team` | **Team composition.** Composes faces into a team with a collaboration protocol defined by a mermaid flowchart. Five protocol types: round-robin, pipeline, chief-of-staff, debate, voting. Produces a TEAM.md in `~/.faces/teams/`. |
+| `/faceteam` | **Team composition.** Composes faces into a team with a collaboration protocol defined by a mermaid flowchart. Five protocol types: round-robin, pipeline, chief-of-staff, debate, voting. Produces a TEAM.md in `~/.faces/faceteams/`. |
 | `/manyface` | **Skill orchestrator.** Takes an existing skill (or designs one from scratch), decomposes it into steps, determines which need a solo face vs. a team vs. no face, and outputs a `manyfaced-` skill directory. |
 | `/faces` | **Core CLI.** Direct access to the faces platform: create faces, compile documents, import YouTube videos, chat, compare faces, compose with Face Math, manage API keys and billing. |
 
@@ -169,7 +169,7 @@ Claude: [reads the skill, decomposes into 5 steps]
 
 ```
 Individual mind     →  FACE.md   →  ~/.faces/catalog/<alias>/
-Group of minds      →  TEAM.md   →  ~/.faces/teams/<team-name>/
+Group of minds      →  TEAM.md   →  ~/.faces/faceteams/<team-name>/
 Workflow            →  SKILL.md  →  manyfaced-<skillname>/
 ```
 

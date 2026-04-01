@@ -107,7 +107,7 @@ Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
 ## Related skills
 
 - `/face` — Guided face creation (interview, research, sketch, compile, generate slash command)
-- `/team` — Compose faces into teams with collaboration protocols
+- `/faceteam` — Compose faces into teams with collaboration protocols
 - `/manyface` — Transform a skill into a multi-persona version
 
 ## Filesystem
