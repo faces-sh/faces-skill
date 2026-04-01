@@ -16,10 +16,15 @@ description: >
 ## Preamble
 
 ```bash
+faces --version
 faces auth:whoami 2>/dev/null || echo "NOT_AUTHENTICATED"
+LATEST=$(npm outdated -g faces-cli --json 2>/dev/null | jq -r '.["faces-cli"].latest // empty')
+[ -n "$LATEST" ] && echo "UPDATE_AVAILABLE: $LATEST"
 ```
 
-If NOT_AUTHENTICATED: walk the user through setup using
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest` before proceeding.
+
+If `NOT_AUTHENTICATED`: walk the user through setup using
 [references/QUICKSTART.md](../faces/references/QUICKSTART.md) before proceeding.
 
 ---
