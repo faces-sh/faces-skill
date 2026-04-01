@@ -137,7 +137,12 @@ faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "A"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
-Use `--kind document` for solo speakers. For diarized audio, speakers are labeled A, B, etc.
+Use `--kind document` for solo speakers.
+
+**`--face-speaker` label rules:**
+- Audio/video transcription: speakers are labeled `A`, `B`, `C` — use the short label (e.g. `--face-speaker B`)
+- Text transcript uploads: the label matches the speaker name in the file (e.g. `--face-speaker Troy`)
+- Match is case-insensitive but exact
 
 ### 3. Chat
 

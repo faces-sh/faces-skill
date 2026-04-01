@@ -50,6 +50,8 @@ faces compile:thread:make "$THREAD_ID" --no-wait --json
 
 `--face-speaker` tells the backend which speaker IS the face (mapped to `role=user`). All other speakers become `role=assistant`. Only user messages are compiled. If `--face-speaker` is omitted, the backend fuzzy-matches speaker names against the face's display name and alias.
 
+**Label format:** For text transcripts, use the speaker name from the file (e.g. `--face-speaker "Johnny"`). For audio/video transcription, speakers are labeled `A`, `B`, `C` — use the short label (e.g. `--face-speaker B`). Match is case-insensitive but exact.
+
 ## Tips
 
 - **Multiple interviews**: Compile each separately into the same face. Each adds to the existing cognitive primitives.
