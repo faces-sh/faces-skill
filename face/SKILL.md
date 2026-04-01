@@ -285,7 +285,9 @@ Revise until they're satisfied.
 ### Step 5: Compile
 
 When the user is ready, walk through each Queued item. Always use `--no-wait`
-so you're not blocked — poll on your own schedule or do other work in between.
+so you're not blocked. Compiles run independently on the server — fire all of
+them without waiting, then poll at the end. Don't wait for one to finish before
+starting the next.
 
 ```bash
 # YouTube video

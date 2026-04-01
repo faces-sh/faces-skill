@@ -103,8 +103,10 @@ faces compile:thread:edit "$THREAD_ID" --face-speaker "Speaker B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 
-**Always use `--no-wait`** for compile and upload operations. This lets you do
-other work while transcription/compilation runs. Poll on your own schedule:
+**Always use `--no-wait`** for compile and upload operations. Each operation
+runs independently on the server — you can fire multiple compiles in parallel
+without waiting for any to finish. Upload all sources, kick off all compiles,
+then poll them all at the end. Poll on your own schedule:
 ```bash
 faces compile:thread:get ID --json | jq '{prepare_status, chunks_completed, chunks_total}'
 faces compile:doc:get ID --json | jq '{prepare_status}'
