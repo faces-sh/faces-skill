@@ -38,7 +38,7 @@ faces compile:doc:delete   <doc_id>
 faces compile:thread:create   <alias>  [--label]
 faces compile:thread:list     <alias>
 faces compile:thread:get      <thread_id>
-faces compile:thread:edit     <thread_id>  --label TEXT
+faces compile:thread:edit     <thread_id>  [--label TEXT]  [--face-speaker NAME]
 faces compile:thread:message  <thread_id>  -m MSG
 faces compile:thread:make     <thread_id>  [--timeout N]
 faces compile:thread:sync     <thread_id>

@@ -34,8 +34,14 @@ Always use `--json` when you need to extract values from command output.
 Check CLI: `faces --version`. Install if missing: `npm install -g faces-cli`.
 If below v1.4.4: `npm install -g faces-cli@latest` (older versions have auth bugs).
 
-Check credentials: `faces auth:whoami`. If none exist, see
-[references/QUICKSTART.md](references/QUICKSTART.md) for full setup.
+Check credentials: run `faces config:show` to see active credentials.
+- API key takes priority over JWT — if both exist, the API key is used
+- If switching environments (localhost vs production, different accounts),
+  clear the stale credential: `faces config:set api_key ""` or `faces config:set token ""`
+- When in doubt, pass `--api-key` and `--base-url` explicitly
+- Never run `faces config:clear` (wipes everything with no recovery)
+
+If no credentials exist, see [references/QUICKSTART.md](references/QUICKSTART.md) for full setup.
 
 ## Core workflows
 
@@ -82,14 +88,15 @@ faces compile:doc:make "$DOC_ID"
 THREAD_ID=$(faces compile:upload alias --file transcript.txt --kind thread --face-speaker "Name" --json | jq -r '.thread_id // .id')
 faces compile:thread:make "$THREAD_ID"
 
-# Thread from audio/video — DON'T pass --face-speaker yet
-# You can't know speaker labels until after transcription
+# Thread from audio/video — DON'T pass --face-speaker at upload
+# Speaker labels don't exist until after transcription
 THREAD_ID=$(faces compile:upload alias --file recording.mp4 --kind thread --json | jq -r '.thread_id // .id')
 # CLI polls until transcription completes
-# Review transcript to see speaker labels (A, B, etc.):
+# Review transcript to see speaker labels (Speaker A, Speaker B, etc.):
 faces compile:thread:get "$THREAD_ID"
-# Identify which speaker is the face, then re-upload with correct mapping:
-THREAD_ID=$(faces compile:upload alias --file recording.mp4 --kind thread --face-speaker "A" --json | jq -r '.thread_id // .id')
+# Remap the correct speaker as the face:
+faces compile:thread:edit "$THREAD_ID" --face-speaker "Speaker B"
+# Compile:
 faces compile:thread:make "$THREAD_ID"
 ```
 
@@ -107,13 +114,12 @@ than video), then upload:
 ```bash
 yt-dlp --cookies-from-browser chrome -o episode.mp4 "https://youtube.com/watch?v=VIDEO_ID"
 ffmpeg -i episode.mp4 -vn -acodec libmp3lame -q:a 4 episode.mp3
-# Upload without --face-speaker — you don't know labels yet
+# Upload without --face-speaker — labels don't exist yet
 THREAD_ID=$(faces compile:upload alias --file episode.mp3 --kind thread --json | jq -r '.thread_id // .id')
 # CLI polls for transcription automatically
-faces compile:thread:get "$THREAD_ID"    # review transcript, identify speakers
-# Re-upload with correct speaker mapping:
-THREAD_ID=$(faces compile:upload alias --file episode.mp3 --kind thread --face-speaker "A" --json | jq -r '.thread_id // .id')
-faces compile:thread:make "$THREAD_ID"   # compile when ready
+faces compile:thread:get "$THREAD_ID"                           # review transcript
+faces compile:thread:edit "$THREAD_ID" --face-speaker "Speaker A"  # remap speaker
+faces compile:thread:make "$THREAD_ID"                          # compile
 ```
 Use `--kind document` for solo speakers. For diarized audio, speakers are labeled A, B, etc.
 
