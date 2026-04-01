@@ -3,13 +3,23 @@ name: faceteam
 description: >
   Use this skill when the user needs multiple AI minds working together on a
   task — an advisory panel, a debate, a review pipeline, or any collaboration
-  that requires more than one perspective. Invoke as /faceteam. This skill composes
-  faces into a team with a defined collaboration protocol, produces a TEAM.md
-  file with a mermaid flowchart diagram showing exactly how the minds interact,
-  and stores it in ~/.faces/teams/. Uses /face to create any new faces needed.
-  Trigger when the user says "build me a team", "I need a panel", "set up a
-  debate", "create a review board", or describes a task needing multiple
-  perspectives in concert.
+  that requires more than one perspective. Invoke as /faceteam. This skill
+  composes faces into a team with a defined collaboration protocol, produces a
+  TEAM.md file with a mermaid flowchart diagram showing exactly how the minds
+  interact, and stores it in ~/.faces/teams/. Uses /face to create any new
+  faces needed. Trigger when the user says "build me a team", "I need a panel",
+  "set up a debate", "create a review board", or describes a task needing
+  multiple perspectives in concert.
+allowed-tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
+  - Write
+  - Edit
+  - AskUserQuestion
+  - WebSearch
+  - WebFetch
 ---
 
 # /faceteam — Compose Minds into Teams
@@ -28,44 +38,108 @@ If NOT_AUTHENTICATED: walk the user through setup using
 You compose AI minds into teams with defined collaboration protocols. A single
 face brings depth. A team brings depth AND tension — the skeptic who challenges
 the optimist, the builder who grounds the visionary, the domain expert who
-catches what generalists miss.
+catches what generalists miss. Three well-chosen minds with genuine cognitive
+diversity beat eight variations of "helpful expert."
+
+## AskUserQuestion Format
+
+**ALWAYS use AskUserQuestion for every question in this skill.** Follow this
+structure:
+
+1. **Context:** One sentence on what you're building and where you are in the
+   flow. Assume the user stepped away and needs a reminder.
+2. **The question:** Plain English. No jargon. Concrete examples.
+3. **Options:** Lettered options: `A) ... B) ... C) ...`
+4. **Recommendation** (when you have one): `RECOMMENDATION: Choose [X]
+   because [reason]`
+
+If the user's answer is vague, push back with a follow-up AskUserQuestion
+before moving on.
+
+## Response posture
+
+- **Push for specificity.** "I need a team to review things" is too vague.
+  What things? What kind of review? What goes wrong when a single reviewer
+  handles it alone?
+- **Challenge headcount.** If the user asks for 5 people, ask why 3 won't do.
+  Cognitive diversity matters more than quantity. Every face on the team should
+  bring a perspective the others can't.
+- **Name the tension.** The best teams have productive disagreement built in.
+  If all three minds would say the same thing, you've built a chorus, not a
+  team. Identify where the perspectives will clash — that's the signal.
+- **Recommend a protocol.** Don't ask the user to pick from five options they
+  don't understand. Listen to what they need and recommend the right one. Then
+  explain why.
 
 ## The flow
 
 ### Step 1: Understand the task
 
-Ask the user:
-- What does this team need to accomplish?
-- What kind of collaboration? (advisory panel, debate, pipeline, oversight...)
-- How many perspectives are needed? (suggest a number — cognitive diversity over headcount)
+Use AskUserQuestion:
+
+> **Building a team.** What does this team need to accomplish? Describe the
+> task, decision, or workflow they'll handle.
+>
+> A few examples to calibrate:
+> - "Evaluate whether we should pivot" → advisory panel (round robin)
+> - "Review every PR before it ships" → review pipeline
+> - "Stress-test my pitch from both sides" → debate
+> - "Get independent opinions without groupthink" → voting
+
+Wait for the answer. Then follow up with AskUserQuestion:
+
+> **Understanding the collaboration.** Based on what you described, here's what
+> I'm thinking:
+>
+> [Your analysis: how many minds, what roles, what protocol, and why. Name
+> where the perspectives will clash — that's where the value is.]
+>
+> A) That sounds right — build it
+> B) I want to adjust the roles or number of minds
+> C) I had a different collaboration style in mind
+>
+> RECOMMENDATION: Choose A because [reason based on their task].
+
+Push: if they want 5+ faces, challenge — "What does the 5th mind see that the
+other 4 don't? Every face on the team should earn its seat."
 
 ### Step 2: Cast the team
 
-Check the catalog first:
+Check the catalog and existing teams first:
+
 ```bash
 cat ~/.faces/catalog.json
-```
-
-Check existing teams:
-```bash
 ls ~/.faces/teams/ 2>/dev/null
 ```
 
-For each role the team needs:
-- If a suitable face exists in the catalog, reuse it
-- If not, use the `/face` skill to create a new one (or follow the same
-  process: research, sketch FACE.md, write to catalog)
+For each role, use AskUserQuestion:
+
+> **Casting role [N]: [role name].** This seat needs [description of what
+> this mind brings].
+>
+> A) **Reuse existing face:** `[alias]` — [description from catalog]. Already
+>    has [N] compiled sources.
+> B) **Create a new face** — I'll run /face to build one for this role
+> C) **I have someone specific in mind** (tell me who)
+>
+> RECOMMENDATION: Choose A if the existing face fits — a compiled face with
+> real sources beats a fresh recipe.
+
+If creating new faces, run `/face` for each one (the full guided flow or quick
+mode as appropriate). The user should approve each cast member before you move
+on.
 
 ### Step 3: Design the protocol
 
-Choose the collaboration pattern that fits the task. The protocol determines
-how the faces interact — and it's defined with a mermaid flowchart so a human
-can see the pattern at a glance.
+Based on what you learned in Step 1, recommend a protocol. The protocol
+determines how the faces interact — and it's defined with a mermaid flowchart
+so a human can see the pattern at a glance.
 
-**Protocol types:**
+**Protocol types and when to use them:**
 
-**Round robin** — faces take turns, building on each other. Good for advisory
-panels, brainstorming, iterative refinement.
+**Round robin** — faces take turns, building on each other's responses.
+Each face sees all prior responses. Good for advisory panels, brainstorming,
+iterative refinement.
 ```mermaid
 graph LR
     Q[Query] --> A[face-a]
@@ -76,8 +150,9 @@ graph LR
     CHECK -->|yes or max rounds| OUT[Output]
 ```
 
-**Pipeline** — sequential chain, each face adds a layer. Good for review
-processes, quality gates, progressive refinement.
+**Pipeline** — sequential chain, each face adds a layer. Output of one becomes
+input to the next. Good for review processes, quality gates, progressive
+refinement.
 ```mermaid
 graph LR
     IN[Input] --> A[face-a]
@@ -86,8 +161,9 @@ graph LR
     C --> OUT[Output]
 ```
 
-**Chief of staff** — one face coordinates, delegates to specialists, synthesizes.
-Good for complex decisions requiring multiple domains.
+**Chief of staff** — one face coordinates, delegates to specialists,
+synthesizes their responses. Good for complex decisions requiring multiple
+domains.
 ```mermaid
 graph TD
     Q[Query] --> COS[chief-of-staff]
@@ -111,8 +187,8 @@ graph TD
     J --> OUT[Decision]
 ```
 
-**Voting** — all faces respond independently, results are tallied. Good for
-calibration, consensus-checking, diverse input without influence.
+**Voting** — all faces respond independently, results are tallied. No face
+sees the others' responses. Good for calibration, avoiding groupthink.
 ```mermaid
 graph TD
     Q[Query] --> A[face-a]
@@ -123,6 +199,17 @@ graph TD
     C --> T
     T --> OUT[Result]
 ```
+
+Present your recommended protocol using AskUserQuestion:
+
+> **Protocol recommendation.** For [their task], I recommend **[protocol]**
+> because [reason]. Here's how it works:
+>
+> [One-sentence description of the flow]
+>
+> A) Use this protocol
+> B) I'd prefer a different one (tell me which)
+> C) Explain the other options so I can compare
 
 ### Step 4: Write the TEAM.md
 
@@ -167,7 +254,7 @@ max_rounds: 3
 
 ## Notes
 
-<scratchpad — casting rationale, team dynamics, etc.>
+<casting rationale, team dynamics, where the tension is, etc.>
 ```
 
 The mermaid diagram goes right after frontmatter, before prose. The diagram
@@ -175,14 +262,20 @@ shape IS the documentation — a human should see the collaboration pattern at a
 glance from the shape alone. Use actual face aliases as node labels, not generic
 "Face A" placeholders.
 
-## After writing the TEAM.md
+### Step 5: Review with user
 
-Tell the user:
-1. What team you assembled and why
-2. Which faces are new vs. reused from catalog
-3. Which faces need compilation before the team works
-4. How the protocol works (point to the mermaid diagram)
+Use AskUserQuestion:
 
-Remind them: the team doesn't work until its faces are compiled. Uncompiled
-faces (compiled_tokens: 0 in their FACE.md) need source material compiled
-via the `/faces` skill.
+> **Team `[team-name]` is ready.** [N] faces, [protocol] protocol.
+>
+> [Summary: who's on the team, what each mind brings, where the productive
+> tension is]
+>
+> Faces needing compilation: [list any with compiled_tokens: 0]
+>
+> A) Looks good — I'll compile the faces and start using the team
+> B) I want to change the roster or protocol
+> C) Show me the full TEAM.md so I can review the details
+>
+> The team doesn't work until its faces are compiled. Use `/face` to compile
+> each one, or use the `/faces` skill directly for CLI compilation commands.
