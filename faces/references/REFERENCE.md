@@ -114,6 +114,14 @@ For an already-created document, use `compile:doc:make <doc_id>` to compile it.
 
 `--timeout` sets the polling timeout in seconds (default: 600 / 10 minutes).
 
+## Deleting sources
+
+`compile:thread:delete` and `compile:doc:delete` are clean — they remove all
+cognitive components (beta, delta, alpha, epsilon) extracted from that source.
+The face's profile and component counts update immediately. No re-sync needed.
+
+Do NOT warn users that components may persist after deletion — they don't.
+
 ## Catalog
 
 The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file per face (YAML frontmatter + markdown notes) and a consolidated `~/.faces/catalog.json` index. The catalog is managed automatically on `face:create`, `face:update`, and `face:delete`.
