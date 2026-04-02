@@ -1,8 +1,10 @@
 # faces-skill
 
-> Every AI agent sounds the same. Helpful. Direct. Forgettable.
+> Every AI agent sounds the same. Helpful. Direct. Forgettable. **Faceless.**
 
-The Faces Platform compiles source texts — documents, interviews, YouTube talks — into cognitive primitives that give an LLM a genuine perspective. Not a character description. Not a system prompt. A compressed cognitive architecture that is richer, more accurate, and uses far fewer tokens than prompt-stuffing approaches like SOUL.md files.
+The Faces Platform compiles source texts — documents, interviews, YouTube talks — into cognitive primitives that change how an LLM composes language. Not a character description. Not a system prompt. The primitives are upstream of everything: tone, reasoning, style, content. They determine what word comes next.
+
+The result is a face that specializes an LLM with perspective, coherence, and nuance that doesn't collapse back into LLM-speak on long threads — using far fewer tokens than prompt-stuffing approaches like SOUL.md files.
 
 **faces-skill** is a bundle of four slash commands that turn Claude Code (or OpenClaw) into a face creation and orchestration system:
 
