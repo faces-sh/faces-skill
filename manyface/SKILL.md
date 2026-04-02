@@ -415,26 +415,33 @@ Use AskUserQuestion:
 > A) Yes — prep it for a pull request
 > B) No — this one's just for me
 
-If A: package the skill for submission:
+If A: package the skill for submission.
+
+**Skill vs production:** Only include faces that are structural to the skill
+itself — built-in roles that every user of this skill needs. Faces cast for a
+specific use case (the user's production) do NOT go in the catalog. Most skills
+will ship with an empty `catalog/` and instructions to run `/face` for each role.
 
 1. Create a `README.md` in the skill directory explaining what the skill does,
    who it's for, and example output
-2. Copy all FACE.md recipes and TEAM.md files into a `recipes/` subdirectory
-3. Verify the directory matches the catalog's contribution format:
+2. Create a `catalog/` subdirectory. Copy only structural FACE.md and TEAM.md
+   files (if any). For composite faces, include all component FACE.md files.
+   Mirror the `~/.faces/` structure:
    ```
    manyfaced-<skillname>/
      SKILL.md
      README.md
-     recipes/
-       <alias>-FACE.md
-       <team-name>-TEAM.md
+     catalog/
+       <alias>/FACE.md          # structural faces only
+       teams/<team-name>/TEAM.md
    ```
-4. Tell the user:
-   > Ready to submit. Copy this directory to your local clone of the manyfaced
-   > repo and open a PR:
+3. Tell the user:
+   > Ready to submit. Fork the catalog repo and open a PR:
    > ```bash
-   > cp -r manyfaced-<skillname> ~/.manyfaced/manyfaced-<skillname>
-   > cd ~/.manyfaced && git checkout -b manyfaced-<skillname>
-   > git add manyfaced-<skillname> && git commit -m "Add manyfaced-<skillname>"
+   > gh repo fork facessh/manyfaced --clone
+   > cp -r manyfaced-<skillname> manyfaced/manyfaced-<skillname>
+   > cd manyfaced && git checkout -b add-manyfaced-<skillname>
+   > git add manyfaced-<skillname>
+   > git commit -m "Add manyfaced-<skillname>"
    > gh pr create --title "Add manyfaced-<skillname>" --body "..."
    > ```
