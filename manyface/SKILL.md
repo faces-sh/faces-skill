@@ -445,3 +445,8 @@ will ship with an empty `catalog/` and instructions to run `/face` for each role
    > git commit -m "Add manyfaced-<skillname>"
    > gh pr create --title "Add manyfaced-<skillname>" --body "..."
    > ```
+   >
+   > Once merged, anyone can install it with:
+   > ```bash
+   > faces catalog:manyfaced --install manyfaced-<skillname> --skills-dir ~/.claude/skills
+   > ```

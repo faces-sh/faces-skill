@@ -48,8 +48,9 @@ faces compile:thread:reset    <thread_id>
 faces compile:thread:sync     <thread_id>
 faces compile:thread:delete   <thread_id>  [--yes]
 
-faces catalog:doctor   [--fix]  [--generate]
+faces catalog:doctor      [--fix]  [--generate]
 faces catalog:list
+faces catalog:manyfaced   [--skill NAME]  [--install NAME --skills-dir PATH]  [--refresh]
 
 faces keys:create   --name  [--expires-days N]  [--budget F]  [--face ALIAS]...  [--model NAME]...
 faces keys:list
