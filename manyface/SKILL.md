@@ -327,7 +327,20 @@ compile using the `/faces` skill.
 
 Faces with `compiled_tokens: 0` need compilation before use. See each FACE.md's
 Queued section for source material.
+
+## Circuit
+
+```mermaid
+<circuit diagram using the notation above — rectangles, rounded boxes, hexagons>
 ```
+```
+
+**The circuit diagram is mandatory in every manyfaced SKILL.md you produce.**
+Use the same notation: `[faceless]`, `([solo face])`, `{{team}}`, dotted lines
+to FACE.md/TEAM.md paths. Every manyfaced skill published to GitHub should be
+visually parseable from its circuit diagram alone. This is a standard — all
+manyfaced skills use the same diagram format so they can be rendered, compared,
+and browsed as a catalog of circuits.
 
 ## Key principles
 
