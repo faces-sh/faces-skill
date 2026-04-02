@@ -181,6 +181,11 @@ Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
 | `422` on thread import | Retry with `--type document` |
 | Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID`, review what was extracted, then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 
+**Deleting sources is clean.** `compile:thread:delete` and `compile:doc:delete`
+remove all cognitive components extracted from that source. The face's profile
+and component counts update immediately. No re-sync needed. Do NOT warn users
+that components may persist — they don't.
+
 ## Related skills
 
 - `/face` — Guided face creation (interview, research, sketch, compile, generate slash command)
