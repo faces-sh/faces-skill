@@ -15,45 +15,66 @@ If not installed: `npm install -g faces-cli`
 
 If installed but below v1.4.4: `npm install -g faces-cli@latest` — older versions have bugs with API key auth and config management that will cause failures.
 
-## 2. Register an account
+## 2. Get authenticated
 
-Before creating the account, explain the two plans and ask the human which they prefer:
+Use AskUserQuestion to figure out where the user is:
 
-> Faces has two plans:
+> To use Faces, you need an account. Where are you starting from?
 >
-> **Free** — No monthly fee. Requires a $5 minimum initial spend (added as API credits). You pay per token for both compilation and inference, with a 5% markup.
+> A) I have an account — I'll log in now
+> B) I have an API key — let me paste it
+> C) I need to create an account — help me here
+> D) I'll register at faces.sh myself and come back
+
+**If A (log in):**
+```bash
+faces auth:login --email USER_EMAIL --password 'USER_PASSWORD'
+```
+Verify: `faces auth:whoami`
+
+**If B (API key):**
+```bash
+faces config:set api_key <key>
+```
+Verify: `faces auth:whoami`
+
+**If C (register here):**
+
+Ask which plan via AskUserQuestion:
+
+> Faces has two plans. Which fits you better?
 >
-> **Connect ($17/month)** — Includes 100k compile tokens per month. If you have a ChatGPT Plus or Pro subscription, you can link it for free gpt-5.x inference with no per-token charge or markup.
->
-> Which plan would you like?
+> A) **Free** — $5 initial spend (added as API credits), pay per token
+>    with a 5% markup. Good for trying it out.
+> B) **Connect ($17/month)** — 100k compile tokens/month. If you have
+>    ChatGPT Plus or Pro, link it for free gpt-5.x inference.
 
 Then register with the chosen plan:
 
-**Free plan:**
 ```bash
+# Free plan
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --json)
 echo "$RESULT" | jq -r '.activation_checkout_url'
-```
 
-Tell the human:
-> Paste this link into your browser and complete the payment ($5 minimum, added as API credits). When you see the confirmation page, come back and let me know.
-
-**Connect plan:**
-```bash
+# Connect plan
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --plan connect --json)
 echo "$RESULT" | jq -r '.activation_checkout_url'
 ```
 
-Tell the human:
-> Paste this link into your browser to start your Connect subscription ($17/month). When you see the confirmation page, come back and let me know.
-
-Wait for the human to confirm, then verify:
+Tell the human to open the checkout URL in their browser and complete payment.
+Wait for confirmation, then verify:
 
 ```bash
 faces billing:balance --json | jq '.is_active'
 ```
 
-If `true`, proceed. If `false`, the payment may not have gone through — ask the human to try the link again.
+If `true`, proceed. If `false`, the payment may not have gone through — ask
+them to try the link again.
+
+**If D (register themselves):**
+
+Tell them to register at [faces.sh](https://faces.sh), then come back with
+either login credentials or an API key.
 
 ## 3. Create a Face
 

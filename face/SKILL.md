@@ -27,18 +27,41 @@ allowed-tools:
 ## Preamble
 
 ```bash
-faces --version
-faces auth:whoami 2>/dev/null || echo "NOT_AUTHENTICATED"
+faces --version 2>/dev/null || echo "NOT_INSTALLED"
 LATEST=$(npm outdated -g faces-cli --json 2>/dev/null | jq -r '.["faces-cli"].latest // empty')
 [ -n "$LATEST" ] && echo "UPDATE_AVAILABLE: $LATEST"
+faces auth:whoami --json 2>/dev/null
+echo "EXIT:$?"
+[ -f ~/.faces/config.json ] && echo "HAS_CONFIG" || echo "NO_CONFIG"
 ```
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest` before proceeding.
-The CLI ships frequent updates — if a command fails with an unrecognized flag
-or unexpected error, update first before debugging.
+If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run the preamble.
 
-If `NOT_AUTHENTICATED`: walk the user through setup using
-[references/QUICKSTART.md](../faces/references/QUICKSTART.md) before proceeding.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest` before proceeding.
+
+**Auth triage:**
+
+- `EXIT:0` → authenticated. Proceed.
+- `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
+  understand what failed. Present the diagnosis to the user and help them
+  fix it. Do NOT walk through QUICKSTART or ask about plans.
+- `EXIT:1` + `NO_CONFIG` → new user. Use AskUserQuestion:
+
+  > You're not logged into Faces, and I don't see any prior config on this
+  > machine. Do you already have an account?
+  >
+  > A) I have an account — I'll log in now
+  > B) I have an API key — let me paste it
+  > C) No account — help me set one up here
+  > D) No account — I'll register at faces.sh myself and come back
+
+  If A: prompt `! faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
+  If B: prompt `! faces config:set api_key <key>`, verify with `faces auth:whoami`
+  If C: walk through [references/QUICKSTART.md](../faces/references/QUICKSTART.md)
+  If D: tell them to come back with login credentials or an API key
+
+**Secret hygiene:** Never display API keys, tokens, or passwords from config
+files. Always mask them (e.g. `sk-faces-...dN`).
 
 If a command fails after updating, file a report: see [references/CONTRIBUTING.md](../faces/references/CONTRIBUTING.md).
 
