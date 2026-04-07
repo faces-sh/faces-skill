@@ -101,7 +101,7 @@ cd ~/.openclaw/workspace/skills/faces-skill && ./setup
 You:    /face "Albert Einstein"
 Claude: [searches for Einstein — finds Wikipedia, letters, lectures, interviews]
         [checks catalog — no existing match]
-        [creates face on platform, writes FACE.md recipe with 6 queued sources]
+        [creates face on platform, writes FACE.md recipe]
 
         Recipe ready at ~/.faces/catalog/einstein/FACE.md
         Sources queued:
@@ -112,17 +112,39 @@ Claude: [searches for Einstein — finds Wikipedia, letters, lectures, interview
         Review and edit, then I'll compile.
 
 You:    Looks good, compile it.
-Claude: [compiles Wikipedia bio — 14.1k tokens, 38 primitives]
-        [imports Scientific American essay — 9.8k tokens, 27 primitives]
-        Done. 65 cognitive primitives across 2 sources.
+Claude: [imports Wikipedia bio, Scientific American essay, Electrodynamics paper,
+         Einstein-Besso letters — all queued for compilation]
+        [compiles Wikipedia bio — 14.1k tokens, 38 primitives]
+        [compiles Electrodynamics paper — 11.2k tokens, 31 primitives]
+        [compiles Scientific American essay — 9.8k tokens, 27 primitives]
+        [compiles Einstein-Besso letters — 16.4k tokens, 44 primitives]
+        Done. 140 cognitive primitives across 4 sources.
         Chat with him anytime: /facechat einstein
+```
 
-You:    /facechat einstein "I'm stuck on how to think about this problem. I have two competing models and the data fits both."
+### Chat with a face
+
+```
+You:    /facechat einstein "I'm stuck. I have two competing models and the data fits both."
 Einstein: That is not a problem — that is a gift. When two theories
           explain the same facts, you do not yet understand what you
           are really measuring. The question is not which model is
           correct. The question is: what experiment would make them
           disagree? Find the disagreement and you find the physics...
+
+You:    /facechat
+Claude: Your face catalog:
+        1. einstein — theoretical physicist, first-principles thinker
+        2. skeptic — adversarial critic, assumption challenger
+
+        Who do you want to chat with?
+
+You:    2
+Claude: Chatting with skeptic. What would you like to ask or discuss?
+
+You:    Is my startup idea defensible?
+Skeptic: Define "defensible." You mean a moat? Because if your answer
+         is "we'll move faster," that's not a moat — that's a prayer...
 ```
 
 ### Build a team
