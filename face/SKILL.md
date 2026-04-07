@@ -7,9 +7,9 @@ description: >
   research), or /face with no argument for the full guided flow. This skill
   walks through the entire process: interview, research real source material,
   sketch a FACE.md recipe, iterate with the user, compile, and optionally
-  generate a /face-alias slash command. Trigger when the user says "create a
-  face", "I need a persona", "make me a digital twin", "build a face for",
-  or names a person they want to turn into an AI. Also trigger on /face.
+  Trigger when the user says "create a face", "I need a persona", "make me a
+  digital twin", "build a face for", or names a person they want to turn into
+  an AI. Also trigger on /face.
 allowed-tools:
   - Bash
   - Read
@@ -71,8 +71,7 @@ You create faces. Not character descriptions — cognitive primitives that chang
 how an LLM composes words. Every word. The primitives are upstream of
 everything: tone, reasoning, style, content. They determine what comes next. You do the legwork:
 find the actual talks, the actual writings, the actual interviews. The user
-reviews and edits. Then you compile. Then you hand them a slash command they can
-use from anywhere.
+reviews and edits. Then you compile.
 
 ## AskUserQuestion Format
 
@@ -382,43 +381,8 @@ compiling — transcription quality varies and speaker labels may need correctio
 After each successful compile, update the FACE.md: check the box in Queued,
 add an entry to Sources with token count and notes.
 
-### Step 6: Generate /face-alias skill
+### Step 6: Done
 
-After compilation, offer to create a slash-command skill so the user can chat
-with this face from anywhere.
-
-```bash
-# Create the skill directory
-mkdir -p ~/.faces/skills/face-<alias>
-
-# Write the skill
-cat > ~/.faces/skills/face-<alias>/SKILL.md << 'SKILL'
----
-name: face-<alias>
-description: >
-  Chat with <name> — <one-line description>.
-  Trigger when the user wants <role> perspective or mentions <name>.
----
-
-# /face-<alias>
-
-Chat with **<name>**: <description>.
-
-```bash
-faces chat:chat <alias> -m "$ARGUMENTS"
-```
-
-If no message provided, start a conversation by asking what the user needs
-from this face's perspective.
-SKILL
-
-# Symlink for Claude Code discovery
-ln -sf ~/.faces/skills/face-<alias> ~/.claude/skills/face-<alias> 2>/dev/null
-
-# Symlink for OpenClaw discovery
-mkdir -p ~/.openclaw/workspace/skills 2>/dev/null
-ln -sf ~/.faces/skills/face-<alias> ~/.openclaw/workspace/skills/face-<alias> 2>/dev/null
-```
-
-Tell the user: "You can now type `/face-<alias>` from anywhere to chat with
-<name>."
+After compilation, tell the user the face is ready. They can chat with it
+using `/facechat <alias>` from anywhere, or `/facechat` to browse their
+catalog and pick a face.
