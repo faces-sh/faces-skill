@@ -113,6 +113,7 @@ before moving on.
 
 - `/manyface list` → skip to Mode 3 (browse the catalog)
 - `/manyface install manyfaced-<name>` → skip to Mode 3, install directly
+- `/manyface publish` → skip to Step 7 (publish an existing manyfaced skill)
 
 **Full mode** — no argument:
 
@@ -510,25 +511,35 @@ After QA, present the manyfaced skill using AskUserQuestion:
 ## Step 7: Offer to publish
 
 After the user approves, offer to contribute the skill to the community catalog.
+This step also runs standalone via `/manyface publish`.
 
 Use AskUserQuestion:
 
 > **Want to share this with the community?** The manyfaced catalog at
 > [github.com/faces-sh/manyfaced](https://github.com/faces-sh/manyfaced) is a
-> collection of manyfaced skills anyone can install.
+> collection of manyfaced skills anyone can install via `/manyface install`.
 >
-> A) Yes — prep it for a pull request
+> A) Yes — publish it (I'll handle the PR)
 > B) No — this one's just for me
 
-If A: package the skill for submission.
+If B: done.
+
+If A: package and submit.
+
+**If invoked via `/manyface publish`:** Ask the user which manyfaced skill to
+publish. Look for `manyfaced-*/SKILL.md` directories in the current working
+directory and `~/.claude/skills/`. Present matches and let them pick, or accept
+a path as argument (`/manyface publish manyfaced-code-review`).
+
+### Packaging
 
 **Skill vs production:** Only include faces that are structural to the skill
 itself — built-in roles that every user of this skill needs. Faces cast for a
 specific use case (the user's production) do NOT go in the catalog. Most skills
 will ship with an empty `catalog/` and instructions to run `/face` for each role.
 
-1. Create a `README.md` in the skill directory explaining what the skill does,
-   who it's for, and example output
+1. Create a `README.md` in the skill directory (if missing) explaining what
+   the skill does, who it's for, and example output
 2. Create a `catalog/` subdirectory. Copy only structural FACE.md and TEAM.md
    files (if any). For composite faces, include all component FACE.md files.
    Mirror the `~/.faces/` structure:
@@ -540,18 +551,47 @@ will ship with an empty `catalog/` and instructions to run `/face` for each role
        <alias>/FACE.md          # structural faces only
        teams/<team-name>/TEAM.md
    ```
-3. Tell the user:
-   > Ready to submit. Fork the catalog repo and open a PR:
-   > ```bash
-   > gh repo fork faces-sh/manyfaced --clone
-   > cp -r manyfaced-<skillname> manyfaced/manyfaced-<skillname>
-   > cd manyfaced && git checkout -b add-manyfaced-<skillname>
-   > git add manyfaced-<skillname>
-   > git commit -m "Add manyfaced-<skillname>"
-   > gh pr create --title "Add manyfaced-<skillname>" --body "..."
-   > ```
-   >
-   > Once merged, anyone can install it with:
-   > ```bash
-   > faces catalog:manyfaced --install manyfaced-<skillname> --skills-dir ~/.claude/skills
-   > ```
+3. Verify the package against the submission checklist (see the QA checklist
+   in Step 5 — same rules apply)
+
+### Submitting the PR
+
+Fork the catalog, copy the skill in, and open a PR — all automated:
+
+```bash
+# Fork and clone (gh handles the fork if needed)
+gh repo fork faces-sh/manyfaced --clone -- /tmp/manyfaced-publish
+cd /tmp/manyfaced-publish
+
+# Copy the skill into the catalog
+cp -r <path-to-manyfaced-skillname> manyfaced-<skillname>
+
+# Create branch, commit, push, open PR
+git checkout -b add-manyfaced-<skillname>
+git add manyfaced-<skillname>
+git commit -m "Add manyfaced-<skillname>"
+gh pr create --repo faces-sh/manyfaced \
+  --title "Add manyfaced-<skillname>" \
+  --body "$(cat <<'BODY'
+## manyfaced-<skillname>
+
+<one-paragraph description from the skill's README>
+
+**The cast:**
+<table: step → face/team>
+
+**Circuit diagram** included in SKILL.md.
+
+Submitted via `/manyface publish`.
+BODY
+)"
+
+# Clean up
+rm -rf /tmp/manyfaced-publish
+```
+
+Tell the user the PR URL and that it's pending review.
+
+> **PR submitted:** [URL]
+>
+> Once merged, anyone can install it with `/manyface install manyfaced-<skillname>`.
