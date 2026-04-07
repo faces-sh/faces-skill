@@ -254,7 +254,7 @@ model to chat without specifying `--llm` every time.
 First check the user's plan and available models:
 ```bash
 faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'
-faces models:list --json 2>/dev/null
+faces billing:llm-costs --json 2>/dev/null
 ```
 
 Use the models list to pick four options following this structure. Do NOT
