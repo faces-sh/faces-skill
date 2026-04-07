@@ -1,11 +1,12 @@
 ---
 name: facechat
 description: >
-  Chat with any face in your catalog. Invoke as /facechat <alias> to start
-  chatting directly, or /facechat with no argument to browse your catalog and
-  pick a face. Trigger when the user says "chat with a face", "talk to
-  <name>", "ask <name>", or wants to have a conversation with a compiled face.
-  Also trigger on /facechat.
+  Chat with any face in your catalog. Invoke as /facechat <alias> <message>
+  to send a message directly (e.g. /facechat socrates How are you?),
+  /facechat <alias> to start a conversation, or /facechat with no argument
+  to browse your catalog and pick a face. Trigger when the user says "chat
+  with a face", "talk to <name>", "ask <name>", or wants to have a
+  conversation with a compiled face. Also trigger on /facechat.
 allowed-tools:
   - Bash
   - Read
@@ -59,9 +60,18 @@ files. Always mask them (e.g. `sk-faces-...dN`).
 
 ---
 
+## Parse arguments
+
+The argument string after `/facechat` is parsed as: first word is the alias,
+everything after it is the message. Examples:
+
+- `/facechat socrates How are you?` → alias=`socrates`, message=`How are you?`
+- `/facechat socrates` → alias=`socrates`, no message
+- `/facechat` → no alias, no message (browse catalog)
+
 ## Resolve the face
 
-**If alias provided** (`/facechat albert`):
+**If alias provided** (`/facechat socrates` or `/facechat socrates How are you?`):
 
 Check that the face exists:
 
