@@ -28,7 +28,7 @@ Paste the following into the chat with your agent:
 Use this for **Claude Code**:
 
 ```
-Install and setup Faces:
+Please install and setup Faces:
 1. clone https://github.com/faces-sh/faces-skill.git into ~/.claude/skills/faces-skill then inspect the setup script and run it if it looks safe
 2. tell me about the available skills: /face, /facechat, /faceteam, /manyface, and how you can work with /faces for me
 3. ask if I already have a Faces account, and if so walk me through getting you access, else tell me about account options and help me get one
