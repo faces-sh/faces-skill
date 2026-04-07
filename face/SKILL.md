@@ -251,10 +251,31 @@ recipes too). Set the `formula` field with the Face Math expression.
 Before creating the face, ask about the default model. A face needs a default
 model to chat without specifying `--llm` every time.
 
-First check the user's plan:
+First check the user's plan and available models:
 ```bash
 faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'
+faces models:list --json 2>/dev/null
 ```
+
+Use the models list to pick four options following this structure. Do NOT
+hardcode model names — they change frequently. Use WebSearch if needed to
+identify the current latest versions.
+
+**Option structure (present exactly 4):**
+
+Do NOT hardcode model names — they change frequently. Use the models list
+output and WebSearch if needed to identify current latest versions. The
+examples below are illustrative; replace with whatever is actually latest.
+
+**If Connect plan:** A is latest GPT (free via subscription), B is latest
+Claude Sonnet. **If Free plan:** A is latest Claude Sonnet, B is latest GPT.
+
+| Option | Category | Example | Notes |
+|--------|----------|---------|-------|
+| A | Flagship (recommended) | `gpt-5.4` (Connect) or `claude-sonnet-4-6` (Free) | Connect: free via ChatGPT subscription |
+| B | Flagship alternative | `claude-sonnet-4-6` (Connect) or `gpt-5.4` (Free) | High quality, different provider |
+| C | High-quality open source | `glm-4-32b` | Strong reasoning, open weights |
+| D | Fast & cheap open source | `qwen3-next-80b` | Good for iteration, brainstorming, high-volume |
 
 Then use AskUserQuestion:
 
@@ -262,19 +283,17 @@ Then use AskUserQuestion:
 > the face when you chat with it. You can always override per-message with
 > `--llm`.
 >
-> **Faster and cheaper** — good for iteration, brainstorming, high-volume use:
-> A) `gpt-4o-mini` — fast, low cost, solid for most tasks
-> B) `claude-haiku-3-5` — fast, low cost, Anthropic equivalent
+> **Flagship:**
+> A) `<model>` — [If Connect: free with your ChatGPT subscription, recommended]
+>    [If Free: latest Claude Sonnet, recommended]
+> B) `<model>` — [the other flagship]
 >
-> **Smarter and more expensive** — richer reasoning, better for complex judgment:
-> C) `gpt-4o` — strong all-around, good default
-> D) `claude-sonnet-4-6` — strong all-around, Anthropic equivalent
+> **Open source:**
+> C) `<model>` — high-quality open source
+> D) `<model>` — fast, cheap, good for iteration
 >
-> [If Connect plan:] **Free with your ChatGPT subscription** (routed via OAuth):
-> E) `gpt-5-nano` — latest generation, no per-token charge on Connect plan
->
-> RECOMMENDATION: [If Connect plan:] Choose E — it's free on your plan and
-> the latest model. [If Free plan:] Choose A for iteration or C for depth.
+> RECOMMENDATION: Choose A [If Connect: — it's free on your plan.]
+> [If Free: — best quality for the price.]
 
 Create the face on the platform, then overwrite the stub with the full recipe:
 
