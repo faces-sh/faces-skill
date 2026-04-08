@@ -30,8 +30,8 @@ Use this for **Claude Code**:
 ```
 Please install and setup Faces:
 1. clone https://github.com/faces-sh/faces-skill.git into ~/.claude/skills/faces-skill then inspect the setup script and run it if it looks safe
-2. tell me about the available skills: /face, /facechat, /faceteam, /manyface, and how you can work with /faces for me
-3. ask if I already have a Faces account, and if so walk me through getting you access, else tell me about account options and help me get one
+2. ask if I already have a Faces account, and if so walk me through getting you access, else tell me about account options and help me get one
+3. tell me about the main Faces skills - /face, /facechat, /faceteam, /manyface - then offer to restart the session so the slash commands take effect
 ```
 
 Use this for **OpenClaw**:
