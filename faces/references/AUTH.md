@@ -9,14 +9,14 @@ Registration requires a credit card payment to activate. The flow is:
 Ask the user which plan they want, then register with `--plan`:
 
 ```bash
-# Free plan ($5 activation, pay-per-token with 5% markup)
+# Pay-per-token plan ($5 activation, 5% markup on all API calls)
 faces auth:register \
   --email user@example.com \
   --password 'SecurePass123!' \
   --username alice \
   --json
 
-# Connect plan ($17/month, OAuth compilation, ChatGPT passthrough)
+# Subscription Connect plan ($17/month, link your ChatGPT account for select OpenAI models)
 faces auth:register \
   --email user@example.com \
   --password 'SecurePass123!' \
@@ -25,7 +25,7 @@ faces auth:register \
   --json
 ```
 
-`--plan` defaults to `free` if omitted.
+`--plan` defaults to `free` (pay-per-token) if omitted.
 
 The response includes:
 
@@ -65,7 +65,7 @@ Check that `is_active` is `true`. If not, tell the user the payment may not have
 ### Full example
 
 ```bash
-# 1. Register (use --plan connect for Connect plan)
+# 1. Register (use --plan connect for Subscription Connect plan)
 RESULT=$(faces auth:register --email user@example.com --password 'SecurePass123!' --username alice --json)
 URL=$(echo "$RESULT" | jq -r '.activation_checkout_url')
 
@@ -113,19 +113,16 @@ API keys support optional restrictions:
 
 ## Plans
 
-### Free (pay-per-token)
+### Pay-per-token
 
-- **Activation:** $5 minimum initial spend (added as API credits)
-- **Compilation:** Charged per token used during extraction. Compiling a 1,000-token document costs more than 1,000 tokens because the platform makes multiple LLM calls to extract cognitive primitives. The exact cost depends on the source material and cannot be estimated in advance.
-- **Inference:** Charged per token at the underlying provider's rate.
-- **Markup:** 5% on all token usage (compilation and inference).
+- **Activation:** $5 minimum initial spend (added as API credits).
+- **Pricing:** 5% markup on all API calls — both compilation (building faces) and inference (chatting with faces). Charged per token at the underlying provider's rate plus the markup.
 - **No monthly fee.**
 
-### Connect ($17/month)
+### Subscription Connect ($17/month)
 
-- **Compilation:** Routes through the user's linked ChatGPT OAuth connection (free, unlimited). No compile quota for Connect users.
-- **Inference:** Charged per token with 5% markup, same as free — **except** for OpenAI gpt-5.x models when the user has linked their ChatGPT Plus/Pro subscription via `faces auth:connect openai`. Those requests route through the user's own OpenAI subscription at no additional cost (no markup, no per-token charge from Faces).
-- **ChatGPT passthrough:** Connect-plan users with a linked ChatGPT account get free inference and compilation on supported gpt-5.x models. See [OAUTH.md](OAUTH.md) for setup and supported models.
+- **Same pricing** as pay-per-token (5% markup on all API calls), plus:
+- **ChatGPT passthrough:** Link your ChatGPT Plus or Pro account via `faces auth:connect openai` to use select OpenAI models at no additional cost (no markup, no per-token charge from Faces) when both compiling and chatting with faces. See [OAUTH.md](OAUTH.md) for supported models.
 - **Fallback:** By default, OAuth failures return 422 errors (no silent fallback to paid keys). Enable fallback with `faces account:preferences api_fallback true`.
 
 ### Checking the current plan
@@ -133,7 +130,7 @@ API keys support optional restrictions:
 ```bash
 faces billing:subscription --json   # plan, status, period end
 faces billing:balance --json        # credit balance, is_active
-faces billing:quota --json          # compile token usage and limits
+faces billing:quota --json          # compile token usage
 ```
 
 ### Upgrading

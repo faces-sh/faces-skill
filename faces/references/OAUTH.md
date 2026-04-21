@@ -1,6 +1,6 @@
-# OAuth — Connect ChatGPT (connect plan only)
+# OAuth — Connect ChatGPT (Subscription Connect plan only)
 
-Connect-plan users can link their own ChatGPT Plus/Pro account so inference and compilation route through their subscription at $0 cost.
+Subscription Connect users can link their own ChatGPT Plus/Pro account to use select OpenAI models at no extra cost for both compiling and chatting with faces.
 
 **The human must approve once in their browser. After that, tokens are stored server-side and the agent never asks again.**
 
@@ -25,9 +25,9 @@ faces auth:disconnect openai
 
 Once connected, OAuth routing is transparent — no flag needed on inference commands. Requests to gpt-5.x models route through the user's ChatGPT subscription automatically.
 
-## Fallback behavior (Connect plan only)
+## Fallback behavior (Subscription Connect only)
 
-All OAuth and fallback settings (`api_fallback`, `--oauth-only`) apply only to Connect plan users with a linked ChatGPT account. Free plan users do not route through OAuth and are unaffected.
+All OAuth and fallback settings (`api_fallback`, `--oauth-only`) apply only to Subscription Connect users with a linked ChatGPT account. Pay-per-token users do not route through OAuth and are unaffected.
 
 By default, `api_fallback` is `false` — if OAuth fails (token revoked, model unsupported, rate limit), the request returns a **422** error instead of silently falling back to paid system keys.
 
@@ -48,9 +48,9 @@ faces chat:chat alice -m "hello" --oauth-only    # force OAuth, no fallback (eve
 
 The `--oauth-only` flag is available on `chat:chat`, `chat:messages`, `chat:responses`, `compile:thread:create`, and `compile:thread:message`.
 
-## Connect plan onboarding
+## Subscription Connect onboarding
 
-A new Connect user who hasn't linked OAuth will get 422 errors on compile and chat until they either:
+A new Subscription Connect user who hasn't linked OAuth will get 422 errors when using select OpenAI models until they either:
 1. Link their OpenAI account: `faces auth:connect openai`
 2. Enable paid fallback: `faces account:preferences api_fallback true`
 3. Pass `--oauth-only` explicitly (to diagnose which requests use OAuth)

@@ -110,16 +110,16 @@ The backend may auto-route certain models (e.g. `gpt-5.4`) from Chat Completions
 
 `chat:messages` and `chat:responses` are still available for direct endpoint access.
 
-## OAuth-only mode (`--oauth-only`) — Connect plan only
+## OAuth-only mode (`--oauth-only`) — Subscription Connect only
 
-The `--oauth-only` flag and `api_fallback` preference only apply to **Connect plan** users who have linked their ChatGPT account via `faces auth:connect openai`. Free plan users do not use OAuth and these settings have no effect for them.
+The `--oauth-only` flag and `api_fallback` preference only apply to **Subscription Connect** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth and these settings have no effect for them.
 
 The `--oauth-only` flag prevents fallback to paid system keys. When set, requests that fail OAuth return a 422 error instead of silently falling back to credits. Available on `chat:chat`, `chat:messages`, `chat:responses`, `compile:thread:create`, and `compile:thread:message`.
 
-The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Connect plan), all requests behave as if `--oauth-only` is set — OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
+The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Subscription Connect), all requests behave as if `--oauth-only` is set — OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
 
 ```bash
-faces account:preferences api_fallback false    # default: no fallback (Connect plan)
+faces account:preferences api_fallback false    # default: no fallback (Subscription Connect)
 faces account:preferences api_fallback true     # allow paid fallback when OAuth fails
 ```
 

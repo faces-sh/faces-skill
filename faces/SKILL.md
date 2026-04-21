@@ -171,7 +171,7 @@ faces chat:chat alias -m "message"
 ```
 
 Auto-routes by model provider (including backend auto-routing for gpt-5.x models). Override: `--llm MODEL`.
-Connect plan users: add `--oauth-only` to prevent paid fallback.
+Subscription Connect users: add `--oauth-only` to prevent paid fallback.
 In `--json` mode, response includes `_meta` with `provider`, `cost_usd`, and `routed_endpoint`.
 Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](references/TEMPLATES.md).
 
@@ -227,7 +227,7 @@ faces account:preferences api_fallback true           # allow paid fallback when
 | status "transcribing" | Audio/video transcription in progress — poll with `compile:thread:get ID --json` |
 | status "preparing" | Compilation in progress — poll with `compile:doc:get ID --json` or `compile:thread:get ID --json` |
 | `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1). If no payment method on file: `faces billing:card-setup` first. See [BILLING.md](references/BILLING.md) |
-| `422 oauth_rejected` | Connect plan only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
+| `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
 | `422` on thread import | Retry with `--type document` |
 | Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID`, review what was extracted, then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 

@@ -253,7 +253,7 @@ model to chat without specifying `--llm` every time.
 
 First check the user's plan and available models:
 ```bash
-faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'
+faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" = pay-per-token, "connect" = Subscription Connect
 faces billing:llm-costs --json 2>/dev/null
 ```
 
@@ -267,13 +267,13 @@ Do NOT hardcode model names — they change frequently. Use the models list
 output and WebSearch if needed to identify current latest versions. The
 examples below are illustrative; replace with whatever is actually latest.
 
-**If Connect plan:** A is latest GPT (free via subscription), B is latest
-Claude Sonnet. **If Free plan:** A is latest Claude Sonnet, B is latest GPT.
+**If Subscription Connect (with ChatGPT linked):** A is latest GPT (no extra cost via ChatGPT passthrough), B is latest
+Claude Sonnet. **If pay-per-token:** A is latest Claude Sonnet, B is latest GPT.
 
 | Option | Category | Example | Notes |
 |--------|----------|---------|-------|
-| A | Flagship (recommended) | `gpt-5.4` (Connect) or `claude-sonnet-4-6` (Free) | Connect: free via ChatGPT subscription |
-| B | Flagship alternative | `claude-sonnet-4-6` (Connect) or `gpt-5.4` (Free) | High quality, different provider |
+| A | Flagship (recommended) | `gpt-5.4` (Subscription Connect) or `claude-sonnet-4-6` (pay-per-token) | Subscription Connect: no extra cost via ChatGPT passthrough |
+| B | Flagship alternative | `claude-sonnet-4-6` (Subscription Connect) or `gpt-5.4` (pay-per-token) | High quality, different provider |
 | C | High-quality open source | `glm-4-32b` | Strong reasoning, open weights |
 | D | Fast & cheap open source | `qwen3-next-80b` | Good for iteration, brainstorming, high-volume |
 
@@ -284,16 +284,16 @@ Then use AskUserQuestion:
 > `--llm`.
 >
 > **Flagship:**
-> A) `<model>` — [If Connect: free with your ChatGPT subscription, recommended]
->    [If Free: latest Claude Sonnet, recommended]
+> A) `<model>` — [If Subscription Connect: no extra cost via your ChatGPT account, recommended]
+>    [If pay-per-token: latest Claude Sonnet, recommended]
 > B) `<model>` — [the other flagship]
 >
 > **Open source:**
 > C) `<model>` — high-quality open source
 > D) `<model>` — fast, cheap, good for iteration
 >
-> RECOMMENDATION: Choose A [If Connect: — it's free on your plan.]
-> [If Free: — best quality for the price.]
+> RECOMMENDATION: Choose A [If Subscription Connect: — no extra cost on your plan.]
+> [If pay-per-token: — best quality for the price.]
 
 Create the face on the platform, then overwrite the stub with the full recipe:
 

@@ -44,19 +44,20 @@ Ask which plan via AskUserQuestion:
 
 > Faces has two plans. Which fits you better?
 >
-> A) **Free** — $5 initial spend (added as API credits), pay per token
->    with a 5% markup. Good for trying it out.
-> B) **Connect ($17/month)** — compile via your ChatGPT subscription (free, unlimited). If you have
->    ChatGPT Plus or Pro, link it for free gpt-5.x inference.
+> A) **Pay-per-token** — $5 initial spend (added as API credits), 5% markup
+>    on all API calls. No monthly fee. Good for trying it out.
+> B) **Subscription Connect ($17/month)** — same 5% markup, plus link your
+>    ChatGPT Plus or Pro account to use select OpenAI models at no extra cost
+>    when compiling and chatting with faces.
 
 Then register with the chosen plan:
 
 ```bash
-# Free plan
+# Pay-per-token plan
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --json)
 echo "$RESULT" | jq -r '.activation_checkout_url'
 
-# Connect plan
+# Subscription Connect plan
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --plan connect --json)
 echo "$RESULT" | jq -r '.activation_checkout_url'
 ```
@@ -177,5 +178,5 @@ If `component_counts` shows non-null values, the Face is compiled and ready.
 - **Compare Faces** — `faces face:diff --face alice --face bob`
 - **Compose Faces** — `faces face:create --alias alice-and-bob --formula "alice | bob"`
 - **Use templates** — reference multiple faces in a single prompt: `faces chat:chat gpt-4o-mini -m 'Compare ${alice} and ${bob}.'`
-- **Connect ChatGPT** (connect plan) — `faces auth:connect openai` for free gpt-5.x inference. See [OAUTH.md](OAUTH.md).
+- **Connect ChatGPT** (Subscription Connect plan) — `faces auth:connect openai` to use select OpenAI models at no extra cost. See [OAUTH.md](OAUTH.md).
 - **Create an API key** — `faces keys:create --name "my-key"` for programmatic access. See [AUTH.md](AUTH.md).

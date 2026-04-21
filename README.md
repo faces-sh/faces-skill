@@ -66,10 +66,10 @@ npm install -g faces-cli
 You can register manually at the [faces.sh](https://faces.sh/) website, or via the cli:
 
 ```bash
-# Free plan ($5 activation, pay-per-token)
+# Pay-per-token plan ($5 activation, 5% markup on all API calls)
 faces auth:register --email you@example.com --password 'your-password' --username your-username
 
-# Connect plan ($17/month, OAuth compilation, ChatGPT passthrough)
+# Subscription Connect plan ($17/month, link ChatGPT for select OpenAI models at no extra cost)
 faces auth:register --email you@example.com --password 'your-password' --username your-username --plan connect
 ```
 

@@ -34,23 +34,23 @@ charge.
 faces billing:subscription --json
 ```
 
-Returns plan type (`free` or `connect`), face count, and renewal date.
+Returns plan type (`free` = pay-per-token, or `connect` = Subscription Connect), face count, and renewal date.
 
-## Upgrade plan
+## Upgrade to Subscription Connect
 
 ```bash
 faces billing:checkout --plan connect
 ```
 
-Opens a Stripe Checkout URL to upgrade to the Connect plan.
+Opens a Stripe Checkout URL to upgrade to the Subscription Connect plan.
 
-## Check compile token quota
+## Check compile token usage
 
 ```bash
 faces billing:quota --json
 ```
 
-Shows compile token quota and per-face stats. Connect plan users compile via OAuth (free, unlimited) — this quota is still tracked but is less relevant for Connect users.
+Shows compile token usage and per-face stats.
 
 ## View LLM pricing
 
@@ -88,9 +88,8 @@ to confirm, then `faces billing:topup --amount <USD>` to add credits and retry.
 fallback: `faces account:preferences api_fallback true`. If no credits, run
 `faces billing:topup` first. See [OAUTH.md](OAUTH.md) for details.
 
-**Connect plan users:** The Connect plan ($17/month) compiles via OAuth (free,
-unlimited). Chat via ChatGPT passthrough (GPT models) is also free on Connect —
-no credit cost for requests routed through your ChatGPT subscription. If OAuth
-is not linked, compile and chat will fail with 422 until you either link OpenAI
-(`faces auth:connect openai`) or enable paid fallback
-(`faces account:preferences api_fallback true`).
+**Subscription Connect users:** Link your ChatGPT account (`faces auth:connect openai`)
+to use select OpenAI models at no extra cost for both compilation and chat. If OAuth
+is not linked, those models fall back to paid credits (5% markup). If `api_fallback`
+is `false` (default), requests that fail OAuth return 422 instead — enable fallback
+with `faces account:preferences api_fallback true`.
