@@ -25,7 +25,7 @@ faces auth:register \
   --json
 ```
 
-`--plan` defaults to `free` if omitted. `--name` is optional — if omitted, the username is used as the display name.
+`--plan` defaults to `free` if omitted.
 
 The response includes:
 
