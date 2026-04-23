@@ -69,7 +69,7 @@ faces face:create --name "Name" --alias slug --default-model MODEL \
   --description "Plain-text bio" \
   --attr gender=male --attr age=34 --attr location="Portland, OR" \
   --attr occupation="nurse practitioner" \
-  --tag research --tag client:acme
+  --tag research --tag physics
 ```
 
 `--description` is stored on the server (max 1500 chars) and synced to the local catalog.
@@ -195,7 +195,7 @@ Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
 Create named groups of faces with optional description, protocol (mermaid diagram), and tags:
 ```bash
 # Create a team
-TEAM=$(faces team:create --name "Review Panel" --description "Research critique" --tag team:review --json)
+TEAM=$(faces team:create --name "Review Panel" --description "Research critique" --tag review --json)
 TEAM_ID=$(echo "$TEAM" | jq -r '.id')
 
 # Add faces as members

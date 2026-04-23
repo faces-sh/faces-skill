@@ -164,7 +164,7 @@ faces face:update ada --description "Updated bio"
 
 ## Face tags (`--tag`)
 
-Lowercase string labels for organization and search. Pattern: `^[a-z0-9][a-z0-9:\-_.]{0,63}$`. Max 32 per face. Use `:` for namespacing (e.g. `client:acme`, `status:active`).
+Lowercase string labels for organization and search. Max 64 chars, max 32 per face.
 
 ```bash
 # Set tags on create
@@ -192,7 +192,7 @@ Named groups of faces with optional description, protocol (mermaid diagram), and
 
 ```bash
 # Create a team
-faces team:create --name "Review Panel" --description "Research critique panel" --tag team:review
+faces team:create --name "Review Panel" --description "Research critique panel" --tag review
 
 # Add faces
 faces team:add TEAM_ID --face alice --face bob

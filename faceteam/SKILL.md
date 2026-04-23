@@ -282,7 +282,7 @@ First create the team on the server, then write the local TEAM.md:
 
 ```bash
 # Create team on server
-TEAM=$(faces team:create --name "<team-name>" --description "<what this team does>" --tag team:<category> --json)
+TEAM=$(faces team:create --name "<team-name>" --description "<what this team does>" --tag review --json)
 TEAM_ID=$(echo "$TEAM" | jq -r '.id')
 
 # Add members
@@ -305,7 +305,7 @@ The frontmatter holds structured metadata. Everything after the closing `---` is
 ---
 name: <team-name>
 description: <what this team does>
-tags: [team:<category>, <other-tags>]
+tags: [review, research]
 members: [alias-1, alias-2, alias-3]
 ---
 
