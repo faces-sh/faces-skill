@@ -264,7 +264,7 @@ Do NOT warn users that components may persist after deletion — they don't.
 The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file per face (YAML frontmatter + markdown notes) and a consolidated `~/.faces/catalog.json` index. The catalog is managed automatically on `face:create`, `face:update`, and `face:delete`.
 
 - `faces catalog:doctor` — diagnose missing, stale, or orphaned catalog entries
-- `faces catalog:doctor --fix` — rebuild catalog from API (syncs descriptions from server)
+- `faces catalog:doctor --fix` — rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files)
 - `faces catalog:doctor --generate` — fix + generate descriptions via LLM (syncs back to server)
 - `faces catalog:backup` — snapshot all faces (with descriptions, tags), teams, documents, and threads to `~/.faces/backups/<timestamp>.json`
 - `faces catalog:restore [FILE]` — restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload.
@@ -293,7 +293,9 @@ The `--attr KEY=VALUE` flag on `face:create` and `face:update` sets basic demogr
 
 These are the most common keys. Many more are accepted across categories including birth details, family, career, education, housing, and immigration. **Only keys on the accepted list work — unsupported keys are dropped with a warning in the response.** Run `faces face:attributes` for the complete categorized list.
 
-**Example — create a Face with basic facts:**
+Attributes appear as `attributes` in CLI responses (the API sends `basic_facts` but the CLI renames it).
+
+**Example — create a Face with attributes:**
 ```bash
 faces face:create --name "Maria Chen" --alias maria \
   --attr gender=female --attr age=34 \

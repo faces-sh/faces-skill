@@ -32,7 +32,7 @@ echo "EXIT:$?"
 
 If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run the preamble.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest` before proceeding.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalog:doctor --fix` to migrate local catalog files.
 
 **Auth triage:**
 

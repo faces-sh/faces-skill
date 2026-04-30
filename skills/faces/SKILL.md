@@ -44,7 +44,7 @@ echo "EXIT:$?"
 
 If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run setup.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest` before proceeding.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then run `faces catalog:doctor --fix` to migrate local catalog files (FACE.md and TEAM.md) to the latest format.
 
 **Auth triage:**
 
@@ -272,9 +272,48 @@ faces account:preferences api_fallback true           # allow paid fallback when
   catalog.json          # auto-generated index
   catalog/<alias>/      # individual FACE.md files
   backups/              # timestamped JSON backup snapshots (v2: faces + teams)
-  teams/<team-name>/    # TEAM.md files (frontmatter: name, description, tags, members; body: protocol)
+  teams/<team-name>/    # TEAM.md files
   skills/              # shared skills (facechat, etc.)
 ```
+
+## FACE.md schema
+
+CLI-managed fields (regenerated on sync via `catalog:doctor --fix`):
+```yaml
+---
+name: Ada Lovelace
+description: Mathematician and first computer programmer
+alias: ada
+default_model: gpt-5.4-mini
+attributes:
+  gender: female
+  age: 34
+  occupation: mathematician
+tags: [research, mathematics]
+formula: null
+component_counts: 140
+compiled_tokens: 47200
+profile_token_count: 1024
+---
+```
+
+Agent/user-managed fields (preserved by CLI, never overwritten): `role`, `source_type`, and any other keys not listed above. The markdown body after the frontmatter is always preserved.
+
+All fields in FACE.md reflect the server state. The API returns `basic_facts` but the CLI renames it to `attributes` everywhere.
+
+## TEAM.md schema
+
+```yaml
+---
+id: 6c5f0e35-322b-4f25-af33-089e2a739b5c
+name: Review Panel
+description: Research critique panel
+tags: [review, research]
+members: [ada, einstein, skeptic]
+---
+```
+
+The body after the frontmatter is the protocol (typically a mermaid diagram). Written by `team:create`, updated by `team:update`/`team:add`/`team:remove`. Synced from server by `catalog:doctor --fix`.
 
 ## References
 
