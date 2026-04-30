@@ -11,8 +11,8 @@ faces auth:disconnect   <provider>
 faces auth:connections
 
 faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]
-faces face:list         [--tag TAG...]
-faces face:get          <alias>
+faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams]
+faces face:get          <alias>  [--include tags,teams]
 faces face:attributes
 faces face:update       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...
 faces face:delete       <alias>  [--yes]
@@ -25,6 +25,8 @@ faces face:tag:list     <alias>
 faces face:tag:add      <alias>  --tag TAG  [--tag TAG...]
 faces face:tag:set      <alias>  --tag TAG  [--tag TAG...]
 faces face:tag:remove   <alias>  <tag>
+faces face:tag:all
+faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 
 faces chat:chat         <face_alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
@@ -182,8 +184,21 @@ faces face:tag:remove ada old-tag
 # List tags
 faces face:tag:list ada
 
+# List all tags across all your faces
+faces face:tag:all
+
 # Filter face list by tags (AND logic)
 faces face:list --tag research --tag physics
+
+# Filter by team (OR logic, composes with --tag)
+faces face:list --team TEAM_ID
+
+# Include tags and teams in list/get responses
+faces face:list --include tags,teams
+faces face:get ada --include tags,teams
+
+# Bulk set a face's team memberships (replaces all)
+faces face:teams ada --team TEAM_ID_1 --team TEAM_ID_2
 ```
 
 ## Teams
