@@ -14,7 +14,7 @@ faces face:create       --name  --alias  [--default-model MODEL]  [--description
 faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]
 faces face:get          <alias>  [--include tags,teams,profile]
 faces face:attributes
-faces face:update       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...
+faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...
 faces face:delete       <alias>  [--yes]
 faces face:stats
 faces face:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]
@@ -83,7 +83,7 @@ faces billing:llm-costs  [--provider openai|anthropic|...]
 faces team:create       --name  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]  [--tag TAG...]
 faces team:list
 faces team:get          <team_id>
-faces team:update       <team_id>  [--name]  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]
+faces team:edit       <team_id>  [--name]  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]
 faces team:delete       <team_id>  [--yes]
 faces team:members      <team_id>
 faces team:add          <team_id>  --face ALIAS  [--face ALIAS...]
@@ -104,7 +104,7 @@ faces config:clear  [--yes]
 
 ## Default model (`--default-model`)
 
-The `--default-model` flag on `face:create` and `face:update` sets the LLM used when no `--llm` override is provided to `chat:chat`. Without a default model, the face inherits the user's account-level default model (set via `account:preferences`).
+The `--default-model` flag on `face:create` and `face:edit` sets the LLM used when no `--llm` override is provided to `chat:chat`. Without a default model, the face inherits the user's account-level default model (set via `account:preferences`).
 
 ```bash
 faces face:create --name "Ada" --alias ada --default-model gpt-5.4-mini
@@ -156,11 +156,11 @@ Server-side preferences stored on the user's account. Viewed and modified with `
 
 ## Face description (`--description`)
 
-The `--description` flag on `face:create` and `face:update` sets a plain-text bio stored on the server (max 1500 chars). It is also synced to the local FACE.md catalog.
+The `--description` flag on `face:create` and `face:edit` sets a plain-text bio stored on the server (max 1500 chars). It is also synced to the local FACE.md catalog.
 
 ```bash
 faces face:create --name "Ada" --alias ada --description "Theoretical physicist and first-principles thinker"
-faces face:update ada --description "Updated bio"
+faces face:edit ada --description "Updated bio"
 ```
 
 `catalog:doctor --fix` pulls descriptions from the server. `catalog:doctor --generate` creates descriptions via LLM and syncs them back to the server.
@@ -218,7 +218,7 @@ faces team:add TEAM_ID --face alice --face bob
 faces team:list
 
 # Set protocol (mermaid diagram)
-faces team:update TEAM_ID --protocol-file workflow.mmd
+faces team:edit TEAM_ID --protocol-file workflow.mmd
 
 # Manage members
 faces team:members TEAM_ID
@@ -263,7 +263,7 @@ Do NOT warn users that components may persist after deletion — they don't.
 
 ## Catalog
 
-The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file per face (YAML frontmatter + markdown notes) and a consolidated `~/.faces/catalog.json` index. The catalog is managed automatically on `face:create`, `face:update`, and `face:delete`.
+The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file per face (YAML frontmatter + markdown notes) and a consolidated `~/.faces/catalog.json` index. The catalog is managed automatically on `face:create`, `face:edit`, and `face:delete`.
 
 - `faces catalog:doctor` — diagnose missing, stale, or orphaned catalog entries
 - `faces catalog:doctor --fix` — rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files)
@@ -277,7 +277,7 @@ The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file p
 
 ## Attributes (`--attr`)
 
-The `--attr KEY=VALUE` flag on `face:create` and `face:update` sets basic demographic facts on a Face directly, without compiling a document. The flag is repeatable — pass one `--attr` per fact. These facts anchor the persona and improve compilation quality when source material is added later.
+The `--attr KEY=VALUE` flag on `face:create` and `face:edit` sets basic demographic facts on a Face directly, without compiling a document. The flag is repeatable — pass one `--attr` per fact. These facts anchor the persona and improve compilation quality when source material is added later.
 
 **Common attribute keys:**
 
@@ -309,7 +309,7 @@ faces face:create --name "Maria Chen" --alias maria \
 
 **Example — add facts to an existing Face:**
 ```bash
-faces face:update maria --attr religion=Buddhist --attr ethnicity="Korean American"
+faces face:edit maria --attr religion=Buddhist --attr ethnicity="Korean American"
 ```
 
 > Note: `--attr` cannot be combined with `--formula`. Composite faces inherit their facts from their component faces.

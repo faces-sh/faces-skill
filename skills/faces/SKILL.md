@@ -204,7 +204,7 @@ TEAM_ID=$(echo "$TEAM" | jq -r '.id')
 faces team:add $TEAM_ID --face alice --face bob
 
 # Set a protocol (mermaid workflow diagram)
-faces team:update $TEAM_ID --protocol-file workflow.mmd
+faces team:edit $TEAM_ID --protocol-file workflow.mmd
 
 # List teams, members
 faces team:list
@@ -315,7 +315,7 @@ members: [ada, einstein, skeptic]
 ---
 ```
 
-The body after the frontmatter is the protocol (typically a mermaid diagram). Written by `team:create`, updated by `team:update`/`team:add`/`team:remove`. Synced from server by `catalog:doctor --fix`.
+The body after the frontmatter is the protocol (typically a mermaid diagram). Written by `team:create`, updated by `team:edit`/`team:add`/`team:remove`. Synced from server by `catalog:doctor --fix`.
 
 ## References
 

@@ -295,7 +295,7 @@ cat > ~/.faces/teams/<team-name>/TEAM.md << 'TEAM'
 TEAM
 
 # Sync protocol to server
-faces team:update $TEAM_ID --protocol-file ~/.faces/teams/<team-name>/TEAM.md
+faces team:edit $TEAM_ID --protocol-file ~/.faces/teams/<team-name>/TEAM.md
 ```
 
 **TEAM.md format** — deterministic: YAML frontmatter + mermaid body.
