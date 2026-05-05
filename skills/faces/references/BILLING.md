@@ -36,13 +36,21 @@ faces billing:subscription --json
 
 Returns plan type (`free` = pay-per-token, or `connect` = Subscription Connect), face count, and renewal date.
 
-## Upgrade to Subscription Connect
+## Activate Subscription Connect
 
 ```bash
-faces billing:checkout --plan connect
+faces billing:subscription:activate
 ```
 
-Opens a Stripe Checkout URL to upgrade to the Subscription Connect plan.
+Prints a Stripe Checkout URL to activate the Subscription Connect plan ($17/mo). If the user previously canceled and is still within the billing period, this reactivates instead of creating a new checkout.
+
+## Cancel subscription
+
+```bash
+faces billing:subscription:cancel
+```
+
+Soft cancel — keeps Connect access until the current period ends, then reverts to pay-per-token. To reactivate before the period ends, run `billing:subscription:activate`.
 
 ## Check compilation stats
 

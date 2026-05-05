@@ -72,10 +72,11 @@ faces keys:update   <key_id>  [--name]  [--budget F]  [--reset-spent]
 
 faces billing:balance
 faces billing:subscription
+faces billing:subscription:activate
+faces billing:subscription:cancel
 faces compile:stats
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
 faces billing:topup      --amount F  [--payment-ref REF]
-faces billing:checkout   [--plan connect]
 faces billing:card-setup
 faces billing:llm-costs  [--provider openai|anthropic|...]
 

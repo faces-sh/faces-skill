@@ -133,13 +133,21 @@ faces billing:balance --json        # credit balance, is_active
 faces compile:stats --json          # per-face compilation stats
 ```
 
-### Upgrading
+### Activating Subscription Connect
 
 ```bash
-faces billing:checkout --plan connect
+faces billing:subscription:activate
 ```
 
-Returns a Stripe Checkout URL. The human must open it in a browser to complete payment.
+Prints a Stripe Checkout URL. The human must open it in a browser to complete payment. If previously canceled, this reactivates the existing subscription.
+
+### Canceling
+
+```bash
+faces billing:subscription:cancel
+```
+
+Soft cancel — keeps access until the current billing period ends.
 
 ## JWT vs API key
 
