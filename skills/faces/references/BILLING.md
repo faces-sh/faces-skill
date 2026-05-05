@@ -58,7 +58,7 @@ Soft cancel — keeps Connect access until the current period ends, then reverts
 faces compile:stats --json
 ```
 
-Shows per-face compilation stats (tokens in graph, last synced, etc.).
+Shows per-face compilation stats. Key fields per face: `alias`, `tokens_compiled_current` (current size of cognitive primitives), `tokens_compiled_alltime` (cumulative tokens across all compilation runs), `profile_token_count`, `last_synced_at`.
 
 ## View LLM pricing
 
