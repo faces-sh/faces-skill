@@ -127,6 +127,8 @@ faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 
+**Compilation auto-extracts attributes.** When source text contains biographical details (age, location, occupation, etc.), the compiler automatically populates the face's attributes. This is additive — it won't overwrite attributes set manually via `--attr`.
+
 **Always use `--no-wait`** for compile and upload operations. Each operation
 runs independently on the server — you can fire multiple compiles in parallel
 without waiting for any to finish. Upload all sources, kick off all compiles,
