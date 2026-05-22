@@ -45,7 +45,7 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
   fix it. Do NOT walk through QUICKSTART or ask about plans.
-- `EXIT:1` + `NO_CONFIG` → new user. Use AskUserQuestion:
+- `EXIT:1` + `NO_CONFIG` → new user. Ask the user:
 
   > You're not logged into Faces, and I don't see any prior config on this
   > machine. Do you already have an account?
@@ -55,8 +55,8 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
   > C) No account — help me set one up here
   > D) No account — I'll register at faces.sh myself and come back
 
-  If A: prompt `! faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
-  If B: prompt `! faces config:set api_key <key>`, verify with `faces auth:whoami`
+  If A: have the user run `faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
+  If B: have the user run `faces config:set api_key <key>`, verify with `faces auth:whoami`
   If C: walk through [references/QUICKSTART.md](../faces/references/QUICKSTART.md)
   If D: tell them to come back with login credentials or an API key
 
@@ -73,10 +73,10 @@ the optimist, the builder who grounds the visionary, the domain expert who
 catches what generalists miss. Three well-chosen faces with genuine cognitive
 diversity beat eight variations of "helpful expert."
 
-## AskUserQuestion Format
+## Question format
 
-**ALWAYS use AskUserQuestion for every question in this skill.** Follow this
-structure:
+**Pose every question in this skill clearly and wait for the answer before
+moving on.** Follow this structure:
 
 1. **Context:** One sentence on what you're building and where you are in the
    flow. Assume the user stepped away and needs a reminder.
@@ -85,7 +85,7 @@ structure:
 4. **Recommendation** (when you have one): `RECOMMENDATION: Choose [X]
    because [reason]`
 
-If the user's answer is vague, push back with a follow-up AskUserQuestion
+If the user's answer is vague, push back with a follow-up question
 before moving on.
 
 ## Response posture
@@ -107,7 +107,7 @@ before moving on.
 
 ### Step 1: Understand the task
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Building a team.** What does this team need to accomplish? Describe the
 > task, decision, or workflow they'll handle.
@@ -118,7 +118,7 @@ Use AskUserQuestion:
 > - "Stress-test my pitch from both sides" → debate
 > - "Get independent opinions without groupthink" → voting
 
-Wait for the answer. Then follow up with AskUserQuestion:
+Wait for the answer. Then follow up by asking:
 
 > **Understanding the collaboration.** Based on what you described, here's what
 > I'm thinking:
@@ -144,7 +144,7 @@ cat ~/.faces/catalog.json
 ls ~/.faces/teams/ 2>/dev/null
 ```
 
-For each role, use AskUserQuestion:
+For each role, ask the user:
 
 > **Casting role [N]: [role name].** This seat needs [description of what
 > this face brings].
@@ -265,7 +265,7 @@ graph TD
     T --> OUT[Response]
 ```
 
-Present your recommended protocol using AskUserQuestion:
+Present your recommended protocol to the user:
 
 > **Protocol recommendation.** For [their task], I recommend **[protocol]**
 > because [reason]. Here's how it works:
@@ -330,7 +330,7 @@ Use actual face aliases as node labels, not generic "Face A" placeholders.
 
 ### Step 5: Review with user
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Team `[team-name]` is ready.** [N] faces, [protocol] protocol.
 >

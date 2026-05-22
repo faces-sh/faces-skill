@@ -45,7 +45,7 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
   fix it. Do NOT walk through QUICKSTART or ask about plans.
-- `EXIT:1` + `NO_CONFIG` → new user. Use AskUserQuestion:
+- `EXIT:1` + `NO_CONFIG` → new user. Ask the user:
 
   > You're not logged into Faces, and I don't see any prior config on this
   > machine. Do you already have an account?
@@ -55,8 +55,8 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
   > C) No account — help me set one up here
   > D) No account — I'll register at faces.sh myself and come back
 
-  If A: prompt `! faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
-  If B: prompt `! faces config:set api_key <key>`, verify with `faces auth:whoami`
+  If A: have the user run `faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
+  If B: have the user run `faces config:set api_key <key>`, verify with `faces auth:whoami`
   If C: walk through [references/QUICKSTART.md](../faces/references/QUICKSTART.md)
   If D: tell them to come back with login credentials or an API key
 
@@ -77,10 +77,10 @@ the score.
 directory and the skill name both use this prefix. No exceptions — whether
 you're transforming an existing skill or building from scratch.
 
-## AskUserQuestion Format
+## Question format
 
-**ALWAYS use AskUserQuestion for every question in this skill.** Follow this
-structure:
+**Pose every question in this skill clearly and wait for the answer before
+moving on.** Follow this structure:
 
 1. **Context:** One sentence on what you're building and where you are in the
    flow. Assume the user stepped away and needs a reminder.
@@ -89,7 +89,7 @@ structure:
 4. **Recommendation** (when you have one): `RECOMMENDATION: Choose [X]
    because [reason]`
 
-If the user's answer is vague, push back with a follow-up AskUserQuestion
+If the user's answer is vague, push back with a follow-up question
 before moving on.
 
 ## Response posture
@@ -117,7 +117,7 @@ before moving on.
 
 **Full mode** — no argument:
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Starting /manyface.** What do you want to do?
 >
@@ -135,7 +135,7 @@ Read the skill thoroughly. Understand every step, every decision point, every
 output. Read referenced files if the skill points to them. Then summarize what
 you found.
 
-Use AskUserQuestion:
+Ask the user:
 
 > **I've read the skill.** Here's what I see:
 >
@@ -161,7 +161,7 @@ For each step, determine:
 Focus on steps involving judgment, creativity, adversarial thinking, domain
 expertise, or empathy. Mechanical steps stay faceless.
 
-Present the decomposition using AskUserQuestion:
+Present the decomposition to the user:
 
 > **Proposed decomposition:**
 >
@@ -192,7 +192,7 @@ cat ~/.faces/catalog.json
 ls ~/.faces/teams/ 2>/dev/null
 ```
 
-For each role in the decomposition, use AskUserQuestion:
+For each role in the decomposition, ask the user:
 
 > **Casting: [step name].**
 > This step needs [description of what this face brings].
@@ -221,7 +221,7 @@ manyfaced-<skillname>/
 
 ### Mode 2: "Start from scratch"
 
-Use AskUserQuestion for each question. ONE AT A TIME. Push on vague answers.
+Ask the user each question. ONE AT A TIME. Push on vague answers.
 
 #### Q1: Purpose
 
@@ -270,7 +270,7 @@ Fetch the catalog index from GitHub:
 curl -s https://raw.githubusercontent.com/faces-sh/manyfaced/main/README.md
 ```
 
-Parse the catalog table and present it using AskUserQuestion:
+Parse the catalog table and present it to the user:
 
 > **Community manyfaced skills:**
 >
@@ -284,7 +284,7 @@ When the user picks a skill, fetch its README for details:
 curl -s https://raw.githubusercontent.com/faces-sh/manyfaced/main/manyfaced-<name>/README.md
 ```
 
-Present a summary and use AskUserQuestion:
+Present a summary and ask the user:
 
 > **manyfaced-<name>:** [summary from README]
 >
@@ -302,8 +302,8 @@ git clone --depth 1 --filter=blob:none --sparse \
   https://github.com/faces-sh/manyfaced.git /tmp/manyfaced-install
 cd /tmp/manyfaced-install && git sparse-checkout set manyfaced-<name>
 
-# Copy skill to Claude Code skills directory
-cp -r manyfaced-<name> ~/.claude/skills/manyfaced-<name>
+# Install the skill into your agent (npx skills auto-detects it)
+npx skills add ./manyfaced-<name>
 
 # Copy structural FACE.md and TEAM.md files to ~/.faces/
 # (only if the skill ships with them in catalog/)
@@ -324,7 +324,7 @@ for f in $(grep -l 'compiled_tokens: 0' ~/.faces/catalog/*/FACE.md 2>/dev/null);
 done
 ```
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Installed manyfaced-<name>.** [N] faces need compilation before you can
 > use this skill.
@@ -501,7 +501,7 @@ If anything fails, fix it. Then proceed to Step 6.
 
 ## Step 6: Review with user
 
-After QA, present the manyfaced skill using AskUserQuestion:
+After QA, present the manyfaced skill to the user:
 
 > **Manyfaced skill is ready: `manyfaced-<skillname>/`**
 >
@@ -523,7 +523,7 @@ After QA, present the manyfaced skill using AskUserQuestion:
 After the user approves, offer to contribute the skill to the community catalog.
 This step also runs standalone via `/manyface publish`.
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Want to share this with the community?** The manyfaced catalog at
 > [github.com/faces-sh/manyfaced](https://github.com/faces-sh/manyfaced) is a
@@ -538,7 +538,7 @@ If A: package and submit.
 
 **If invoked via `/manyface publish`:** Ask the user which manyfaced skill to
 publish. Look for `manyfaced-*/SKILL.md` directories in the current working
-directory and `~/.claude/skills/`. Present matches and let them pick, or accept
+directory or your agent's skills directory. Present matches and let them pick, or accept
 a path as argument (`/manyface publish manyfaced-code-review`).
 
 ### Packaging

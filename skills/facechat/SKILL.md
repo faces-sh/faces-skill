@@ -40,7 +40,7 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
 - `EXIT:1` + `HAS_CONFIG` -> returning user. Read the whoami output to
   understand what failed. Present the diagnosis and help them fix it. Do NOT
   walk through QUICKSTART or ask about plans.
-- `EXIT:1` + `NO_CONFIG` -> new user. Use AskUserQuestion:
+- `EXIT:1` + `NO_CONFIG` -> new user. Ask the user:
 
   > You're not logged into Faces, and I don't see any prior config on this
   > machine. Do you already have an account?
@@ -50,8 +50,8 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
   > C) No account -- help me set one up here
   > D) No account -- I'll register at faces.sh myself and come back
 
-  If A: prompt `! faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
-  If B: prompt `! faces config:set api_key <key>`, verify with `faces auth:whoami`
+  If A: have the user run `faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
+  If B: have the user run `faces config:set api_key <key>`, verify with `faces auth:whoami`
   If C: walk through [QUICKSTART.md](../faces/references/QUICKSTART.md)
   If D: tell them to come back with login credentials or an API key
 
@@ -109,7 +109,7 @@ ls ~/.faces/teams/ 2>/dev/null
 ```
 
 Present as a numbered list showing alias, name/description, and whether it's
-a face or team. Use AskUserQuestion:
+a face or team. Ask the user:
 
 > **Your catalog.** Who do you want to chat with?
 >
@@ -130,7 +130,7 @@ faces chat:chat ALIAS -m "MESSAGE"
 ```
 
 If the user didn't include a message with the alias, ask what they want to
-discuss. Use AskUserQuestion:
+discuss. Ask the user:
 
 > **Chatting with NAME.** What would you like to ask or discuss?
 

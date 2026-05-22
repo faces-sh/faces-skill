@@ -23,23 +23,31 @@ The result is a face that specializes an LLM with perspective, coherence, and nu
 
 ## Quick Start
 
-### Option 1: One-liner (Claude Code, Cursor, Gemini CLI)
+### Option 1: One-liner
 
 ```bash
 npx skills add faces-sh/faces-skill
 ```
 
-This installs the skills automatically. In Claude Code, restart the session (`/exit` then relaunch) so the slash commands load.
+This auto-detects your coding agent and installs the skills. To install for a specific agent — or several at once — pass `-a` / `--agent`:
+
+```bash
+npx skills add faces-sh/faces-skill -a claude-code
+npx skills add faces-sh/faces-skill -a hermes-agent
+npx skills add faces-sh/faces-skill -a codex -a cursor
+```
+
+`npx skills` supports 55+ agents (Claude Code, Hermes, Codex, Cursor, Gemini CLI, OpenClaw, …) — see the [full list](https://github.com/vercel-labs/skills#supported-agents). In Claude Code, restart the session (`/exit` then relaunch) so the slash commands load; most other agents pick up skills automatically.
 
 ### Option 2: Paste into your agent
 
-For **Claude Code**:
+Paste this into any agent (Claude Code, Hermes, Codex, Cursor, …):
 
 ```
 Please install and setup Faces:
-1. run: npx skills add faces-sh/faces-skill
+1. run: npx skills add faces-sh/faces-skill   (if my agent isn't auto-detected, add `-a <agent>`, e.g. `-a hermes-agent`)
 2. ask if I already have a Faces account, and if so walk me through getting you access, else tell me about account options and help me get one
-3. tell me about the main Faces skills - /facemake, /facechat, /faceteam, /manyface - then tell me to exit and restart Claude Code so the new slash commands take effect (you cannot restart yourself — I need to type /exit and relaunch)
+3. tell me about the main Faces skills - /facemake, /facechat, /faceteam, /manyface, /faces. If I'm in Claude Code, tell me to type /exit and relaunch so the new slash commands take effect (you cannot restart yourself); other agents load skills automatically.
 ```
 
 For **OpenClaw**:
@@ -91,7 +99,8 @@ faces billing:balance --json | jq '.is_active'
 
 **Recommended:**
 ```bash
-npx skills add faces-sh/faces-skill
+npx skills add faces-sh/faces-skill                  # auto-detects your agent
+npx skills add faces-sh/faces-skill -a hermes-agent  # or target one explicitly
 ```
 
 **Or manual clone:**

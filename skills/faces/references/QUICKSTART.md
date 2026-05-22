@@ -19,7 +19,7 @@ If installed but below v1.4.4: `npm install -g faces-cli@latest` — older versi
 
 ## 2. Get authenticated
 
-Use AskUserQuestion to figure out where the user is:
+Ask the user where they're starting from:
 
 > To use Faces, you need an account. Where are you starting from?
 >
@@ -42,7 +42,7 @@ Verify: `faces auth:whoami`
 
 **If C (register here):**
 
-Ask which plan via AskUserQuestion:
+Ask the user which plan they want:
 
 > Faces has two plans. Which fits you better?
 >

@@ -45,7 +45,7 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
   fix it. Do NOT walk through QUICKSTART or ask about plans.
-- `EXIT:1` + `NO_CONFIG` → new user. Use AskUserQuestion:
+- `EXIT:1` + `NO_CONFIG` → new user. Ask the user:
 
   > You're not logged into Faces, and I don't see any prior config on this
   > machine. Do you already have an account?
@@ -55,8 +55,8 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
   > C) No account — help me set one up here
   > D) No account — I'll register at faces.sh myself and come back
 
-  If A: prompt `! faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
-  If B: prompt `! faces config:set api_key <key>`, verify with `faces auth:whoami`
+  If A: have the user run `faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
+  If B: have the user run `faces config:set api_key <key>`, verify with `faces auth:whoami`
   If C: walk through [references/QUICKSTART.md](../faces/references/QUICKSTART.md)
   If D: tell them to come back with login credentials or an API key
 
@@ -111,10 +111,10 @@ faces face:list --json 2>/dev/null | jq -r '.data[]? | select(.name == "<origina
 
   Then continue to **Step 1** quick mode with the chosen value.
 
-## AskUserQuestion Format
+## Question format
 
-**ALWAYS use AskUserQuestion for every question in this skill.** Follow this
-structure:
+**Pose every question in this skill clearly and wait for the answer before
+moving on.** Follow this structure:
 
 1. **Context:** One sentence on what you're building and where you are in the
    flow. Assume the user stepped away and needs a reminder.
@@ -123,7 +123,7 @@ structure:
 4. **Recommendation** (when you have one): `RECOMMENDATION: Choose [X]
    because [reason]`
 
-If the user's answer is vague, push back with a follow-up AskUserQuestion
+If the user's answer is vague, push back with a follow-up question
 before moving on. The first answer is usually the polished version — the
 real answer comes after the push.
 
@@ -154,7 +154,7 @@ before asking the next one. Push on vague answers.
 
 #### Q1: Who
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Building a face.** First question: what kind of face are we creating?
 >
@@ -171,7 +171,7 @@ need the face for and recommend a type based on their answer.
 
 **If real person (A):**
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Building a face of [person].** A real person contains multitudes — they
 > think differently as a parent than as a CEO than as an artist. Which version
@@ -181,13 +181,13 @@ Use AskUserQuestion:
 > this face that a faceless AI can't answer well?
 
 Push: if they give a generic answer ("as an advisor"), follow up with another
-AskUserQuestion: "Their advice on what? An advisor giving product feedback is a
+question: "Their advice on what? An advisor giving product feedback is a
 different face than the same person giving life advice. Which version do
 you need?"
 
 **If archetype or composite (B/C):**
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Building an archetype.** What job does this face do for you? What's the
 > question you want to ask it that a faceless AI can't answer well?
@@ -203,7 +203,7 @@ to make, or what work product are you trying to improve?"
 
 **If real person:**
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Narrowing the cognitive profile.** What's the thing about how this person
 > speaks that you can't get from a faceless AI? Not their opinions — the way
@@ -219,7 +219,7 @@ we need to capture in the source material."
 
 **If archetype or composite:**
 
-Use AskUserQuestion:
+Ask the user:
 
 > **Defining the cognitive core.** What's the trait that makes this face
 > different from a smart generalist? And is there someone you've worked with,
@@ -236,8 +236,8 @@ first principles? Those produce very different output."
 
 #### Q4: Confirm
 
-Synthesize what you've heard into a one-paragraph profile and use
-AskUserQuestion:
+Synthesize what you've heard into a one-paragraph profile and ask
+the user:
 
 > **Here's the face I'm going to build:**
 >
@@ -311,7 +311,7 @@ Claude Sonnet. **If pay-per-token:** A is latest Claude Sonnet, B is latest GPT.
 | C | High-quality open source | `glm-4-32b` | Strong reasoning, open weights |
 | D | Fast & cheap open source | `qwen3-next-80b` | Good for iteration, brainstorming, high-volume |
 
-Then use AskUserQuestion:
+Then ask the user:
 
 > **Choosing a default model for this face.** This determines which LLM powers
 > the face when you chat with it. You can always override per-message with
@@ -374,7 +374,7 @@ reasoning style to extract from the sources, etc.>
 
 ### Step 4: Iterate
 
-Present the FACE.md to the user. This is co-creation. Use AskUserQuestion:
+Present the FACE.md to the user. This is co-creation. Ask the user:
 
 > **FACE.md recipe for [alias] is ready.** Review the description, queued
 > sources, and notes below. Does this capture the face you want?
