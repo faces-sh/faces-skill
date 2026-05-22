@@ -23,13 +23,19 @@ The result is a face that specializes an LLM with perspective, coherence, and nu
 
 ## Quick Start
 
-### Option 1: One-liner (Claude Code, Cursor, Gemini CLI)
+### Option 1: One-liner
 
+**Claude Code, Cursor, Gemini CLI** (default):
 ```bash
 npx skills add faces-sh/faces-skill
 ```
+Restart the session (`/exit` then relaunch) so the slash commands load.
 
-This installs the skills automatically. In Claude Code, restart the session (`/exit` then relaunch) so the slash commands load.
+**[Hermes Agent](https://hermes-agent.nousresearch.com):**
+```bash
+npx skills add faces-sh/faces-skill --target hermes
+```
+No restart needed — Hermes loads skills automatically.
 
 ### Option 2: Paste into your agent
 
@@ -42,6 +48,15 @@ Please install and setup Faces:
 3. tell me about the main Faces skills - /facemake, /facechat, /faceteam, /manyface - then tell me to exit and restart Claude Code so the new slash commands take effect (you cannot restart yourself — I need to type /exit and relaunch)
 ```
 
+For **Hermes Agent**:
+
+```
+Please install and setup Faces:
+1. run: npx skills add faces-sh/faces-skill --target hermes
+2. ask if I already have a Faces account, and if so walk me through getting you access, else tell me about account options and help me get one
+3. tell me about the main Faces skills — facemake, facechat, faceteam, manyface, faces
+```
+
 For **OpenClaw**:
 
 ```
@@ -49,6 +64,27 @@ Please install Faces:
 1. clawhub install faces
 2. run QUICKSTART.md exactly
 3. tell me how to use it
+```
+
+## Agent Compatibility
+
+faces-skill uses a compile step to adapt the canonical skill files for each agent's tool interface. The compiler (`bin/compile.js`) is invoked automatically by `npx skills add` via the `--target` flag.
+
+| Agent | Install command | Interactive input | Notes |
+|---|---|---|---|
+| Claude Code (default) | `npx skills add faces-sh/faces-skill` | `AskUserQuestion` | Native slash commands |
+| Hermes Agent | `npx skills add faces-sh/faces-skill --target hermes` | `clarify` tool | Installed to `~/.hermes/skills/faces/` |
+| Cursor / Gemini CLI | `npx skills add faces-sh/faces-skill` | `AskUserQuestion` | Same as Claude Code |
+
+**How the compiler works:** Each `SKILL.md` in `skills/` is the canonical source. The compiler transforms it for the target agent — remapping tool names (`AskUserQuestion` → `clarify`), install paths, and shell invocation syntax. The core skill logic (bash workflows, faces CLI commands, interview flows) is unchanged.
+
+To run the compiler directly:
+```bash
+git clone https://github.com/faces-sh/faces-skill.git
+cd faces-skill
+node bin/compile.js --target hermes          # install to ~/.hermes/skills/faces/
+node bin/compile.js --target claude-code     # install to ~/.claude/skills/ (symlinks)
+node bin/compile.js --target hermes --dry-run  # preview without writing
 ```
 
 ## Community catalog

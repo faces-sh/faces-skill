@@ -1,0 +1,15 @@
+{
+  "name": "faces-skill",
+  "version": "1.0.0",
+  "description": "faces-skill: cognitive personas for Claude Code, Hermes Agent, and more",
+  "bin": {
+    "faces-skill": "./bin/compile.js"
+  },
+  "scripts": {
+    "compile": "node bin/compile.js",
+    "compile:hermes": "node bin/compile.js --target hermes",
+    "compile:claude-code": "node bin/compile.js --target claude-code"
+  },
+  "keywords": ["faces", "skill", "claude-code", "hermes", "persona", "agent"],
+  "license": "MIT"
+}

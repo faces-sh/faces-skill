@@ -2,22 +2,59 @@
 set -e
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_SRC="$REPO_DIR/skills"
-PARENT_DIR="$(dirname "$REPO_DIR")"
+TARGET="${1:-claude-code}"
 
-# Clean up stale symlinks from previous versions
-STALE_LINKS=("face")
-for old in "${STALE_LINKS[@]}"; do
-  if [ -L "$PARENT_DIR/$old" ]; then
-    rm "$PARENT_DIR/$old"
-    echo "Removed stale /$old symlink (renamed to /facemake)"
-  fi
-done
+case "$TARGET" in
+  --target)
+    TARGET="${2:-claude-code}"
+    ;;
+  claude-code|hermes)
+    ;;
+  *)
+    echo "Unknown target: $TARGET"
+    echo "Usage: ./setup [--target <claude-code|hermes>]"
+    exit 1
+    ;;
+esac
 
-for dir in "$SKILLS_SRC"/*/; do
-  [ -f "$dir/SKILL.md" ] || continue
-  name="$(basename "$dir")"
-  ln -sfn "$dir" "$PARENT_DIR/$name"
-  echo "Linked /$name"
-done
+if [ "$TARGET" = "hermes" ]; then
+  # Install into Hermes skills directory
+  DEST_DIR="$HOME/.hermes/skills/faces"
+  mkdir -p "$DEST_DIR"
+  for dir in "$SKILLS_SRC"/*/; do
+    [ -f "$dir/SKILL.md" ] || continue
+    name="$(basename "$dir")"
+    OUT="$DEST_DIR/$name"
+    mkdir -p "$OUT"
+    node "$REPO_DIR/bin/compile.js" --target hermes --out "$DEST_DIR"
+    echo "Installed /$name → $OUT"
+    break  # compile.js handles all skills in one pass
+  done
+  echo ""
+  echo "Done. Faces skills installed for Hermes Agent at: $DEST_DIR"
+  echo "Available: faces, facemake, facechat, faceteam, manyface"
+  echo "No restart needed — Hermes loads skills automatically."
+else
+  # Default: Claude Code — symlink into parent directory (original behavior)
+  PARENT_DIR="$(dirname "$REPO_DIR")"
 
-echo "Done. Available skills: /faces, /facemake, /facechat, /faceteam, /manyface"
+  # Clean up stale symlinks from previous versions
+  STALE_LINKS=("face")
+  for old in "${STALE_LINKS[@]}"; do
+    if [ -L "$PARENT_DIR/$old" ]; then
+      rm "$PARENT_DIR/$old"
+      echo "Removed stale /$old symlink (renamed to /facemake)"
+    fi
+  done
+
+  for dir in "$SKILLS_SRC"/*/; do
+    [ -f "$dir/SKILL.md" ] || continue
+    name="$(basename "$dir")"
+    ln -sfn "$dir" "$PARENT_DIR/$name"
+    echo "Linked /$name"
+  done
+
+  echo ""
+  echo "Done. Available skills: /faces, /facemake, /facechat, /faceteam, /manyface"
+  echo "Restart Claude Code (/exit then relaunch) so the new slash commands load."
+fi
