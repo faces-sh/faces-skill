@@ -96,13 +96,22 @@ faces auth:whoami
 For non-interactive use (scripts, deployed agents), API keys are preferred over JWT:
 
 ```bash
-# Create a key (requires JWT)
+# Create a key (requires JWT). The new key is saved to
+# ~/.faces/config.json as api_key automatically — subsequent
+# faces commands authenticate with it immediately.
 faces keys:create --name "my-agent" --budget 10.00 --expires-days 30
 
-# Use it
-faces config:set api_key sk-proj-...
-# Or set the environment variable:
-export FACES_API_KEY=sk-proj-...
+# Already have a key from elsewhere? Set it directly:
+faces config:set api_key sk-faces-...
+
+# Or use the environment variable:
+export FACES_API_KEY=sk-faces-...
+```
+
+Pass `--no-save` to `keys:create` if you want to print the key without persisting it locally (e.g. minting a key for another machine or user):
+
+```bash
+faces keys:create --name "other-machine" --no-save
 ```
 
 API keys support optional restrictions:
@@ -110,6 +119,14 @@ API keys support optional restrictions:
 - `--model NAME` — restrict to specific LLM models (repeatable)
 - `--budget F` — spending cap in USD
 - `--expires-days N` — auto-expiry
+
+### One-time secret
+
+The plaintext key is returned **only once** — in the `keys:create` response (JSON field: `key`). `faces keys:list`, `faces config:show`, and `faces auth:whoami` only ever show it truncated by design (the server stores a hash, not the secret). Never try to recover a usable key from those commands; mint a new one instead.
+
+### Sandbox redaction (for agent operators)
+
+Some agent environments run a terminal security scanner that redacts `sk-`-prefixed strings from displayed output. This is purely cosmetic — the key is still valid, and with default-save it is already written to `~/.faces/config.json`. Don't conclude "the CLI masked the key" or try to bypass the CLI by hitting the API directly; the CLI returns the full key verbatim. The agent's job is to *use* the key (automatic with default-save), not to *read* it.
 
 ## Plans
 

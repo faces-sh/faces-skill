@@ -181,4 +181,4 @@ If `component_counts` shows non-null values, the Face is compiled and ready.
 - **Compose Faces** — `faces face:create --alias alice-and-bob --formula "alice | bob"`
 - **Use templates** — reference multiple faces in a single prompt: `faces chat:chat gpt-4o-mini -m 'Compare ${alice} and ${bob}.'`
 - **Connect ChatGPT** (Subscription Connect plan) — `faces auth:connect openai` to use select OpenAI models at no extra cost. See [OAUTH.md](OAUTH.md).
-- **Create an API key** — `faces keys:create --name "my-key"` for programmatic access. See [AUTH.md](AUTH.md).
+- **Create an API key** — `faces keys:create --name "my-key"` for programmatic access. The key is saved to `~/.faces/config.json` automatically; pass `--no-save` to skip. See [AUTH.md](AUTH.md).

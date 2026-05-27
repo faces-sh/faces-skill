@@ -65,7 +65,7 @@ faces catalog:manyfaced   [--skill NAME]  [--install NAME --skills-dir PATH]  [-
 
 faces compile:all         [--timeout N]
 
-faces keys:create   --name  [--expires-days N]  [--budget F]  [--face ALIAS]...  [--model NAME]...
+faces keys:create   --name  [--expires-days N]  [--budget F]  [--face ALIAS]...  [--model NAME]...  [--no-save]
 faces keys:list
 faces keys:revoke   <key_id>  [--yes]
 faces keys:update   <key_id>  [--name]  [--budget F]  [--reset-spent]
