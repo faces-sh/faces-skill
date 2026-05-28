@@ -177,9 +177,9 @@ Use `--kind document` for solo speakers.
 faces chat:chat alias -m "message"
 ```
 
-Auto-routes by model provider (including backend auto-routing for gpt-5.x models). Override: `--llm MODEL`.
+Auto-routes off the model catalog: `gpt-5.x`/codex → `/v1/responses` (free when a ChatGPT account is linked, else paid), `claude-*` → `/v1/messages`, `gpt-4o`/xai/venice/fireworks → `/v1/chat/completions`. Override the model with `--llm MODEL`. See [references/REFERENCE.md](references/REFERENCE.md#chat-auto-routing).
 Subscription Connect users: add `--oauth-only` to prevent paid fallback.
-In `--json` mode, response includes `_meta` with `provider`, `cost_usd`, and `routed_endpoint`.
+In `--json` mode, response includes `_meta` with `provider`, `cost_usd`, and `endpoint`.
 Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](references/TEMPLATES.md).
 
 ### 4. Compare & compose
