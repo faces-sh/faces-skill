@@ -91,4 +91,4 @@ The recommended onboarding path is to link OAuth first, then compile.
 
 ## Supported OAuth models
 
-Current models supported via ChatGPT OAuth: `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.3-codex`, `gpt-5.2`.
+Current models supported via ChatGPT OAuth: `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.3-codex`, `gpt-5.2`. These codex models auto-route to `/v1/responses` and are billed $0 while a ChatGPT account is linked (the paid API rate otherwise). See [REFERENCE.md](REFERENCE.md#chat-auto-routing) for the full routing table.

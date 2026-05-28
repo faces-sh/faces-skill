@@ -14,8 +14,8 @@ faces chat:chat alice --llm gpt-4o-mini \
 faces chat:messages alice@claude-sonnet-4-6 \
   -m 'You are debating ${bob}. State your position on AI safety.'
 
-# Multiple references
-faces chat:responses alice@gpt-4o-mini \
+# Multiple references (chat:responses targets /v1/responses, so use a gpt-5.x model)
+faces chat:responses alice@gpt-5.4 \
   -m 'Moderate a debate between ${bob} and ${carol}. Summarize their positions.'
 ```
 
@@ -29,7 +29,7 @@ Pass a bare model name to skip the persona entirely. The model acts as a standar
 faces chat:messages claude-sonnet-4-6 \
   -m 'Compare the worldviews of ${alice} and ${bob}. Where do they agree?'
 
-faces chat:responses gpt-4o-mini \
+faces chat:responses gpt-5.4 \
   -m 'You are moderating a debate between ${alice} and ${bob}.'
 ```
 

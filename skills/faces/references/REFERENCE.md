@@ -122,15 +122,21 @@ New faces inherit the account default model at creation time (one-time copy, not
 
 ## Chat auto-routing
 
-`chat:chat` automatically routes to the correct API endpoint based on the model provider:
+`chat:chat` routes each request to the right API endpoint off the model catalog (`GET /v1/models`, cached locally ~1h) — no model name needs to be hardcoded:
 
-- `claude-*` models → Anthropic Messages API (`/v1/messages`)
-- All other models → OpenAI Chat Completions API (`/v1/chat/completions`)
-- `--responses` flag → OpenAI Responses API (`/v1/responses`)
+| Model class | Endpoint | Response shape |
+|-------------|----------|----------------|
+| `gpt-5.x` / codex (`gpt-5.2`, `gpt-5.4`, `gpt-5.3-codex`, `gpt-5-nano`, …) | `/v1/responses` | OpenAI Responses (`output` / `output_text`) |
+| `claude-*` | `/v1/messages` | Anthropic Messages |
+| `gpt-4o`, xai, venice, fireworks | `/v1/chat/completions` | OpenAI ChatCompletion |
 
-The backend may auto-route certain models (e.g. `gpt-5.4`) from Chat Completions to the Responses API internally. The CLI detects this via the `X-Faces-Routed-Endpoint` response header and parses the response body in the correct format automatically. In `--json` mode, the response includes a `_meta` block with `provider`, `cost_usd`, and `routed_endpoint` fields.
+For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint.
 
-`chat:messages` and `chat:responses` are still available for direct endpoint access.
+**Codex models are free when a ChatGPT account is linked** (Subscription Connect), otherwise billed at the paid API rate — same endpoint and response either way. A connect-plan user with no linked token (and `api_fallback` off) gets a 422 on codex; the CLI then suggests `faces auth:connect openai`.
+
+`--responses` forces the Responses endpoint as an escape hatch; routing is automatic otherwise. In `--json` mode the response includes a `_meta` block with `provider`, `cost_usd`, and `endpoint`.
+
+`chat:messages` (always `/v1/messages`) and `chat:responses` (always `/v1/responses`) remain available for direct, single-endpoint access.
 
 ## OAuth-only mode (`--oauth-only`) — Subscription Connect only
 
