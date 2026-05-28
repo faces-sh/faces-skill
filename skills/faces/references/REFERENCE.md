@@ -6,7 +6,7 @@ faces auth:logout
 faces auth:register     --email  --password  --username  [--plan free|connect]  [--invite-key]   # username: lowercase, numbers, dashes only
 faces auth:whoami
 faces auth:refresh
-faces auth:connect      <provider>  [--manual]
+faces auth:connect      openai   # device-code flow: prints a code + URL, polls until approved
 faces auth:disconnect   <provider>
 faces auth:connections
 
