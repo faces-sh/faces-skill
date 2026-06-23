@@ -123,11 +123,14 @@ a face or team. Ask the user:
 
 ## Chat
 
-Once the face is resolved, relay the user's message:
+Once the face is resolved, start a **thread** so the face remembers the
+conversation across turns (`chat:chat` is stateless and forgets each turn):
 
 ```bash
-faces chat:chat ALIAS -m "MESSAGE"
+faces chat:thread ALIAS -m "MESSAGE" --json
 ```
+
+Capture the `thread_id` from the response — you'll reuse it for every follow-up.
 
 If the user didn't include a message with the alias, ask what they want to
 discuss. Ask the user:
@@ -141,15 +144,24 @@ After each response from the face, the user can:
 - Type `/facechat` again to switch to a different face
 - Move on to other work
 
-For follow-up messages in the same conversation, keep using
-`faces chat:chat ALIAS -m "MESSAGE"` with the same alias.
+For follow-up messages in the same conversation, resume the same thread by id so
+the face keeps full context:
+
+```bash
+faces chat:thread --id THREAD_ID -m "MESSAGE"
+```
+
+Start a fresh thread (omit `--id`, pass the alias) when switching faces or when
+the user clearly begins a new topic.
 
 ### Model override
 
-If the user wants a different model than the face's default, pass `--llm`:
+If the user wants a different model than the face's default, pass `--llm` **when
+starting the thread** (it's frozen for the life of the thread; start a new
+thread to change it):
 
 ```bash
-faces chat:chat ALIAS -m "MESSAGE" --llm MODEL
+faces chat:thread ALIAS -m "MESSAGE" --llm MODEL
 ```
 
 ### Template references

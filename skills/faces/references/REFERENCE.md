@@ -32,6 +32,10 @@ faces chat:chat         <face_alias>  -m MSG  [--llm MODEL]  [--system]  [--stre
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
 faces chat:messages     <face@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--oauth-only]
 faces chat:responses    <face@model | model>  -m MSG  [--instructions]  [--stream]  [--oauth-only]
+faces chat:thread       <alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]   # start a new thread
+faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]                                    # resume a thread
+faces chat:thread       --list                                                                                                                    # list saved threads
+faces chat:thread       --id THREAD_ID  (--show | --delete)                                                                                        # show transcript / delete
 
 faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--perspective first-person|third-person]  [--face-speaker LABEL]  [--no-wait]
 faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]  [--no-wait]
@@ -138,11 +142,43 @@ For a bare alias (no `@model`) the CLI resolves the face's `default_model` (loca
 
 `chat:messages` (always `/v1/messages`) and `chat:responses` (always `/v1/responses`) remain available for direct, single-endpoint access.
 
+## Multi-turn threads (`chat:thread`)
+
+`chat:chat`, `chat:messages`, and `chat:responses` are stateless — each call is a single turn with no memory. `chat:thread` adds persistent, resumable conversation history so a face remembers earlier turns.
+
+Conversation state is stored **locally** (no server-side session) at `~/.faces/threads/<id>.json` (created `0700`, files `0600`). Each turn the full message history is replayed to the model, so the face stays coherent across many turns. Threads are not part of `catalog:backup`.
+
+```bash
+# Start a new thread — needs a face alias. Prints the assistant reply + a thread id.
+faces chat:thread socrates -m "What is justice?"
+#   …reply…
+#   [thread t_abc123  ·  2 turns]
+
+# Resume by id — the face remembers the earlier turns
+faces chat:thread --id t_abc123 -m "Say more about that"
+
+# Manage threads
+faces chat:thread --list                  # all saved threads, newest first
+faces chat:thread --id t_abc123 --show    # full transcript (system + every turn)
+faces chat:thread --id t_abc123 --delete  # remove the local thread file
+```
+
+**Message input:** provide the user message with `-m/--message` or read it from a file with `--file PATH` (one or the other is required when sending).
+
+**`--llm` and `--system` are start-only.** They are read **only when starting a new thread** and then frozen onto the thread:
+- `--llm MODEL` sets the model for the whole thread. Starting with `--llm` pins the model as `alias@MODEL` (e.g. `socrates@claude-haiku-4-5`); without it, the thread uses the face's bare alias and resolves the face's `default_model`. Either way the endpoint is resolved once (via the same [auto-routing](#chat-auto-routing) as `chat:chat`) and **cached on the thread**, so every resume hits the same provider/endpoint.
+- `--system TEXT` sets a system prompt stored on the thread and re-sent every turn (as Anthropic `system`, Responses `instructions`, or a Chat Completions `system` message, depending on the routed endpoint).
+- Passing `--llm` or `--system` together with `--id` (resume) prints a warning and **ignores them** — the values stored on the thread always win. To change the model or system prompt, start a new thread.
+
+**Per-turn flags** (honored on every send, new or resumed): `--max-tokens N` (Anthropic defaults to 1024 when unset), `--temperature F` (OpenAI / Chat Completions endpoints only — ignored on Anthropic and Responses), `--stream`, and `--oauth-only` (see below).
+
+**`--json` output** returns `{thread_id, model, provider, assistant, turns}`; `--list` returns an array of `{id, face, model, turns, created_at, updated_at}`; `--show` returns the full stored thread object.
+
 ## OAuth-only mode (`--oauth-only`) — Subscription Connect only
 
 The `--oauth-only` flag and `api_fallback` preference only apply to **Subscription Connect** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth and these settings have no effect for them.
 
-The `--oauth-only` flag prevents fallback to paid system keys. When set, requests that fail OAuth return a 422 error instead of silently falling back to credits. Available on `chat:chat`, `chat:messages`, `chat:responses`, `compile:thread:create`, and `compile:thread:message`.
+The `--oauth-only` flag prevents fallback to paid system keys. When set, requests that fail OAuth return a 422 error instead of silently falling back to credits. Available on `chat:chat`, `chat:messages`, `chat:responses`, `chat:thread`, `compile:thread:create`, and `compile:thread:message`.
 
 The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Subscription Connect), all requests behave as if `--oauth-only` is set — OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
 

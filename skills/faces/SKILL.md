@@ -182,6 +182,8 @@ Subscription Connect users: add `--oauth-only` to prevent paid fallback.
 In `--json` mode, response includes `_meta` with `provider`, `cost_usd`, and `endpoint`.
 Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](references/TEMPLATES.md).
 
+`chat:chat` is stateless (one turn, no memory). For a conversation the face remembers across turns, use `chat:thread` — history is stored locally and resumed by id (`--id`); set the model/system prompt once when starting. See [references/REFERENCE.md](references/REFERENCE.md#multi-turn-threads-chatthread).
+
 ### 4. Compare & compose
 
 ```bash
