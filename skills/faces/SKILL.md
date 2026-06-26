@@ -184,6 +184,8 @@ Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](ref
 
 `chat:chat` is stateless (one turn, no memory). For a conversation the face remembers across turns, use `chat:thread` — history is stored locally and resumed by id (`--id`); set the model/system prompt once when starting. See [references/REFERENCE.md](references/REFERENCE.md#multi-turn-threads-chatthread).
 
+**System & published faces:** every account can chat a curated set of faces served under the `head` account, using an `owner:alias@model` handle (the `@model` is **required**) — e.g. `faces chat:chat head:logician@gpt-5.4 -m "…"`. List them with `faces face:list --system` (or `--public` for all published faces). A bare alias only ever resolves your own faces; you pay inference at normal rates, the owner is never charged. See [references/REFERENCE.md](references/REFERENCE.md#system--published-faces).
+
 ### 4. Compare & compose
 
 ```bash

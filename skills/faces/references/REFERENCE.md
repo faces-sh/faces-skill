@@ -11,7 +11,7 @@ faces auth:disconnect   <provider>
 faces auth:connections
 
 faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]
-faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]
+faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]  [--public]  [--system]  [--from-users USER...]  [--not-from-users USER...]
 faces face:get          <alias>  [--include tags,teams,profile]
 faces face:attributes
 faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...
@@ -28,11 +28,11 @@ faces face:tag:remove   <alias>  <tag>
 faces face:tag:all
 faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 
-faces chat:chat         <face_alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]
+faces chat:chat         <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]   # owner:alias@model for a published face, e.g. head:logician@gpt-5.4
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
-faces chat:messages     <face@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--oauth-only]
-faces chat:responses    <face@model | model>  -m MSG  [--instructions]  [--stream]  [--oauth-only]
-faces chat:thread       <alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]   # start a new thread
+faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--oauth-only]
+faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--stream]  [--oauth-only]
+faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]   # start a new thread
 faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]                                    # resume a thread
 faces chat:thread       --list                                                                                                                    # list saved threads
 faces chat:thread       --id THREAD_ID  (--show | --delete)                                                                                        # show transcript / delete
@@ -134,13 +134,42 @@ New faces inherit the account default model at creation time (one-time copy, not
 | `claude-*` | `/v1/messages` | Anthropic Messages |
 | `gpt-4o`, xai, venice, fireworks | `/v1/chat/completions` | OpenAI ChatCompletion |
 
-For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint.
+For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint. A bare alias only ever resolves **your own** faces; a namespaced `owner:alias` (e.g. `head:logician`) addresses a published face owned by another account — see [System & published faces](#system--published-faces). System faces have no `default_model`, so they always require an explicit `@model`.
 
 **Codex models are free when a ChatGPT account is linked** (Subscription Connect), otherwise billed at the paid API rate — same endpoint and response either way. A connect-plan user with no linked token (and `api_fallback` off) gets a 422 on codex; the CLI then suggests `faces auth:connect openai`.
 
 `--responses` forces the Responses endpoint as an escape hatch; routing is automatic otherwise. In `--json` mode the response includes a `_meta` block with `provider`, `cost_usd`, and `endpoint`.
 
 `chat:messages` (always `/v1/messages`) and `chat:responses` (always `/v1/responses`) remain available for direct, single-endpoint access.
+
+## System & published faces
+
+Besides your own faces, the platform serves a curated set of **system faces** under the `head` account, available to every account. Discover them (and any other public faces) with `face:list`:
+
+| Command | Shows |
+|---|---|
+| `faces face:list` | your own faces (default — unchanged) |
+| `faces face:list --public` | your faces **plus** all published faces from other accounts |
+| `faces face:list --system` | only the curated system faces (owned by `head`) |
+| `faces face:list --from-users alice,bob` | only published faces from these owners |
+| `faces face:list --not-from-users head` | published faces, excluding these owners |
+
+`--from-users` and `--not-from-users` are repeatable / comma-separated and **mutually exclusive**. In `--json`, published faces carry `published: true` and `owned_by` (the owner account). In the human-readable list they render as the chat handle `owner:alias` with a `[public · requires @model]` marker.
+
+**Addressing a published face in chat** uses an `owner:alias` namespace, and the model is **required** (system faces have no `default_model`):
+
+```bash
+# System faces — owner:alias@model
+faces chat:chat head:logician@gpt-5.4 -m "Is this argument valid?"
+faces chat:chat head:judge@claude-sonnet-4-6 -m "Score these two answers."
+
+# Your OWN faces stay bare — a bare alias only ever resolves your own catalog
+faces chat:chat logician@gpt-5.4 -m "..."
+```
+
+The same `owner:alias@model` handle works on `chat:messages`, `chat:responses`, and `chat:thread`. A bare `head:logician` (no `@model`) is rejected — always pin a model. Billing is unchanged: the **caller** pays inference at normal per-token rates; the face owner is never charged.
+
+The live curated set today is `head:logician`, `head:judge`, `head:stylometrician`, `head:humor-analyst`, `head:affect-reader`, `head:imagination-cartographer`, and `head:voice-synthesizer` — but treat it as **dynamic** and fetch the current list with `faces face:list --system`.
 
 ## Multi-turn threads (`chat:thread`)
 
@@ -240,6 +269,10 @@ faces face:list --team TEAM_ID
 # tags: tag labels. teams: team memberships. profile: compilation stats.
 faces face:list --include tags,teams,profile
 faces face:get ada --include tags,teams,profile
+
+# Discover published / system faces (see "System & published faces")
+faces face:list --public          # your faces + all published faces
+faces face:list --system          # only the curated system faces (owned by head)
 
 # Bulk set a face's team memberships (replaces all)
 faces face:teams ada --team TEAM_ID_1 --team TEAM_ID_2
