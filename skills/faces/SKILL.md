@@ -186,15 +186,26 @@ Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](ref
 
 **System & published faces:** every account can chat a curated set of faces served under the `head` account, using an `owner:alias@model` handle (the `@model` is **required**) — e.g. `faces chat:chat head:logician@gpt-5.4 -m "…"`. List them with `faces face:list --system` (or `--public` for all published faces). A bare alias only ever resolves your own faces; you pay inference at normal rates, the owner is never charged. See [references/REFERENCE.md](references/REFERENCE.md#system--published-faces).
 
+**Run-time composites:** pass a Face Math formula in the face position to chat with an on-the-fly blend of your own faces — `faces chat:chat "(alice | bob)@claude-sonnet-4-6" -m "…"` (or `--formula "alice | bob" --llm …`). No pre-creation step. See [§4 Compare & compose](#4-compare--compose).
+
 ### 4. Compare & compose
 
 ```bash
 faces face:diff --face alice --face bob
 faces face:neighbors alias --k 3
-faces face:create --alias new --formula "alice | bob"
+faces face:create --alias new --formula "alice | bob"   # persist a composite
 ```
 
 Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
+
+**Compose on the fly — no need to persist.** You can chat with a composite of your own faces built per-request, by putting the formula in the face position. An explicit `@model` is **required** (a run-time composite has no `default_model`):
+
+```bash
+faces chat:chat "(alice | bob)@claude-sonnet-4-6" -m "What should we do?"
+faces chat:chat --formula "alice | bob" --llm claude-sonnet-4-6 -m "What should we do?"
+```
+
+Same operators and merge semantics as a persisted composite (identical latency). A run-time composite **takes the name of its first operand** (`(alice | bob)` answers as *alice*); reach for `face:create --formula` when you want a reusable face with its own name. See [references/REFERENCE.md](references/REFERENCE.md#run-time-composite-faces).
 
 ### 5. Teams
 

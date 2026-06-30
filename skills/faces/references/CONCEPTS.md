@@ -19,6 +19,8 @@ You can also do boolean algebra on Faces. A **composite Face** is defined by a f
 
 Operators can be parenthesized: `(a | b) - c`. Composite Faces are live — if you sync new knowledge into a component Face, the composite reflects it automatically on the next inference request.
 
+A composite can be **persisted** (`face:create --formula "a | b"`, giving it its own reusable name) or composed **at request time** by passing the formula straight into a chat call (`chat:chat "(a | b)@model"`). Both run the same merge — request-time composition just skips the create step. The one difference is identity: a persisted composite has its own name, while a request-time composite **inherits the name of its first operand** (`(a | b)` answers as `a`). See [REFERENCE.md → Run-time composite faces](REFERENCE.md#run-time-composite-faces).
+
 ## Value Proposition
 
 Programmable and composable plug-and-play personas as nuanced as a real human for fewer tokens than any other approach. More persona, less cost.

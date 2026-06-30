@@ -169,6 +169,34 @@ faces chat:chat logician@gpt-5.4 -m "..."
 
 The same `owner:alias@model` handle works on `chat:messages`, `chat:responses`, and `chat:thread`. A bare `head:logician` (no `@model`) is rejected — always pin a model. Billing is unchanged: the **caller** pays inference at normal per-token rates; the face owner is never charged.
 
+## Run-time composite faces
+
+You can chat with a **composite of several faces composed on the fly**, without first persisting it with `face:create --formula`. Put a Face Math formula in the face position (the part left of `@`):
+
+```bash
+# Pass-through: type the formula directly where you'd name a face
+faces chat:chat "(socrates | nietzsche)@claude-sonnet-4-6" -m "What is virtue?"
+
+# --formula convenience: the CLI assembles (expr)@model for you
+faces chat:chat --formula "socrates | nietzsche" --llm claude-sonnet-4-6 -m "What is virtue?"
+```
+
+The backend merges the operand faces' knowledge per request — the same merge a persisted composite does, so latency is effectively identical. Works on `chat:chat`, `chat:messages`, and `chat:responses`. Purely additive: single faces (`alias@model`), published faces (`owner:alias@model`), and bare models all behave as before.
+
+Operators (same as persisted composites): `|` union, `&` intersection, `-` difference, `^` symmetric diff. Parentheses group and nest, e.g. `((a | b) & c)@gpt-5.4`.
+
+**Naming.** A run-time composite has no name of its own, so it **takes the name of its first operand** — `(socrates | nietzsche)@model` answers as *Socrates*. The operand order therefore matters for identity, not just for union conflict-resolution. If you want the blend to have its own distinct name, persist it instead with `face:create --alias … --formula …`, which creates the composite as a named face.
+
+Rules the CLI surfaces:
+
+- **An explicit `@model` is required** — a run-time composite has no `default_model`. A bare `(a | b)` is rejected locally with a "specify a model" message before any round-trip; pass `@model` or `--llm`.
+- **Operands must be your own, concrete faces.** Unknown/unowned → `404 Composite references unknown or unowned face`. A synthetic/composite operand → `422 Composite operands must be concrete faces, not synthetic` (compose from concrete faces only; no nesting persisted composites). Bad syntax → `422 Composite formula syntax error`.
+- **Difference needs spaces:** `a - b` (a dash between alphanumerics, `news-bot`, stays one alias).
+- **Aliases starting with a digit can't appear in a formula** (`2pac`) — single-face `2pac@model` still works, only the formula path is limited.
+- **No `owner:alias` operands inside a formula yet** — run-time composites are over your own faces only (`(me:a | you:b)` → 422).
+
+Billing is unchanged (the caller pays, the usage ledger records the formula string as the model label). Scoped API keys are enforced **per operand**: a key restricted to specific faces may use a composite only if it can access *every* operand, else a 403 naming the disallowed operand.
+
 The live curated set today is `head:logician`, `head:judge`, `head:stylometrician`, `head:humor-analyst`, `head:affect-reader`, `head:imagination-cartographer`, and `head:voice-synthesizer` — but treat it as **dynamic** and fetch the current list with `faces face:list --system`.
 
 ## Multi-turn threads (`chat:thread`)
