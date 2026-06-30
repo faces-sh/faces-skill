@@ -81,6 +81,8 @@ Run `faces face:attributes` for the full list. Attributes have an allow list —
 if an unsupported key is used, the command succeeds but prints a warning listing
 which attributes were dropped.
 
+**Per-face system prompt (`--profile-addendum`).** Give a face a stored system prompt with `--profile-addendum "…"` (or `--profile-addendum-file path.txt` for long prompts; max 100,000 chars). At inference it sits **between** the auto-generated persona and any per-request `--system` prompt — use it for durable behavior rules (tone, format, hard constraints) that should apply to every chat. Edit it with `face:edit --profile-addendum …` and remove it with `face:edit --clear-profile-addendum`. `face:get` shows a preview + char count (`--full` dumps it); it's proprietary and only ever returned for your own faces. A run-time composite borrows its **first operand's** addendum; a persisted composite uses its own.
+
 ### 2. Add source material
 
 **Interview** (no documents needed — best way to build a face from scratch):

@@ -335,6 +335,9 @@ Create the face on the platform, then overwrite the stub with the full recipe:
 # 1. Create on platform (use the model the user chose)
 faces face:create --name "Name" --alias slug \
   --default-model MODEL --attr key=value
+#   Optional: --profile-addendum "<rules>" (or --profile-addendum-file path) to
+#   give the face a standing system prompt — durable behavior/format/constraints
+#   layered on top of the compiled persona. See faces skill REFERENCE.md.
 
 # 2. Overwrite stub with full recipe
 cat > ~/.faces/catalog/<alias>/FACE.md << 'RECIPE'

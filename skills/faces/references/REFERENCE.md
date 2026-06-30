@@ -10,11 +10,11 @@ faces auth:connect      openai   # device-code flow: prints a code + URL, polls 
 faces auth:disconnect   <provider>
 faces auth:connections
 
-faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]
+faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH]
 faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]  [--public]  [--system]  [--from-users USER...]  [--not-from-users USER...]
-faces face:get          <alias>  [--include tags,teams,profile]
+faces face:get          <alias>  [--include tags,teams,profile]  [--full]
 faces face:attributes
-faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...
+faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
 faces face:delete       <alias>  [--yes]
 faces face:stats
 faces face:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]
@@ -263,6 +263,33 @@ faces face:edit ada --description "Updated bio"
 ```
 
 `catalog:doctor --fix` pulls descriptions from the server. `catalog:doctor --generate` creates descriptions via LLM and syncs them back to the server.
+
+## Per-face system prompt (`profile_addendum`)
+
+A face can store an arbitrary system prompt (`profile_addendum`). At inference the backend assembles the instruction stack as **persona profile → profile_addendum → per-request system prompt**, so it's durable, face-level behavior that still leaves room for a per-call `--system`/`--instructions`. Applies on all three endpoints (`chat:chat`, `chat:messages`, `chat:responses`).
+
+```bash
+# Set on create (inline or from a file — file is friendlier for long prompts)
+faces face:create --name "Support Bot" --alias support-bot --default-model claude-sonnet-4-6 \
+  --profile-addendum "Always answer in under 3 sentences. Never promise refunds."
+faces face:create --name "Support Bot" --alias support-bot --profile-addendum-file ./prompt.txt
+
+# Replace or clear on an existing face
+faces face:edit support-bot --profile-addendum "New instructions."
+faces face:edit support-bot --profile-addendum-file ./prompt.txt
+faces face:edit support-bot --clear-profile-addendum        # sends "" to remove it
+
+# Inspect (owner only): preview + char count, or the whole prompt
+faces face:get support-bot            # profile_addendum (58 chars): Always answer in under 3 sentences…
+faces face:get support-bot --full     # dumps the full prompt
+```
+
+Rules:
+- **Max 100,000 chars** (the CLI also checks locally before sending; over the limit → 422 from the server).
+- **`--clear-profile-addendum` sends `""` to remove it**; omitting the flags leaves it unchanged (same semantics as `--description`). `--profile-addendum`, `--profile-addendum-file`, and `--clear-profile-addendum` are mutually exclusive.
+- Formatting (blank lines, indentation) is preserved; control chars are stripped and CRLF→LF normalized.
+- **Proprietary:** returned only for your **own** faces, never on published/cross-user listings, and not echoed back in chat responses.
+- **Composites:** a persisted composite uses its own `profile_addendum`; a run-time composite `(a | b)@model` borrows the **first operand's**. There's no way to pass one inline on a run-time composite — persist it if you need a bespoke prompt.
 
 ## Face tags (`--tag`)
 
