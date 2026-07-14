@@ -202,9 +202,12 @@ Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](ref
 
 ```bash
 faces face:diff --face alice --face bob
-faces face:neighbors alias --k 3
+faces face:neighbors alias --k 3                       # the 3 most SIMILAR faces (nearest, the default)
+faces face:neighbors alias --k 3 --direction furthest # the 3 most DIFFERENT / unlike / opposite faces
 faces face:create --alias new --formula "alice | bob"   # persist a composite
 ```
+
+For "who is most **different / unlike / opposite**," add `--direction furthest`; the default (`nearest`) returns the most similar.
 
 Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
 

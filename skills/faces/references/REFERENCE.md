@@ -20,6 +20,7 @@ faces face:stats
 faces face:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
 faces face:neighbors    <alias>  [--k N]  [--component face|beta|delta|epsilon]  [--direction nearest|furthest]
+                                                       # --direction nearest (default) = most SIMILAR; furthest = most DIFFERENT / unlike / opposite
 
 faces face:tag:list     <alias>
 faces face:tag:add      <alias>  --tag TAG  [--tag TAG...]
