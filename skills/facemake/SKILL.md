@@ -405,8 +405,18 @@ so you're not blocked. Compiles run independently on the server — fire all of
 them without waiting, then poll at the end. Don't wait for one to finish before
 starting the next.
 
+> **Thread or document? Decide this per source.** Any source with more than one
+> speaker (an interview, podcast, conversation, Q&A, panel) is a **thread** —
+> compile it with `--type thread` / `--kind thread` and map the face's own lines
+> with `--face-speaker`. Only single-voice material (a solo talk, essay, article,
+> or the person's own writing) is a **document**. Compiling a multi-speaker
+> source as a document flattens the dialogue into one voice and corrupts the
+> face. For public figures especially, most talks are interviews — check before
+> defaulting to `--type document`.
+
 ```bash
-# YouTube video
+# YouTube video — solo talk (single voice). For an interview/podcast, use
+# --type thread instead (see the multi-speaker path below).
 faces compile:import <alias> --url "<youtube-url>" --type document \
   --perspective first-person --no-wait --json
 

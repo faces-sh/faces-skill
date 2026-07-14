@@ -85,11 +85,19 @@ which attributes were dropped.
 
 ### 2. Add source material
 
+> **Thread or document? Decide this first.** Any source with more than one
+> speaker (an interview, podcast, conversation, Q&A, panel) is a **thread**: it
+> preserves who said what, and you map the target person's own lines with
+> `--face-speaker`. Only single-voice material (an essay, article, solo talk, or
+> the person's own writing) is a **document**. Compiling a multi-speaker source
+> as a document flattens the dialogue into one voice and corrupts the face, so
+> when in doubt, if two or more people are talking, it is a thread.
+
 **Interview** (no documents needed — best way to build a face from scratch):
 Run a Q&A interview with the user, save the transcript, upload and compile.
 See [references/INTERVIEWS.md](references/INTERVIEWS.md) for both modes (agent-as-interviewer recommended, built-in interviewer also available).
 
-**Document (essay, notes, PDF):**
+**Document (single-voice — essay, notes, PDF):**
 ```bash
 faces compile:doc alias --file document.txt --no-wait --json
 # Poll: faces compile:doc:get DOC_ID --json | jq '{prepare_status}'

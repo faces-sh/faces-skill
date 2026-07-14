@@ -95,9 +95,17 @@ Save the face `id` (alias) — you'll need it for the next steps.
 
 ## 4. Add source material
 
+> **Thread or document? Decide this first.** Any source with more than one
+> speaker (an interview, podcast, conversation, Q&A, panel) is a **thread**: it
+> preserves who said what, and you map the target person's own lines with
+> `--face-speaker`. Only single-voice material (an essay, article, solo talk, or
+> the person's own writing) is a **document**. Compiling a multi-speaker source
+> as a document flattens the dialogue into one voice and corrupts the face, so
+> when in doubt, if two or more people are talking, it is a thread.
+
 Pick one or more methods depending on what the human has:
 
-**Local file (text, PDF):**
+**Local file — single-voice document (text, PDF):**
 ```bash
 DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --no-wait --json | jq -r '.document_id // .id')
 ```
