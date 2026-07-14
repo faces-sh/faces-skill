@@ -103,11 +103,21 @@ Save the face `id` (alias) — you'll need it for the next steps.
 > as a document flattens the dialogue into one voice and corrupts the face, so
 > when in doubt, if two or more people are talking, it is a thread.
 
+> **By them or about them? Set `--perspective` accordingly.** `--perspective`
+> defaults to `first-person` (the subject's own voice) — right for their own
+> essays, letters, interview answers, talks. For material *about* the person (a
+> biography, an encyclopedia/Wikipedia article, a news profile), you **must** pass
+> `--perspective third-person`, or it is compiled as if the subject wrote it and
+> corrupts the face.
+
 Pick one or more methods depending on what the human has:
 
 **Local file — single-voice document (text, PDF):**
 ```bash
+# By the subject — first-person is the default
 DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --no-wait --json | jq -r '.document_id // .id')
+# About the subject (biography, Wikipedia, news profile) — add --perspective third-person
+DOC_ID=$(faces compile:upload alice --file /path/to/profile.pdf --kind document --perspective third-person --no-wait --json | jq -r '.document_id // .id')
 ```
 
 **YouTube video (solo speaker):**

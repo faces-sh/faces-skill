@@ -99,13 +99,26 @@ which attributes were dropped.
 > check bakes the wrong person into the face. See **Verify speaker attribution**
 > below.
 
+> **By them or about them? Set `--perspective` accordingly.** `--perspective`
+> defaults to `first-person`, which treats the source as the subject's *own
+> voice*. That is a trap for material *about* a person.
+> - **First-person** (the default) — the person's own words: their essays,
+>   letters, interview answers, talks, notes.
+> - **Third-person** — material *about* the person: a biography, an
+>   encyclopedia/Wikipedia article, a news profile, anyone else's writing about
+>   them. You **must** pass `--perspective third-person` for these; otherwise the
+>   default compiles them as if the subject wrote them and corrupts the face.
+
 **Interview** (no documents needed — best way to build a face from scratch):
 Run a Q&A interview with the user, save the transcript, upload and compile.
 See [references/INTERVIEWS.md](references/INTERVIEWS.md) for both modes (agent-as-interviewer recommended, built-in interviewer also available).
 
 **Document (single-voice — essay, notes, PDF):**
 ```bash
+# By the subject (their own essay/notes) — first-person is the default
 faces compile:doc alias --file document.txt --no-wait --json
+# About the subject (biography, Wikipedia, news profile) — you MUST set third-person
+faces compile:doc alias --file biography.txt --perspective third-person --no-wait --json
 # Poll: faces compile:doc:get DOC_ID --json | jq '{prepare_status}'
 ```
 
