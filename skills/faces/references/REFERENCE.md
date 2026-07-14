@@ -16,6 +16,8 @@ faces face:get          <alias>  [--include tags,teams,profile]  [--full]
 faces face:attributes
 faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
 faces face:delete       <alias>  [--yes]
+faces face:lock         <alias>              # freeze the face (read-only)
+faces face:unlock       <alias>              # unfreeze the face (writable)
 faces face:stats
 faces face:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
@@ -420,9 +422,25 @@ Error (409): This document is read-only and cannot be edited.
 
 Threads phrase it `This corpus is read-only…`. On a 409, don't retry the write —
 surface that the item is frozen. Today only voiceprint **corpus** uploads produce
-locked threads; nothing locks documents yet. There is no lock/unlock command —
-the backend exposes no toggle, so there is no `face:lock` or set-read-only
-command to reference.
+locked threads; nothing locks individual documents. There is no per-item toggle
+for these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
+**Face locking** below).
+
+## Face locking
+
+A whole face can be frozen with `face:lock <alias>` and thawed with
+`face:unlock <alias>`. A locked face still reads and chats normally — it just
+can't be changed.
+
+While locked, any mutating call against the face or anything it owns — editing
+the face, its documents/threads, uploads/imports, voiceprint build/refine, and
+deleting the face — is refused with HTTP `409` (message contains `read-only`).
+Don't retry; `face:unlock` first. The lock also covers the face's voiceprint
+companion, so the whole deepself freezes and thaws together.
+
+Reads, listing, and chat are unaffected. To recognize a locked face: `face:get`
+shows a bare `read only` line and `face:list` shows a `[read only]` marker
+(nothing shown when unlocked).
 
 ## Catalog
 

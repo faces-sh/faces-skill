@@ -228,8 +228,9 @@ Error (409): This document is read-only and cannot be edited.
 
 (threads say `This corpus is read-only…`). Don't retry the write — surface that
 the item is frozen. Today only voiceprint **corpus** uploads produce locked
-threads; nothing locks documents yet. There is no lock/unlock command — the
-backend exposes no toggle.
+threads; nothing locks individual documents. There is no per-item toggle for
+these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
+[references/REFERENCE.md](references/REFERENCE.md#face-locking)).
 
 ### 3. Chat
 
@@ -335,7 +336,7 @@ faces account:preferences api_fallback true           # allow paid fallback when
 | `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1). If no payment method on file: `faces billing:card-setup` first. See [BILLING.md](references/BILLING.md) |
 | `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
 | `422` on thread import | Retry with `--type document` |
-| `409` read-only on edit | The document/thread is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it. No unlock command exists. |
+| `409` read-only on edit | The document/thread is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
 | Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID`, review what was extracted, then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 
 ## Related skills
