@@ -392,6 +392,28 @@ The face's profile and component counts update immediately. No re-sync needed.
 
 Do NOT warn users that components may persist after deletion — they don't.
 
+## Read-only sources
+
+Documents and threads carry a `read_only` flag. When an item is frozen,
+`compile:doc:list`/`:get` and `compile:thread:list`/`:get` print a bare
+`read only` line; nothing is printed when it's writable (there is no
+`read_only: false`). Look for the literal `read only` marker to know an item is
+frozen.
+
+Frozen items are readable and can still be deleted, but any write —
+`compile:doc:edit`, `compile:thread:edit`, `compile:thread:message`, etc. — is
+refused:
+
+```
+Error (409): This document is read-only and cannot be edited.
+```
+
+Threads phrase it `This corpus is read-only…`. On a 409, don't retry the write —
+surface that the item is frozen. Today only voiceprint **corpus** uploads produce
+locked threads; nothing locks documents yet. There is no lock/unlock command —
+the backend exposes no toggle, so there is no `face:lock` or set-read-only
+command to reference.
+
 ## Catalog
 
 The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file per face (YAML frontmatter + markdown notes) and a consolidated `~/.faces/catalog.json` index. The catalog is managed automatically on `face:create`, `face:edit`, and `face:delete`.

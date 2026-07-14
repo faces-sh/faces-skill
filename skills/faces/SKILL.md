@@ -93,6 +93,12 @@ which attributes were dropped.
 > as a document flattens the dialogue into one voice and corrupts the face, so
 > when in doubt, if two or more people are talking, it is a thread.
 
+> **Uploading a thread is the failure-prone step: always inspect the speaker
+> mapping with `compile:thread:get` before you compile.** This holds for *every*
+> thread — a text transcript just as much as audio/video. Compiling before you
+> check bakes the wrong person into the face. See **Verify speaker attribution**
+> below.
+
 **Interview** (no documents needed — best way to build a face from scratch):
 Run a Q&A interview with the user, save the transcript, upload and compile.
 See [references/INTERVIEWS.md](references/INTERVIEWS.md) for both modes (agent-as-interviewer recommended, built-in interviewer also available).
@@ -125,6 +131,7 @@ faces compile:doc:make "$DOC_ID" --no-wait --json
 
 # Thread from text transcript (you know the speakers — pass --face-speaker)
 THREAD_ID=$(faces compile:upload alias --file transcript.txt --kind thread --face-speaker "Name" --no-wait --json | jq -r '.thread_id // .id')
+faces compile:thread:get "$THREAD_ID"   # ALWAYS verify the mapping first (see below) — don't assume text is right
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 
 # Thread from audio/video — DON'T pass --face-speaker at upload
@@ -180,6 +187,36 @@ Use `--kind document` for solo speakers.
 - Audio/video transcription: speakers are labeled `A`, `B`, `C` — use the short label (e.g. `--face-speaker B`)
 - Text transcript uploads: the label matches the speaker name in the file (e.g. `--face-speaker Troy`)
 - Match is case-insensitive but exact
+
+**Verify speaker attribution (every thread, before `compile:thread:make`).**
+An omitted or mismatched `--face-speaker`, fuzzy matching, or `A`/`B`/`C` labels
+can all put the wrong person's lines on the face. Whether the source was text or
+audio/video, run `compile:thread:get <thread_id>` and confirm:
+
+1. **Roles are right** — the face's own speaker is `role=user`; everyone else
+   (interviewer, host, other guests) is `role=assistant`.
+2. **Spot-check, don't over-read** — check a few turns (first, middle, last) that
+   the `user` turns are actually the subject speaking. For a large transcript you
+   do not need to read every line; a smell-test is enough.
+3. **Fix and re-check if wrong** — `faces compile:thread:edit <thread_id>
+   --face-speaker …`, then `compile:thread:get` again. Only compile once the
+   mapping checks out.
+
+**Read-only (frozen) documents & threads.** Some items come back locked. A
+`compile:doc:list`/`:get` or `compile:thread:list`/`:get` prints a bare `read
+only` line when the item is frozen (nothing is printed when it's writable — there
+is no `read_only: false`). Frozen items are fully readable and can still be
+deleted, but any write — `compile:doc:edit`, `compile:thread:edit`,
+`compile:thread:message`, etc. — is refused with:
+
+```
+Error (409): This document is read-only and cannot be edited.
+```
+
+(threads say `This corpus is read-only…`). Don't retry the write — surface that
+the item is frozen. Today only voiceprint **corpus** uploads produce locked
+threads; nothing locks documents yet. There is no lock/unlock command — the
+backend exposes no toggle.
 
 ### 3. Chat
 
@@ -285,6 +322,7 @@ faces account:preferences api_fallback true           # allow paid fallback when
 | `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1). If no payment method on file: `faces billing:card-setup` first. See [BILLING.md](references/BILLING.md) |
 | `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
 | `422` on thread import | Retry with `--type document` |
+| `409` read-only on edit | The document/thread is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it. No unlock command exists. |
 | Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID`, review what was extracted, then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 
 ## Related skills
