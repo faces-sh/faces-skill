@@ -356,6 +356,9 @@ has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
 2. Walk through each Queued item using `--no-wait`:
    - YouTube: `faces compile:import <alias> --url "<url>" --type document --no-wait --json`
    - Local file: `faces compile:doc <alias> --file <path> --no-wait --json`
+   - For material *about* the person (biography, Wikipedia, news profile), add
+     `--perspective third-person` — the default (`first-person`) compiles it as
+     the subject's own voice and corrupts the face. See `/facemake` Step 5.
 3. Fire all compiles in parallel — don't wait for one to finish before starting the next
 4. Poll all at the end: `faces compile:doc:get ID --json | jq '{prepare_status}'`
 5. Update each FACE.md: check boxes in Queued, add entries to Sources

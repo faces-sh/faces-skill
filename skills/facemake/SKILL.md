@@ -272,7 +272,10 @@ actual URLs, not suggestions of what to look for.
 **Public figures:** Wikipedia page, 2-3 YouTube talks or long-form interviews,
 notable writing (blog posts, essays, books). Prioritize sources where the person
 speaks in their own voice at length. Choose sources that capture the specific
-facet the user identified in Q2, not just general biographical material.
+facet the user identified in Q2, not just general biographical material. Note
+which sources are *by* the person (their own writing/talks → first-person) versus
+*about* them (a Wikipedia page, a profile → `--perspective third-person` at
+compile time); mixing these up corrupts the face.
 
 **Archetypes:** Identify 2-3 real people who exemplify the archetype. Find
 source material for each. Note which cognitive aspects to extract from each.
@@ -414,6 +417,14 @@ starting the next.
 > face. For public figures especially, most talks are interviews — check before
 > defaulting to `--type document`.
 
+> **By them or about them? Set `--perspective` accordingly.** `--perspective`
+> defaults to `first-person` (the subject's own voice) — right for their own
+> essays, letters, interview answers, talks. For material *about* the person (a
+> biography, an encyclopedia/Wikipedia article, a news profile), you **must** pass
+> `--perspective third-person`, or it is compiled as if the subject wrote it and
+> corrupts the face. This is easy to get wrong for public figures, where a
+> Wikipedia page is often the first source.
+
 ```bash
 # YouTube video — solo talk (single voice). For an interview/podcast, use
 # --type thread instead (see the multi-speaker path below).
@@ -432,8 +443,10 @@ faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 
-# Local text/PDF file
+# Local text/PDF file — by the subject (first-person is the default)
 faces compile:doc <alias> --file <path> --no-wait --json
+# Local text/PDF file — about the subject (biography, Wikipedia, news profile)
+faces compile:doc <alias> --file <path> --perspective third-person --no-wait --json
 
 # Interview (agent-as-interviewer)
 # See ../faces/references/INTERVIEWS.md for the full workflow

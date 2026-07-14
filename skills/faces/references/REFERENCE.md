@@ -384,6 +384,16 @@ For an already-created document, use `compile:doc:make <doc_id>` to compile it.
 
 `--timeout` sets the polling timeout in seconds (default: 600 / 10 minutes).
 
+**`--perspective` — by them or about them?** Defaults to `first-person`, which
+treats the source as the subject's *own voice*. Use `first-person` for the
+person's own words (essays, letters, interview answers, talks). Set
+`--perspective third-person` for material *about* the person — a biography, an
+encyclopedia/Wikipedia article, a news profile, anyone else's writing about them.
+Omitting the flag on about-them material silently compiles it as if the subject
+wrote it and corrupts the face. Applies to every compile path that accepts it
+(`compile:doc`, `compile:doc:create`, `compile:import`, `compile:upload`,
+`compile:doc:edit`).
+
 ## Deleting sources
 
 `compile:thread:delete` and `compile:doc:delete` are clean — they remove all
