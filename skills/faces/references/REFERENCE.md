@@ -14,12 +14,11 @@ faces face:create       --name  --alias  [--default-model MODEL]  [--description
 faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]  [--public]  [--system]  [--from-users USER...]  [--not-from-users USER...]
 faces face:get          <alias>  [--include tags,teams,profile]  [--full]
 faces face:attributes
-faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
+faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
 faces face:delete       <alias>  [--yes]
 faces face:lock         <alias>              # freeze the face (read-only)
 faces face:unlock       <alias>              # unfreeze the face (writable)
 faces face:stats
-faces face:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
 faces face:neighbors    <alias>  [--k N]  [--component face|beta|delta|epsilon]  [--direction nearest|furthest]
                                                        # --direction nearest (default) = most SIMILAR; furthest = most DIFFERENT / unlike / opposite
@@ -47,7 +46,7 @@ faces compile:doc          <alias>  (--content TEXT | --file PATH)  [--label]  [
 faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  [--perspective first-person|third-person]
 faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
 faces compile:doc:pause    <doc_id>
-faces compile:doc:reset    <doc_id>
+faces compile:doc:reset    <doc_id>  [--yes]
 faces compile:doc:list     <alias>
 faces compile:doc:get      <doc_id>
 faces compile:doc:edit     <doc_id>  [--label]  [--content TEXT | --file PATH]  [--perspective first-person|third-person]
@@ -60,7 +59,7 @@ faces compile:thread:edit     <thread_id>  [--label TEXT]  [--face-speaker NAME]
 faces compile:thread:message  <thread_id>  -m MSG  [--oauth-only]
 faces compile:thread:make     <thread_id>  [--timeout N]  [--no-wait]
 faces compile:thread:pause    <thread_id>
-faces compile:thread:reset    <thread_id>
+faces compile:thread:reset    <thread_id>  [--yes]
 faces compile:thread:sync     <thread_id>
 faces compile:thread:delete   <thread_id>  [--yes]
 
@@ -79,8 +78,8 @@ faces keys:update   <key_id>  [--name]  [--budget F]  [--reset-spent]
 
 faces billing:balance
 faces billing:subscription
-faces billing:subscription:activate
-faces billing:subscription:cancel
+faces billing:subscription:activate  [--plan connect]
+faces billing:subscription:cancel    [--yes]
 faces compile:stats
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
 faces billing:topup      --amount F  [--payment-ref REF]
