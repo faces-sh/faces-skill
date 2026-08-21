@@ -177,6 +177,7 @@ Status meanings (`prepare_status` field):
 | `"preparing"` | Compilation in progress, extracting cognitive primitives | Keep polling |
 | `"syncing"` | Writing primitives to the face | Almost done, keep polling |
 | `"synced"` | Done | Compilation complete |
+| `"pausing"` | Pause requested, finishing the current chunk | Keep polling until `"paused"` |
 | `"paused"` | Compilation paused by user/agent | Resume with `compile:*:make` or reset with `compile:*:reset` |
 | `"failed"` | Something went wrong | Investigate or retry |
 | `"stalled"` | Stuck for 10+ minutes | Re-run the make command |
@@ -337,7 +338,7 @@ faces account:preferences api_fallback true           # allow paid fallback when
 | `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
 | `422` on thread import | Retry with `--type document` |
 | `409` read-only on edit | The document/thread is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
-| Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID`, review what was extracted, then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
+| Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID` — pause is a request, so wait for `prepare_status: "paused"` before reading results (the CLI waits for you unless you pass `--no-wait`). Then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 
 ## Related skills
 

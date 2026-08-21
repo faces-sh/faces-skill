@@ -45,7 +45,7 @@ faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--pe
 faces compile:doc          <alias>  (--content TEXT | --file PATH)  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--no-wait]
 faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  [--perspective first-person|third-person]
 faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
-faces compile:doc:pause    <doc_id>
+faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
 faces compile:doc:reset    <doc_id>  [--yes]
 faces compile:doc:list     <alias>
 faces compile:doc:get      <doc_id>
@@ -58,7 +58,7 @@ faces compile:thread:get      <thread_id>
 faces compile:thread:edit     <thread_id>  [--label TEXT]  [--face-speaker NAME]
 faces compile:thread:message  <thread_id>  -m MSG  [--oauth-only]
 faces compile:thread:make     <thread_id>  [--timeout N]  [--no-wait]
-faces compile:thread:pause    <thread_id>
+faces compile:thread:pause    <thread_id>  [--no-wait]  [--timeout N]
 faces compile:thread:reset    <thread_id>  [--yes]
 faces compile:thread:sync     <thread_id>
 faces compile:thread:delete   <thread_id>  [--yes]
