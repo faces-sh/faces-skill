@@ -443,10 +443,15 @@ faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 
-# Local text/PDF file — by the subject (first-person is the default)
+# Local text file — by the subject (first-person is the default)
 faces compile:doc <alias> --file <path> --no-wait --json
-# Local text/PDF file — about the subject (biography, Wikipedia, news profile)
+# Several sources at once — --file is repeatable, each becomes its own document.
+# Returns {"documents":[{file, document_id}...]} in input order. One call, not one per file.
+faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --no-wait --json
+# Local text file — about the subject (biography, Wikipedia, news profile)
 faces compile:doc <alias> --file <path> --perspective third-person --no-wait --json
+# PDF, audio or video: use compile:upload — compile:doc takes text only
+faces compile:upload <alias> --file <path> --kind document --no-wait --json
 
 # Interview (agent-as-interviewer)
 # See ../faces/references/INTERVIEWS.md for the full workflow

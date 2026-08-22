@@ -113,12 +113,16 @@ which attributes were dropped.
 Run a Q&A interview with the user, save the transcript, upload and compile.
 See [references/INTERVIEWS.md](references/INTERVIEWS.md) for both modes (agent-as-interviewer recommended, built-in interviewer also available).
 
-**Document (single-voice — essay, notes, PDF):**
+**Document (single-voice — essay, notes):**
 ```bash
 # By the subject (their own essay/notes) — first-person is the default
 faces compile:doc alias --file document.txt --no-wait --json
+# Several at once: --file is repeatable and each file becomes its own document.
+# Returns {"documents":[{file, document_id}...]} in input order — one call, not one per file.
+faces compile:doc alias --file a.txt --file b.txt --file c.txt --no-wait --json
 # About the subject (biography, Wikipedia, news profile) — you MUST set third-person
 faces compile:doc alias --file biography.txt --perspective third-person --no-wait --json
+# compile:doc takes TEXT only. For PDF, audio or video use compile:upload instead.
 # Poll: faces compile:doc:get DOC_ID --json | jq '{prepare_status}'
 ```
 
