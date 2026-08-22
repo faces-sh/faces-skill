@@ -122,7 +122,7 @@ faces compile:doc alias --file document.txt --no-wait --json
 faces compile:doc alias --file a.txt --file b.txt --file c.txt --no-wait --json
 # About the subject (biography, Wikipedia, news profile) — you MUST set third-person
 faces compile:doc alias --file biography.txt --perspective third-person --no-wait --json
-# compile:doc takes TEXT only. For PDF, audio or video use compile:upload instead.
+# compile:doc takes TEXT only. For PDF, Word (.docx), audio or video use compile:upload instead.
 # Poll: faces compile:doc:get DOC_ID --json | jq '{prepare_status}'
 ```
 
@@ -140,9 +140,9 @@ faces compile:thread:edit THREAD_ID --face-speaker "A"
 faces compile:thread:make THREAD_ID --no-wait --json
 ```
 
-**Upload a local file (text, PDF, audio, video):**
+**Upload a local file (text, PDF, Word .docx, audio, video):**
 ```bash
-# Document (text/PDF)
+# Document (text, PDF, or Word .docx — text is extracted server-side)
 DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --no-wait --json | jq -r '.document_id // .id')
 faces compile:doc:make "$DOC_ID" --no-wait --json
 

@@ -450,7 +450,7 @@ faces compile:doc <alias> --file <path> --no-wait --json
 faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --no-wait --json
 # Local text file — about the subject (biography, Wikipedia, news profile)
 faces compile:doc <alias> --file <path> --perspective third-person --no-wait --json
-# PDF, audio or video: use compile:upload — compile:doc takes text only
+# PDF, Word (.docx), audio or video: use compile:upload — compile:doc takes text only
 faces compile:upload <alias> --file <path> --kind document --no-wait --json
 
 # Interview (agent-as-interviewer)

@@ -41,12 +41,15 @@ faces chat:thread       --id THREAD_ID  (--show | --delete)                     
 
 faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--perspective first-person|third-person]  [--face-speaker LABEL]  [--no-wait]
 faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]  [--no-wait]
+                                                       # Accepts text, PDF, Word (.docx), audio and video. Text is extracted server-side.
+                                                       # Legacy .doc is refused (400) — save it as .docx first. A .docx with no text 422s:
+                                                       # images and text boxes are not read, only document text.
 
 faces compile:doc          <alias>  (--content TEXT | --file PATH...)  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--no-wait]
                                                        # --file is repeatable: each file becomes its OWN document (not concatenated).
                                                        # Returns {"documents":[{file, document_id}...]} in input order; a bad file is
                                                        # reported in place and the rest still compile. --label is single-document only.
-                                                       # Text only — for PDF/audio/video use compile:upload.
+                                                       # Text only — for PDF, Word (.docx), audio or video use compile:upload.
 faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  [--perspective first-person|third-person]
 faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
 faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
