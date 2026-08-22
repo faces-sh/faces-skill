@@ -338,6 +338,9 @@ Create the face on the platform, then overwrite the stub with the full recipe:
 # 1. Create on platform (use the model the user chose)
 faces face:create --name "Name" --alias slug \
   --default-model MODEL --attr key=value
+#   face:create takes NO source material — no --source, --interview, --file or
+#   --content. It makes an empty face; sources attach afterwards with
+#   compile:doc / compile:upload / compile:thread (see "Attach source material").
 #   Optional: --profile-addendum "<rules>" (or --profile-addendum-file path) to
 #   give the face a standing system prompt — durable behavior/format/constraints
 #   layered on top of the compiled persona. See faces skill REFERENCE.md.
@@ -443,6 +446,9 @@ faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 
+# Text you already have — a transcript in hand, a draft, anything not on disk.
+# Pass it verbatim; do NOT retype or summarise it, or the face learns your paraphrase.
+faces compile:doc <alias> --content "<text>" --label "<name>" --no-wait --json
 # Local text file — by the subject (first-person is the default)
 faces compile:doc <alias> --file <path> --no-wait --json
 # Several sources at once — --file is repeatable, each becomes its own document.

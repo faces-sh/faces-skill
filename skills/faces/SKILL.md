@@ -64,6 +64,9 @@ Never run `faces config:clear` (wipes everything with no recovery).
 
 ### 1. Create a Face
 
+`face:create` takes **no source material** — it makes an empty face. Sources attach afterwards
+(step 2), with `compile:doc` for text, `compile:upload` for files.
+
 ```bash
 faces face:create --name "Name" --alias slug --default-model MODEL \
   --description "Plain-text bio" \
@@ -115,6 +118,9 @@ See [references/INTERVIEWS.md](references/INTERVIEWS.md) for both modes (agent-a
 
 **Document (single-voice — essay, notes):**
 ```bash
+# Text you already have — a transcript in hand, a draft, anything not on disk.
+# Pass it verbatim; do NOT retype or summarise it, or the face learns your paraphrase.
+faces compile:doc alias --content "<text>" --label "Interview" --no-wait --json
 # By the subject (their own essay/notes) — first-person is the default
 faces compile:doc alias --file document.txt --no-wait --json
 # Several at once: --file is repeatable and each file becomes its own document.
