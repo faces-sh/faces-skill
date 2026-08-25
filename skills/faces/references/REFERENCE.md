@@ -20,7 +20,11 @@ faces face:lock         <alias>              # freeze the face (read-only)
 faces face:unlock       <alias>              # unfreeze the face (writable)
 faces face:stats
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
-faces face:neighbors    <alias>  [--k N]  [--component face|beta|delta|epsilon]  [--direction nearest|furthest]
+faces face:neighbors    <alias>  [--k N]  [--component face|POSITION]  [--direction nearest|furthest]
+                                                       # --component: `face` (default) ranks on overall similarity; a position (e.g. 1)
+                                                       # ranks on one component. Which positions are comparable varies per face — pick a
+                                                       # wrong one and the error names the valid ones. A face with nothing at that position
+                                                       # reports "no data" and exits 0, matching the null at the same index in face:diff.
                                                        # --direction nearest (default) = most SIMILAR; furthest = most DIFFERENT / unlike / opposite
 
 faces face:tag:list     <alias>
