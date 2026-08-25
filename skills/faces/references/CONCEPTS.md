@@ -4,7 +4,7 @@ The Faces Platform is a compiler for the human mind.
 
 Feed it source material — documents, essays, interviews, conversations — and the compiler extracts the minimal set of cognitive primitives that define a persona. These primitives are the machine code of the mind. Like amino acids, this small formal vocabulary is sufficient to construct any human persona. The personas that result are coherent, consistent, complex, and contradictory — just like real people.
 
-The output is a **Face**: a compressed cognitive instruction set stored as embedded semantic vectors. The principal components of a Face are frequency bands — `epsilon`, `delta`, `beta`, and `alpha` — each capturing a different resolution of cognition. `face` is their equal-weight composite. A Face reshapes any LLM into a new next-token predictor — not a model wearing a costume, but one whose probability distributions are fundamentally altered by the persona. This overcomes model collapse: instead of regression to the mean, you get a sharply individuated mind.
+The output is a **Face**: a compressed cognitive instruction set stored as embedded semantic vectors. A Face has several principal components, each capturing a different resolution of cognition; `face` is their equal-weight composite. A Face reshapes any LLM into a new next-token predictor — not a model wearing a costume, but one whose probability distributions are fundamentally altered by the persona. This overcomes model collapse: instead of regression to the mean, you get a sharply individuated mind.
 
 Because the primitives are embedded, they are semantic objects. You can measure the distance between two Faces. You can find which Faces are nearest or furthest on any component. This is the mathematics of the mind.
 
