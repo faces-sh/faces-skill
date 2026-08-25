@@ -187,7 +187,9 @@ faces chat:chat alice --llm claude-sonnet-4-6 -m "What matters most to you?"
 faces face:get alice --json | jq '{name, component_counts}'
 ```
 
-If `component_counts` shows non-null values, the Face is compiled and ready.
+`component_counts` is an array of numbers — one per component, positions stable, and it may
+grow over time. Sum it or check for any non-zero entry; a Face that has never compiled comes
+back as all zeros. If anything is above zero, the Face is compiled and ready.
 
 ## What's next
 

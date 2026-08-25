@@ -382,9 +382,9 @@ Output:
 ```
 Creating document... done (abc123)
 Compiling (3 chunks):
-  [1/3] ε=3 β=2 δ=1 α=5
-  [2/3] ε=5 β=6 δ=2 α=12
-  [3/3] ε=8 β=6 δ=5 α=26 (syncing)
+  [1/3] 11 components
+  [2/3] 25 components
+  [3/3] 45 components (syncing)
 Done.
 ```
 
@@ -405,7 +405,7 @@ wrote it and corrupts the face. Applies to every compile path that accepts it
 ## Deleting sources
 
 `compile:thread:delete` and `compile:doc:delete` are clean — they remove all
-cognitive components (beta, delta, alpha, epsilon) extracted from that source.
+cognitive components extracted from that source.
 The face's profile and component counts update immediately. No re-sync needed.
 
 Do NOT warn users that components may persist after deletion — they don't.
