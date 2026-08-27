@@ -266,21 +266,28 @@ faces style:status --face alias          # recover the job id if you lose it
 rule about email. A source that does not say what it is gets refused, not guessed:
 
 ```bash
-faces style:make alias --all --medium email        # default for everything
-faces style:make alias --source DOC_ID:essay       # one source, one medium
+faces style:make alias --all --medium email        # fills in ONLY where nothing is declared
+faces style:make alias --source "$DOC_ID:essay"    # one source, one medium
 ```
 
-A wrong declaration is worse than a missing one — a mislabelled source teaches the wrong
-voice and nothing afterwards says it happened.
+`--medium` never overrides a source that already declares one. A wrong declaration is
+worse than a missing one — a mislabelled source teaches the wrong voice and nothing
+afterwards says it happened.
+
+**Quote `ID:MEDIUM` when the id is a shell variable.** In zsh `$DOC_ID:essay` is read as
+a history modifier and silently becomes `ssay`. Use `"$DOC_ID:essay"`.
 
 **Do not switch models to fix an auth failure.** The default model runs on the user's own
 linked ChatGPT account for free; a billing model is refused rather than warned about. If a
 capture fails on authentication the link has expired: `faces auth:connect openai`. Use
 `--allow-paid` only when the user has said they want to pay.
 
+A face holds one style **per medium**, so several can be in use at once and version
+numbers restart per medium:
+
 ```bash
-faces style:versions alias           # what is kept, what is in use
-faces style:revert alias --yes       # step BACK one; there is no step forward
+faces style:versions alias                      # REVERTABLE says whether revert will work
+faces style:revert alias --medium essay --yes   # --medium required once there is >1
 ```
 
 See [REFERENCE.md → Style](references/REFERENCE.md#style-how-a-face-writes-style).
