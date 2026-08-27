@@ -84,7 +84,8 @@ faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  [
 faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
 faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
 faces compile:doc:reset    <doc_id>  [--yes]
-faces compile:doc:list     <alias>
+faces compile:doc:list     <alias>  [--verbose]
+                                                       # document text is omitted unless --verbose (--json always includes it)
 faces compile:doc:get      <doc_id>
 faces compile:doc:edit     <doc_id>  [--label]  [--content TEXT | --file PATH]  [--medium KIND]  [--perspective first-person|third-person]
 faces compile:doc:delete   <doc_id>
