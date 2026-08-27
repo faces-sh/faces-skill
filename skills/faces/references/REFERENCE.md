@@ -156,12 +156,15 @@ faces team:list
 faces team:get          <team_id>
 faces team:edit       <team_id>  [--name]  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]
 faces team:delete       <team_id>  [--yes]
-faces team:members      <team_id>
-faces team:add          <team_id>  --face ALIAS  [--face ALIAS...]
-                                                       # A team may only contain faces YOU OWN. A published or shared face can be
-                                                       # chatted as owner:alias@model but cannot be a member, and the CLI says so.
-                                                       # Do NOT create a copy to get around it: a copy is a different face with
-                                                       # different compiled material.
+faces team:members      <team_id>                      # FACE / STATUS / ID. A member you do not own can become unreachable when its
+                                                       # owner revokes access or deletes it; it stays LISTED with the reason rather
+                                                       # than vanishing, so the team never silently changes shape. "access was
+                                                       # revoked" can be undone by the owner; "the face was deleted" cannot.
+faces team:add          <team_id>  --face ALIAS | owner:alias  [--face ...]
+                                                       # Any face you can reach may join: your own, a published one, or one shared
+                                                       # with you. Name someone else's as owner:alias, the same address chat uses.
+                                                       # Never create a copy of a face to put it in a team — a copy is a different
+                                                       # face with different compiled material that then drifts from the original.
 faces team:remove       <team_id>  <alias>
 
 faces team:tag:list     <team_id>
@@ -413,6 +416,9 @@ faces team:create --name "Review Panel" --description "Research critique panel" 
 
 # Add faces
 faces team:add TEAM_ID --face alice --face bob
+
+# A face you do not own joins by its owner:alias address, the same one chat uses
+faces team:add TEAM_ID --face head:socrates
 
 # List teams (personal Guild is filtered out)
 faces team:list
