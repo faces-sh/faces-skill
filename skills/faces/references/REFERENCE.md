@@ -117,10 +117,9 @@ faces style:versions    <alias>                        # what has been captured 
                                                        # with no style yet exits 0 and says so.
 faces style:revert      <alias>  --yes                 # step BACK one kept version. There is no step forward: to undo a revert,
                                                        # capture the style again. Requires --yes.
-faces style:delete      <alias>  --scope map|all  [--yes]
-                                                       # map = forget the style, KEEP the uploaded material (can be captured again).
-                                                       # all = delete the material too, permanently. No default: they differ by
-                                                       # whether your corpus survives.
+faces style:delete      <alias>  [--yes]               # forget the captured style. NEVER deletes documents, threads or uploaded
+                                                       # material — the style can be captured again without re-uploading. To
+                                                       # delete source text use compile:doc:delete / compile:thread:delete.
 
 faces catalog:doctor      [--fix]  [--generate]
 faces catalog:list
@@ -511,13 +510,17 @@ faces style:versions alice          # see what is kept and what is in use
 faces style:revert alice --yes      # step back one
 ```
 
-**Deleting.** `--scope` has no default, because the two options differ by whether your
-uploaded material survives:
+**Deleting.** `style:delete` forgets the captured style and nothing else. Documents,
+threads and uploaded material are always kept, so the style can be captured again without
+re-uploading:
 
 ```bash
-faces style:delete alice --scope map    # forget the style, KEEP the material
-faces style:delete alice --scope all    # delete the material too, permanently
+faces style:delete alice --yes
 ```
+
+It cannot delete source text. To remove that, use the commands that own it —
+`compile:doc:delete` and `compile:thread:delete` — where deleting is the point of the call
+rather than a side effect.
 
 **Long builds.** A capture is asynchronous. `style:make` blocks and prints progress;
 `--no-wait` returns a job id instead. If you lose the id, list the face's builds:
