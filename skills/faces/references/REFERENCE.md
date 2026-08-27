@@ -11,13 +11,23 @@ faces auth:disconnect   <provider>
 faces auth:connections
 
 faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH]
-faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]  [--public]  [--system]  [--from-users USER...]  [--not-from-users USER...]
+faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]  [--public]  [--shared]  [--system]  [--from-users USER...]  [--not-from-users USER...]
+                                                       # --public = open to everybody; --shared = shared with YOU. Independent, and they
+                                                       # compose. A face reachable both directly and via a workspace appears ONCE with
+                                                       # both routes — never deduplicate. Faces you do not own print as owner:alias.
 faces face:get          <alias>  [--include tags,teams,profile]  [--full]
 faces face:attributes
 faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
 faces face:delete       <alias>  [--yes]
 faces face:lock         <alias>              # freeze the face (read-only)
 faces face:unlock       <alias>              # unfreeze the face (writable)
+faces face:share        <alias>  (--with ACCOUNT... | --none)
+                                                       # --with REPLACES the list: pass everyone who should keep access, not just the new
+                                                       # one. Accounts are usernames or emails, mixed freely; the reply echoes usernames.
+                                                       # No endpoint returns the current list, so the reply is the only way to see it.
+                                                       # Sharing grants CHAT ONLY — not documents, compiling, re-sharing, or the addendum.
+faces face:publish      <alias>  --yes        # every account can chat it; a global override on top of sharing
+faces face:unpublish    <alias>
 faces face:stats
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
 faces face:neighbors    <alias>  [--k N]  [--component face|POSITION]  [--direction nearest|furthest]
@@ -34,33 +44,42 @@ faces face:tag:remove   <alias>  <tag>
 faces face:tag:all
 faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 
-faces chat:chat         <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]   # owner:alias@model for a published face, e.g. head:logician@gpt-5.4
+faces chat:chat         <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]  [--medium KIND]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
-faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--oauth-only]
-faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--stream]  [--oauth-only]
-faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]   # start a new thread
+                                                       # --medium declares WHAT THE WRITING IS so the reply is shaped for the occasion:
+                                                       # email, text message, social post, essay, academic paper, blog post,
+                                                       # legal document, thread reply, conversation (covers speech). Synonyms fold
+                                                       # (transcript/interview/call -> conversation). It is NOT tone or style.
+                                                       # OMIT IT IF YOU DO NOT KNOW — never infer it from the text. A wrong
+                                                       # declaration is worse than none, because a declaration is trusted.
+                                                       # Chat ignores an unknown value; compile rejects it with a 422.
+faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]
+faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--stream]  [--medium KIND]  [--oauth-only]
+faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--medium KIND]  [--oauth-only]   # start a new thread
+                                                       # --medium is per REQUEST, not per thread: send it on each turn you want shaped.
 faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]                                    # resume a thread
 faces chat:thread       --list                                                                                                                    # list saved threads
 faces chat:thread       --id THREAD_ID  (--show | --delete)                                                                                        # show transcript / delete
 
 faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--perspective first-person|third-person]  [--face-speaker LABEL]  [--no-wait]
-faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--perspective first-person|third-person]  [--face-speaker NAME]  [--no-wait]
+faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--medium KIND]  [--perspective first-person|third-person]  [--face-speaker NAME]  [--no-wait]
                                                        # Accepts text, PDF, Word (.docx), audio and video. Text is extracted server-side.
                                                        # Legacy .doc is refused (400) — save it as .docx first. A .docx with no text 422s:
                                                        # images and text boxes are not read, only document text.
 
-faces compile:doc          <alias>  (--content TEXT | --file PATH...)  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--no-wait]
+faces compile:doc          <alias>  (--content TEXT | --file PATH...)  [--medium KIND]  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--no-wait]
                                                        # --file is repeatable: each file becomes its OWN document (not concatenated).
                                                        # Returns {"documents":[{file, document_id}...]} in input order; a bad file is
                                                        # reported in place and the rest still compile. --label is single-document only.
                                                        # Text only — for PDF, Word (.docx), audio or video use compile:upload.
-faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  [--perspective first-person|third-person]
+                                                       # --medium on compile:upload applies to --kind document only.
+faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  [--medium KIND]  [--perspective first-person|third-person]
 faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
 faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
 faces compile:doc:reset    <doc_id>  [--yes]
 faces compile:doc:list     <alias>
 faces compile:doc:get      <doc_id>
-faces compile:doc:edit     <doc_id>  [--label]  [--content TEXT | --file PATH]  [--perspective first-person|third-person]
+faces compile:doc:edit     <doc_id>  [--label]  [--content TEXT | --file PATH]  [--medium KIND]  [--perspective first-person|third-person]
 faces compile:doc:delete   <doc_id>
 
 faces compile:thread:create   <alias>  [--label]  [--oauth-only]
@@ -147,7 +166,7 @@ New faces inherit the account default model at creation time (one-time copy, not
 | `claude-*` | `/v1/messages` | Anthropic Messages |
 | `gpt-4o`, xai, venice, fireworks | `/v1/chat/completions` | OpenAI ChatCompletion |
 
-For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint. A bare alias only ever resolves **your own** faces; a namespaced `owner:alias` (e.g. `head:logician`) addresses a published face owned by another account — see [System & published faces](#system--published-faces). System faces have no `default_model`, so they always require an explicit `@model`.
+For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint. A bare alias only ever resolves **your own** faces; a namespaced `owner:alias` (e.g. `head:socrates`) addresses a published face owned by another account — see [System & published faces](#system--published-faces). System faces have no `default_model`, so they always require an explicit `@model`.
 
 **Codex models are free when a ChatGPT account is linked** (Subscription Connect), otherwise billed at the paid API rate — same endpoint and response either way. A connect-plan user with no linked token (and `api_fallback` off) gets a 422 on codex; the CLI then suggests `faces auth:connect openai`.
 
@@ -173,14 +192,13 @@ Besides your own faces, the platform serves a curated set of **system faces** un
 
 ```bash
 # System faces — owner:alias@model
-faces chat:chat head:logician@gpt-5.4 -m "Is this argument valid?"
-faces chat:chat head:judge@claude-sonnet-4-6 -m "Score these two answers."
+faces chat:chat head:socrates@gpt-5.4 -m "Is this argument valid?"
 
 # Your OWN faces stay bare — a bare alias only ever resolves your own catalog
 faces chat:chat logician@gpt-5.4 -m "..."
 ```
 
-The same `owner:alias@model` handle works on `chat:messages`, `chat:responses`, and `chat:thread`. A bare `head:logician` (no `@model`) is rejected — always pin a model. Billing is unchanged: the **caller** pays inference at normal per-token rates; the face owner is never charged.
+The same `owner:alias@model` handle works on `chat:messages`, `chat:responses`, and `chat:thread`. A bare `head:socrates` (no `@model`) is rejected — always pin a model. Billing is unchanged: the **caller** pays inference at normal per-token rates; the face owner is never charged.
 
 ## Run-time composite faces
 
@@ -210,7 +228,7 @@ Rules the CLI surfaces:
 
 Billing is unchanged (the caller pays, the usage ledger records the formula string as the model label). Scoped API keys are enforced **per operand**: a key restricted to specific faces may use a composite only if it can access *every* operand, else a 403 naming the disallowed operand.
 
-The live curated set today is `head:logician`, `head:judge`, `head:stylometrician`, `head:humor-analyst`, `head:affect-reader`, `head:imagination-cartographer`, and `head:voice-synthesizer` — but treat it as **dynamic** and fetch the current list with `faces face:list --system`.
+The curated set is **dynamic** — faces are added and retired without notice, so never hardcode it or copy a list from documentation. Read the current set with `faces face:list --system`.
 
 ## Multi-turn threads (`chat:thread`)
 
