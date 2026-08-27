@@ -121,9 +121,9 @@ faces style:versions    <alias>                        # what has been captured,
                                                        # use at once — one per medium — and version numbers restart per medium.
                                                        # REVERTABLE says whether style:revert would succeed. Exits 4 for no such
                                                        # face; a face with no style yet exits 0 and says so.
-faces style:revert      <alias>  [--medium KIND]  --yes # step back one version. A face holds one style PER MEDIUM, so --medium is
-                                                       # required once it has more than one (see style:versions). Two versions are
-                                                       # kept per medium. Requires --yes.
+faces style:revert      <alias>  [--medium KIND]  --yes # toggle between the two versions kept for a medium: running it again returns
+                                                       # to where you started. A face holds one style PER MEDIUM, so --medium is
+                                                       # required once it has more than one (see style:versions). Requires --yes.
 faces style:delete      <alias>  [--yes]               # forget the captured style. NEVER deletes documents, threads or uploaded
                                                        # material — the style can be captured again without re-uploading. To
                                                        # delete source text use compile:doc:delete / compile:thread:delete.
@@ -536,9 +536,10 @@ faces style:versions alice
 # email   1        yes     -           gpt-5.6-terra  2026-08-27 20:23:26
 ```
 
-**Undoing.** `style:revert` steps back one version, and two are kept per medium. Name
-which style with `--medium` once the face has more than one. It requires `--yes` because
-it changes how the face writes the moment it runs.
+**Undoing.** `style:revert` toggles between the two versions kept for a medium — running
+it again returns to where you started. Name which style with `--medium` once the face has
+more than one. It requires `--yes` because it changes how the face writes the moment it
+runs.
 
 ```bash
 faces style:versions alice                        # REVERTABLE says whether it will work

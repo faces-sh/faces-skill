@@ -287,7 +287,7 @@ numbers restart per medium:
 
 ```bash
 faces style:versions alias                      # REVERTABLE says whether revert will work
-faces style:revert alias --medium essay --yes   # --medium required once there is >1
+faces style:revert alias --medium essay --yes   # a toggle; run again to return
 ```
 
 See [REFERENCE.md → Style](references/REFERENCE.md#style-how-a-face-writes-style).
