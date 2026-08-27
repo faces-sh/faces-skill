@@ -21,10 +21,12 @@ faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description
 faces face:delete       <alias>  [--yes]
 faces face:lock         <alias>              # freeze the face (read-only)
 faces face:unlock       <alias>              # unfreeze the face (writable)
-faces face:share        <alias>  (--with ACCOUNT... | --none)
-                                                       # --with REPLACES the list: pass everyone who should keep access, not just the new
-                                                       # one. Accounts are usernames or emails, mixed freely; the reply echoes usernames.
-                                                       # No endpoint returns the current list, so the reply is the only way to see it.
+faces face:share        <alias>  (--list | --add ACCOUNT... | --with ACCOUNT... | --none)  [--yes]
+faces face:unshare      <alias>  (--from ACCOUNT... | --all)  [--yes]
+                                                       # --add keeps the current list; --with REPLACES it and refuses without --yes when
+                                                       # that would drop someone. Accounts are usernames or emails, mixed freely; the
+                                                       # stored list is canonical USERNAMES, so revoke by username even if you shared by
+                                                       # email. Read the current list with --list (or shared_with on face:get).
                                                        # Sharing grants CHAT ONLY — not documents, compiling, re-sharing, or the addendum.
 faces face:publish      <alias>  --yes        # every account can chat it; a global override on top of sharing
 faces face:unpublish    <alias>
