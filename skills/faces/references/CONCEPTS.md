@@ -21,6 +21,21 @@ Operators can be parenthesized: `(a | b) - c`. Composite Faces are live — if y
 
 A composite can be **persisted** (`face:create --formula "a | b"`, giving it its own reusable name) or composed **at request time** by passing the formula straight into a chat call (`chat:chat "(a | b)@model"`). Both run the same merge — request-time composition just skips the create step. The one difference is identity: a persisted composite has its own name, while a request-time composite **inherits the name of its first operand** (`(a | b)` answers as `a`). See [REFERENCE.md → Run-time composite faces](REFERENCE.md#run-time-composite-faces).
 
+## Knowledge and style
+
+A Face carries two different things, captured by two different acts.
+
+**Compiling** builds what a Face *knows* — the cognitive instruction set described above,
+extracted from source material of any kind.
+
+**Style** captures how a person *writes* — learned from their own first-person writing, and
+kept per medium, because nobody writes an email the way they write an essay. It is optional,
+and it is only meaningful for a Face modelled on a real person whose writing you have.
+
+The two are independent. A Face can be compiled and never styled, which is the common case.
+Styling without compiling produces a Face that sounds right and knows nothing. See
+[REFERENCE.md → Style](REFERENCE.md#style-how-a-face-writes-style).
+
 ## Value Proposition
 
 Programmable and composable plug-and-play personas as nuanced as a real human for fewer tokens than any other approach. More persona, less cost.
