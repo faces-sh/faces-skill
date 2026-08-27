@@ -30,6 +30,11 @@ faces face:unshare      <alias>  (--from ACCOUNT... | --all)  [--yes]
                                                        # Sharing grants CHAT ONLY — not documents, compiling, re-sharing, or the addendum.
 faces face:publish      <alias>  --yes        # every account can chat it; a global override on top of sharing
 faces face:unpublish    <alias>
+faces face:sources      <alias>  [--type doc|thread]
+                                                       # every source in the face, docs and threads in one table: label, tokens, status,
+                                                       # medium, updated. Exits 4 for a face that does not exist, which is a DIFFERENT
+                                                       # answer from a face with no sources (exit 0). Never prints content and never
+                                                       # truncates. --json carries a stable id per row for later delete/recompile.
 faces face:stats
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
 faces face:neighbors    <alias>  [--k N]  [--component face|POSITION]  [--direction nearest|furthest]
