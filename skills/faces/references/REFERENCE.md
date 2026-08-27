@@ -15,7 +15,9 @@ faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,tea
                                                        # --public = open to everybody; --shared = shared with YOU. Independent, and they
                                                        # compose. A face reachable both directly and via a workspace appears ONCE with
                                                        # both routes — never deduplicate. Faces you do not own print as owner:alias.
-faces face:get          <alias>  [--include tags,teams,profile]  [--full]
+faces face:get          <alias | owner:alias>  [--include tags,teams,profile]  [--full]
+                                                       # a published or shared face resolves under owner:alias, the same address chat
+                                                       # uses, and prints an `access:` line saying you do not own it.
 faces face:attributes
 faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
 faces face:delete       <alias>  [--yes]
@@ -55,8 +57,10 @@ faces chat:chat         <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
                                                        # --medium declares WHAT THE WRITING IS so the reply is shaped for the occasion:
                                                        # email, text message, social post, essay, academic paper, blog post,
-                                                       # legal document, thread reply, conversation (covers speech). Synonyms fold
-                                                       # (transcript/interview/call -> conversation). It is NOT tone or style.
+                                                       # legal document, thread reply, conversation (dialogue: transcripts,
+                                                       # interviews, calls), lecture (sustained speech nobody interrupts: talks,
+                                                       # sermons, keynotes). Synonyms fold: transcript/interview/call -> conversation,
+                                                       # talk/sermon/keynote/speech -> lecture. It is NOT tone or style.
                                                        # OMIT IT IF YOU DO NOT KNOW — never infer it from the text. A wrong
                                                        # declaration is worse than none, because a declaration is trusted.
                                                        # Chat ignores an unknown value; compile rejects it with a 422.
@@ -113,10 +117,13 @@ faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KI
                                                        # guessed — declare it with --medium (all) or --source ID:MEDIUM (one).
 faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--timeout N]
                                                        # read one build, or list a face's builds. Listing is how you recover a job id.
-faces style:versions    <alias>                        # what has been captured and which is in use. Exits 4 for no such face; a face
-                                                       # with no style yet exits 0 and says so.
-faces style:revert      <alias>  --yes                 # step BACK one kept version. There is no step forward: to undo a revert,
-                                                       # capture the style again. Requires --yes.
+faces style:versions    <alias>                        # what has been captured, per medium, and which is in use. SEVERAL can be in
+                                                       # use at once — one per medium — and version numbers restart per medium.
+                                                       # REVERTABLE says whether style:revert would succeed. Exits 4 for no such
+                                                       # face; a face with no style yet exits 0 and says so.
+faces style:revert      <alias>  [--medium KIND]  --yes # step back one version. A face holds one style PER MEDIUM, so --medium is
+                                                       # required once it has more than one (see style:versions). Two versions are
+                                                       # kept per medium. Requires --yes.
 faces style:delete      <alias>  [--yes]               # forget the captured style. NEVER deletes documents, threads or uploaded
                                                        # material — the style can be captured again without re-uploading. To
                                                        # delete source text use compile:doc:delete / compile:thread:delete.
@@ -151,6 +158,10 @@ faces team:edit       <team_id>  [--name]  [--description TEXT]  [--protocol TEX
 faces team:delete       <team_id>  [--yes]
 faces team:members      <team_id>
 faces team:add          <team_id>  --face ALIAS  [--face ALIAS...]
+                                                       # A team may only contain faces YOU OWN. A published or shared face can be
+                                                       # chatted as owner:alias@model but cannot be a member, and the CLI says so.
+                                                       # Do NOT create a copy to get around it: a copy is a different face with
+                                                       # different compiled material.
 faces team:remove       <team_id>  <alias>
 
 faces team:tag:list     <team_id>
@@ -480,10 +491,17 @@ faces chat:chat alice -m "Write a short reply declining the meeting."
 rule about email. A source that does not say what it is gets refused rather than guessed:
 
 ```bash
-faces style:make alice --all --medium email               # one default for everything
-faces style:make alice --source DOC_ID:essay              # one source, one medium
+faces style:make alice --all --medium email               # fills in ONLY where nothing is declared
+faces style:make alice --source "$DOC_ID:essay"           # one source, one medium
 faces compile:doc:edit DOC_ID --medium essay              # record it on the document itself
 ```
+
+`--medium` does not override a source that already declares one; it only fills the gaps.
+To change what a document says it is, edit the document.
+
+> **Quote `--source ID:MEDIUM` when the id is a shell variable.** In zsh, `$DOC_ID:essay`
+> is parsed as a history modifier and silently becomes `ssay`. Write `"$DOC_ID:essay"` or
+> `${DOC_ID}:essay`.
 
 A wrong declaration is worse than a missing one. A mislabelled source teaches the wrong
 voice for that medium and nothing afterwards says it happened.
@@ -501,13 +519,24 @@ If a capture fails on authentication, the ChatGPT link has expired. Reconnect it
 `faces auth:connect openai` — do not switch to a paid model, which turns a fixable login
 into a permanent bill. Pass `--allow-paid` only when you mean to pay.
 
-**Undoing.** `style:revert` steps back one kept version and there is no step forward, so
-the way to undo a revert is to capture again. It requires `--yes` because it changes how
-the face writes the moment it runs.
+**One style per medium.** A face does not have "a style", it has one per medium. An email
+style and an essay style are separate and do not replace each other, so `style:versions`
+can show several in use at once and version numbers restart per medium:
 
 ```bash
-faces style:versions alice          # see what is kept and what is in use
-faces style:revert alice --yes      # step back one
+faces style:versions alice
+# MEDIUM  VERSION  IN USE  REVERTABLE  MODEL          CAPTURED
+# essay   2        yes     yes         gpt-5.6-terra  2026-08-27 20:21:54
+# email   1        yes     -           gpt-5.6-terra  2026-08-27 20:23:26
+```
+
+**Undoing.** `style:revert` steps back one version, and two are kept per medium. Name
+which style with `--medium` once the face has more than one. It requires `--yes` because
+it changes how the face writes the moment it runs.
+
+```bash
+faces style:versions alice                        # REVERTABLE says whether it will work
+faces style:revert alice --medium essay --yes
 ```
 
 **Deleting.** `style:delete` forgets the captured style and nothing else. Documents,
