@@ -101,6 +101,26 @@ faces compile:thread:reset    <thread_id>  [--yes]
 faces compile:thread:sync     <thread_id>
 faces compile:thread:delete   <thread_id>  [--yes]
 
+faces style:upload      <alias>  <file>  [--type email_jsonl|thread_json]  [--messages-per-room N]  [--strict]
+                                                       # load a corpus of the person's OWN writing (mail export, message archive).
+                                                       # Stores only: nothing is compiled and nothing is billed. Invalid rows are
+                                                       # skipped and reported; --strict refuses the whole file instead.
+faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KIND]  [--model MODEL]  [--allow-paid]  [--no-compile]  [--best-of N]  [--timeout N]  [--no-wait]
+                                                       # capture how the face writes and install it. --all takes every document and
+                                                       # every imported corpus room; live threads still compiling are skipped and
+                                                       # named. Each medium is analysed separately, so an essay never teaches a rule
+                                                       # about email. A source that does not declare a medium is REFUSED, not
+                                                       # guessed — declare it with --medium (all) or --source ID:MEDIUM (one).
+faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--timeout N]
+                                                       # read one build, or list a face's builds. Listing is how you recover a job id.
+faces style:versions    <alias>                        # what has been captured and which is in use. Exits 4 for no such face; a face
+                                                       # with no style yet exits 0 and says so.
+faces style:revert      <alias>  --yes                 # step BACK one kept version. There is no step forward: to undo a revert,
+                                                       # capture the style again. Requires --yes.
+faces style:delete      <alias>  [--yes]               # forget the captured style. NEVER deletes documents, threads or uploaded
+                                                       # material — the style can be captured again without re-uploading. To
+                                                       # delete source text use compile:doc:delete / compile:thread:delete.
+
 faces catalog:doctor      [--fix]  [--generate]
 faces catalog:list
 faces catalog:backup
@@ -432,6 +452,86 @@ wrote it and corrupts the face. Applies to every compile path that accepts it
 (`compile:doc`, `compile:doc:create`, `compile:import`, `compile:upload`,
 `compile:doc:edit`).
 
+## Style: how a face writes (`style:*`)
+
+*Requires faces-cli 1.8.0 or newer.*
+
+Compiling and style capture are two different acts on the same face. **Compile teaches a
+face what it knows. Style teaches it how it sounds.** You can do either without the other,
+and most faces only ever need compiling.
+
+Style is worth capturing when the face is a real person whose own writing you have — their
+mail, their messages, their essays. It is learned from first-person material only: writing
+*about* someone teaches the wrong writer.
+
+```bash
+# 1. Load material. Stores only — nothing is compiled, nothing is billed.
+faces style:upload alice ./mail.jsonl
+
+# 2. Capture. --all takes every document and every imported corpus room.
+faces style:make alice --all --medium email
+
+# 3. Check what happened
+faces style:versions alice
+faces chat:chat alice -m "Write a short reply declining the meeting."
+```
+
+**Declare the medium.** Each medium is analysed on its own, so an essay never teaches a
+rule about email. A source that does not say what it is gets refused rather than guessed:
+
+```bash
+faces style:make alice --all --medium email               # one default for everything
+faces style:make alice --source DOC_ID:essay              # one source, one medium
+faces compile:doc:edit DOC_ID --medium essay              # record it on the document itself
+```
+
+A wrong declaration is worse than a missing one. A mislabelled source teaches the wrong
+voice for that medium and nothing afterwards says it happened.
+
+**Cost.** The analyst model runs the whole capture, which makes it the most expensive call
+in the product. The default model runs on your own linked ChatGPT account and costs
+nothing. A model that would bill is **refused**, not warned about:
+
+```bash
+faces style:make alice --all --medium email --model gpt-5.6-luna
+# Error: 'gpt-5.6-luna' is not on the free tier, so this build would bill you.
+```
+
+If a capture fails on authentication, the ChatGPT link has expired. Reconnect it with
+`faces auth:connect openai` — do not switch to a paid model, which turns a fixable login
+into a permanent bill. Pass `--allow-paid` only when you mean to pay.
+
+**Undoing.** `style:revert` steps back one kept version and there is no step forward, so
+the way to undo a revert is to capture again. It requires `--yes` because it changes how
+the face writes the moment it runs.
+
+```bash
+faces style:versions alice          # see what is kept and what is in use
+faces style:revert alice --yes      # step back one
+```
+
+**Deleting.** `style:delete` forgets the captured style and nothing else. Documents,
+threads and uploaded material are always kept, so the style can be captured again without
+re-uploading:
+
+```bash
+faces style:delete alice --yes
+```
+
+It cannot delete source text. To remove that, use the commands that own it —
+`compile:doc:delete` and `compile:thread:delete` — where deleting is the point of the call
+rather than a side effect.
+
+**Long builds.** A capture is asynchronous. `style:make` blocks and prints progress;
+`--no-wait` returns a job id instead. If you lose the id, list the face's builds:
+
+```bash
+faces style:make alice --all --medium email --no-wait
+faces style:status --face alice        # recover the job id
+faces style:status JOB_ID --wait
+```
+
+
 ## Deleting sources
 
 `compile:thread:delete` and `compile:doc:delete` are clean — they remove all
@@ -457,8 +557,8 @@ Error (409): This document is read-only and cannot be edited.
 ```
 
 Threads phrase it `This corpus is read-only…`. On a 409, don't retry the write —
-surface that the item is frozen. Today only voiceprint **corpus** uploads produce
-locked threads; nothing locks individual documents. There is no per-item toggle
+surface that the item is frozen. Today only style **corpus** uploads
+(`style:upload`) produce locked threads; nothing locks individual documents. There is no per-item toggle
 for these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
 **Face locking** below).
 
@@ -469,10 +569,10 @@ A whole face can be frozen with `face:lock <alias>` and thawed with
 can't be changed.
 
 While locked, any mutating call against the face or anything it owns — editing
-the face, its documents/threads, uploads/imports, voiceprint build/refine, and
+the face, its documents/threads, uploads/imports, style capture, and
 deleting the face — is refused with HTTP `409` (message contains `read-only`).
-Don't retry; `face:unlock` first. The lock also covers the face's voiceprint
-companion, so the whole deepself freezes and thaws together.
+Don't retry; `face:unlock` first. The lock covers the face's captured style as
+well, so a face and its style freeze and thaw together.
 
 Reads, listing, and chat are unaffected. To recognize a locked face: `face:get`
 shows a bare `read only` line and `face:list` shows a `[read only]` marker

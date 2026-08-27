@@ -8,9 +8,10 @@ description: >
   replacing bloated SOUL.md / soul documents / system prompts with something
   more token-efficient; giving agents in a multi-agent system distinct
   personalities, behavioral modes, or points of view; creating a digital twin
-  or memorial AI; comparing how different people think; composing new
-  perspectives from existing ones; or sharing persona access via scoped API
-  keys. Also trigger when the user mentions the Faces Platform, the `faces`
+  or memorial AI; capturing how someone writes from their own emails or
+  messages so a persona writes in their voice; comparing how different people
+  think; composing new perspectives from existing ones; or sharing persona
+  access via scoped API keys. Also trigger when the user mentions the Faces Platform, the `faces`
   CLI, cognitive primitives, mind arithmetic, or compile personality. Use even
   if Faces is not yet installed — the skill covers setup. Do NOT use for
   fine-tuning models, RAG/retrieval systems, creative writing (NPC backstories,
@@ -238,12 +239,53 @@ Error (409): This document is read-only and cannot be edited.
 ```
 
 (threads say `This corpus is read-only…`). Don't retry the write — surface that
-the item is frozen. Today only voiceprint **corpus** uploads produce locked
-threads; nothing locks individual documents. There is no per-item toggle for
+the item is frozen. Today only style **corpus** uploads (`style:upload`) produce
+locked threads; nothing locks individual documents. There is no per-item toggle for
 these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
 [references/REFERENCE.md](references/REFERENCE.md#face-locking)).
 
-### 3. Chat
+### 3. Capture how it writes (optional)
+
+*Requires faces-cli 1.8.0 or newer.*
+
+Compiling teaches a face **what it knows**. Style teaches it **how it sounds**. They are
+separate acts and most faces only need the first. Capture style when the face is a real
+person and you have their own writing — mail, messages, essays. First-person material only:
+writing *about* someone teaches the wrong writer.
+
+```bash
+# Load a corpus. Stores only — nothing compiles, nothing is billed.
+faces style:upload alias ./mail.jsonl
+
+# Capture and install. --all takes every document and imported corpus room.
+faces style:make alias --all --medium email --no-wait --json
+faces style:status --face alias          # recover the job id if you lose it
+```
+
+**Always declare the medium.** Each is analysed separately, so an essay never teaches a
+rule about email. A source that does not say what it is gets refused, not guessed:
+
+```bash
+faces style:make alias --all --medium email        # default for everything
+faces style:make alias --source DOC_ID:essay       # one source, one medium
+```
+
+A wrong declaration is worse than a missing one — a mislabelled source teaches the wrong
+voice and nothing afterwards says it happened.
+
+**Do not switch models to fix an auth failure.** The default model runs on the user's own
+linked ChatGPT account for free; a billing model is refused rather than warned about. If a
+capture fails on authentication the link has expired: `faces auth:connect openai`. Use
+`--allow-paid` only when the user has said they want to pay.
+
+```bash
+faces style:versions alias           # what is kept, what is in use
+faces style:revert alias --yes       # step BACK one; there is no step forward
+```
+
+See [REFERENCE.md → Style](references/REFERENCE.md#style-how-a-face-writes-style).
+
+### 4. Chat
 
 ```bash
 faces chat:chat alias -m "message"
@@ -260,7 +302,7 @@ Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](ref
 
 **Run-time composites:** pass a Face Math formula in the face position to chat with an on-the-fly blend of your own faces — `faces chat:chat "(alice | bob)@claude-sonnet-4-6" -m "…"` (or `--formula "alice | bob" --llm …`). No pre-creation step. See [§4 Compare & compose](#4-compare--compose).
 
-### 4. Compare & compose
+### 5. Compare & compose
 
 ```bash
 faces face:diff --face alice --face bob
@@ -282,7 +324,7 @@ faces chat:chat --formula "alice | bob" --llm claude-sonnet-4-6 -m "What should 
 
 Same operators and merge semantics as a persisted composite (identical latency). A run-time composite **takes the name of its first operand** (`(alice | bob)` answers as *alice*); reach for `face:create --formula` when you want a reusable face with its own name. See [references/REFERENCE.md](references/REFERENCE.md#run-time-composite-faces).
 
-### 5. Teams
+### 6. Teams
 
 Create named groups of faces with optional description, protocol (mermaid diagram), and tags:
 ```bash
