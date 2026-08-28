@@ -11,11 +11,12 @@ faces auth:disconnect   <provider>
 faces auth:connections
 
 faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH]
-faces face:list         [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]  [--public]  [--shared]  [--system]  [--from-users USER...]  [--not-from-users USER...]
+faces face:list         [--has-style]  [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]  [--public]  [--shared]  [--system]  [--from-users USER...]  [--not-from-users USER...]
                                                        # --public = open to everybody; --shared = shared with YOU. Independent, and they
                                                        # compose. A face reachable both directly and via a workspace appears ONCE with
                                                        # both routes — never deduplicate. Faces you do not own print as owner:alias.
 faces face:get          <alias | owner:alias>  [--include tags,teams,profile]  [--full]
+                                                       # prints `style: installed` when the face has a captured style
                                                        # a published or shared face resolves under owner:alias, the same address chat
                                                        # uses, and prints an `access:` line saying you do not own it.
 faces face:attributes
@@ -97,7 +98,11 @@ faces compile:doc:delete   <doc_id>
 faces compile:thread:create   <alias>  [--label]  [--oauth-only]
 faces compile:thread:list     <alias>
 faces compile:thread:get      <thread_id>
-faces compile:thread:edit     <thread_id>  [--label TEXT]  [--face-speaker NAME]
+faces compile:thread:edit     <thread_id>  [--label TEXT]  [--medium KIND | --clear-medium]  [--face-speaker NAME]
+                                                       # --medium corrects what a thread is READ as, and sticks. Use it on an imported
+                                                       # corpus room whose messages declared nothing (it shows as medium `unknown`,
+                                                       # which is not a medium and contributes no style). --clear-medium removes the
+                                                       # correction. What the corpus arrived as is never overwritten.
 faces compile:thread:message  <thread_id>  -m MSG  [--oauth-only]
 faces compile:thread:make     <thread_id>  [--timeout N]  [--no-wait]
 faces compile:thread:pause    <thread_id>  [--no-wait]  [--timeout N]
@@ -492,6 +497,26 @@ faces style:make alice --all --medium email
 faces style:versions alice
 faces chat:chat alice -m "Write a short reply declining the meeting."
 ```
+
+**Which faces have a style.** `face:list` marks them `[style]` and `--has-style` filters to
+them; `face:get` prints `style: installed`. In `--json` the field is `deepself`, a list
+(today only `["style"]`) or `null`. This is the cheap bulk answer — no per-face call.
+
+```bash
+faces face:list --has-style
+faces face:list --json | jq '[.data[] | select(.deepself) | .alias]'
+```
+
+**Correcting a thread's medium.** An imported corpus room whose messages declared nothing
+shows as `unknown`. That is not a medium and contributes **no style**, which is
+deliberate: no style beats the wrong style. Correct it, and the correction sticks:
+
+```bash
+faces compile:thread:edit THREAD_ID --medium lecture
+faces compile:thread:edit THREAD_ID --clear-medium
+```
+
+What the corpus arrived as is kept underneath and never overwritten.
 
 **Declare the medium.** Each medium is analysed on its own, so an essay never teaches a
 rule about email. A source that does not say what it is gets refused rather than guessed:

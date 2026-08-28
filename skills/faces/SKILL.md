@@ -270,7 +270,11 @@ faces style:make alias --all --medium email        # fills in ONLY where nothing
 faces style:make alias --source "$DOC_ID:essay"    # one source, one medium
 ```
 
-`--medium` never overrides a source that already declares one. A wrong declaration is
+`--medium` never overrides a source that already declares one; it only fills gaps, and a
+source that already declares one is left to the server to resolve. An imported corpus room
+whose messages declared nothing reads as `unknown`, which is not a medium and contributes
+**no style** — correct it with `faces compile:thread:edit THREAD_ID --medium lecture`,
+which sticks. A wrong declaration is
 worse than a missing one — a mislabelled source teaches the wrong voice and nothing
 afterwards says it happened.
 
@@ -288,6 +292,12 @@ numbers restart per medium:
 ```bash
 faces style:versions alias                      # REVERTABLE says whether revert will work
 faces style:revert alias --medium essay --yes   # a toggle; run again to return
+```
+
+To see which faces already have one, without a call per face:
+
+```bash
+faces face:list --has-style          # marked [style] in the normal listing too
 ```
 
 See [REFERENCE.md → Style](references/REFERENCE.md#style-how-a-face-writes-style).
