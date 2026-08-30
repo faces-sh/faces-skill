@@ -294,6 +294,15 @@ faces style:versions alias                      # REVERTABLE says whether revert
 faces style:revert alias --medium essay --yes   # a toggle; run again to return
 ```
 
+**Capturing does not apply it.** Prefix the alias with `+` to use the captured style;
+without the `+` the face answers in its ordinary voice:
+
+```bash
+faces chat:chat +alias -m "..." --medium email
+```
+
+A `+` on a face with no style is a 409, not a fallback.
+
 To see which faces already have one, without a call per face:
 
 ```bash

@@ -54,7 +54,14 @@ faces face:tag:remove   <alias>  <tag>
 faces face:tag:all
 faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 
-faces chat:chat         <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]  [--medium KIND]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
+faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]  [--medium KIND]  [--best-of N]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
+                                                       # PREFIX THE ALIAS WITH + to answer in the style the face captured. Without it
+                                                       # the face uses its ordinary voice; both are valid and the caller chooses per
+                                                       # request. --medium selects WHICH captured style, since a face holds one per
+                                                       # medium. + on a face with no style is a 409, not a fallback. Check
+                                                       # `deepself` (face:list --has-style) or drop the +.
+                                                       # --best-of N (1-5) writes N replies and serves the closest to the style.
+                                                       # It multiplies the cost by N, needs a + alias, and cannot be streamed.
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
                                                        # --medium declares WHAT THE WRITING IS so the reply is shaped for the occasion:
                                                        # email, text message, social post, essay, academic paper, blog post,
@@ -497,6 +504,19 @@ faces style:make alice --all --medium email
 faces style:versions alice
 faces chat:chat alice -m "Write a short reply declining the meeting."
 ```
+
+**Using a captured style.** Capturing does not apply it. Prefix the alias with `+`:
+
+```bash
+faces style:make alice --all --medium email
+faces chat:chat +alice -m "Reply to the note below." --medium email   # captured style
+faces chat:chat alice  -m "Reply to the note below."                  # ordinary voice
+```
+
+`--medium` selects which captured style, since a face holds one per medium. A `+` on a
+face with no style is a **409, not a fallback** — check first with `face:list --has-style`,
+or drop the `+`. `--best-of N` (1-5) writes N replies and serves the one closest to the
+style; it multiplies cost by N and cannot be streamed.
 
 **Which faces have a style.** `face:list` marks them `[style]` and `--has-style` filters to
 them; `face:get` prints `style: installed`. In `--json` the field is `deepself`, a list
