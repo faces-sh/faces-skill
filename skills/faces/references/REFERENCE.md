@@ -16,7 +16,11 @@ faces face:list         [--has-style]  [--tag TAG...]  [--team TEAM_ID...]  [--i
                                                        # compose. A face reachable both directly and via a workspace appears ONCE with
                                                        # both routes — never deduplicate. Faces you do not own print as owner:alias.
 faces face:get          <alias | owner:alias>  [--include tags,teams,profile]  [--full]
-                                                       # prints `style: installed` when the face has a captured style
+                                                       # prints `style: installed` when the face has a captured style.
+                                                       # owner:alias is looked up through the LISTING, which is the only route that
+                                                       # serves other accounts' faces. The listing can lag the resolver, so a miss
+                                                       # is not proof of absence: a published face may answer chat before it is
+                                                       # listed. Do not report a miss to a user as "no such face".
                                                        # a published or shared face resolves under owner:alias, the same address chat
                                                        # uses, and prints an `access:` line saying you do not own it.
 faces face:attributes
@@ -59,7 +63,7 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # the face uses its ordinary voice; both are valid and the caller chooses per
                                                        # request. --medium selects WHICH captured style, since a face holds one per
                                                        # medium. + on a face with no style is a 409, not a fallback. Check
-                                                       # `deepself` (face:list --has-style) or drop the +.
+                                                       # with face:list --has-style, or drop the +.
                                                        # --best-of N (1-5) writes N replies and serves the closest to the style.
                                                        # It multiplies the cost by N, needs a + alias, and cannot be streamed.
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
