@@ -114,7 +114,17 @@ faces compile:thread:edit     <thread_id>  [--label TEXT]  [--medium KIND | --cl
                                                        # corpus room whose messages declared nothing (it shows as medium `unknown`,
                                                        # which is not a medium and contributes no style). --clear-medium removes the
                                                        # correction. What the corpus arrived as is never overwritten.
+faces compile:thread:replace  <thread_id>  --file PATH  [--face-speaker NAME]
+                                                       # REPLACE every message in a thread, keeping its id. This is how a GROWING
+                                                       # conversation stays ONE thread: send the whole transcript again and
+                                                       # compile:thread:make it, instead of uploading each new stretch as another
+                                                       # thread. Takes the same "SPEAKER: text" transcript compile:upload --kind
+                                                       # thread accepts, or a JSON array of {role, content, from}; which one is
+                                                       # detected and reported. Writes content only — nothing generated, nothing
+                                                       # billed. Refuses an empty file rather than emptying the thread.
 faces compile:thread:message  <thread_id>  -m MSG  [--oauth-only]
+                                                       # NOT the same thing: this INTERVIEWS the face — it appends your message AND
+                                                       # generates a reply, and it bills. Use :replace to update content.
 faces compile:thread:make     <thread_id>  [--timeout N]  [--no-wait]
 faces compile:thread:pause    <thread_id>  [--no-wait]  [--timeout N]
 faces compile:thread:reset    <thread_id>  [--yes]
