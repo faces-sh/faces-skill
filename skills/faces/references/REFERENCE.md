@@ -549,9 +549,17 @@ too. In `--json` the field is `deepself`, an **object**:
 predates media-stamping, and reading it as "no style" is wrong. It was a plain list
 (`["style"]`) before 2026-08-31.
 
-Read it before sending a `+` request, so you can offer only the media the face can serve
-rather than finding out from a failed call. This is the cheap bulk answer — no per-face
-call.
+`deepself.style` enumerates the **`+` set**: the media with a captured style behind them.
+
+**A plain alias accepts any medium.** Declaring one there replaces the classifier's guess
+and nothing else — a medium the face has no material for simply contributes nothing, and
+costs nothing. So a picker can offer the whole vocabulary plain, and offer `+` only for
+what is in `deepself`.
+
+**`+alias` with a medium not in that set is a `400`** (`style_medium_unavailable`), not a
+fallback to the ordinary voice: `+` promises a captured voice and a style is per medium,
+so there is nothing to speak in. Read `deepself` first to avoid the round trip. This is
+the cheap bulk answer — no per-face call.
 
 ```bash
 faces face:list --has-style
