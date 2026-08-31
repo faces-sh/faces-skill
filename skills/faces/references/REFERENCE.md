@@ -535,13 +535,28 @@ face with no style is a **409, not a fallback** — check first with `face:list 
 or drop the `+`. `--best-of N` (1-5) writes N replies and serves the one closest to the
 style; it multiplies cost by N and cannot be streamed.
 
-**Which faces have a style.** `face:list` marks them `[style]` and `--has-style` filters to
-them; `face:get` prints `style: installed`. In `--json` the field is `deepself`, a list
-(today only `["style"]`) or `null`. This is the cheap bulk answer — no per-face call.
+**Which faces have a style, and which media it covers.** `face:list` marks them
+`[style: email, lecture]` and `--has-style` filters to them; `face:get` prints the media
+too. In `--json` the field is `deepself`, an **object**:
+
+| value | means |
+|---|---|
+| `null` | no style |
+| `{"style": []}` | has a style, but no media recorded; naming one will be refused |
+| `{"style": ["email"]}` | a style, and the media you may ask for with `--medium` |
+
+**Test the KEY, not the length of its value** — `{"style": []}` is a face whose style
+predates media-stamping, and reading it as "no style" is wrong. It was a plain list
+(`["style"]`) before 2026-08-31.
+
+Read it before sending a `+` request, so you can offer only the media the face can serve
+rather than finding out from a failed call. This is the cheap bulk answer — no per-face
+call.
 
 ```bash
 faces face:list --has-style
 faces face:list --json | jq '[.data[] | select(.deepself) | .alias]'
+faces face:list --json | jq '.data[] | {alias, media: (.deepself.style // [])}'
 ```
 
 **Correcting a thread's medium.** An imported corpus room whose messages declared nothing
