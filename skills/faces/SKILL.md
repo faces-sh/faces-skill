@@ -303,6 +303,11 @@ faces chat:chat +alias -m "..." --medium email
 
 A `+` on a face with no style is a 409, not a fallback.
 
+`--medium` picks WHICH captured style, and a face only holds the media it was given.
+`face:list --has-style` shows them (`[style: email, lecture]`); in `--json` the field is
+`deepself`, an object keyed by kind. Check it before asking for a medium rather than
+finding out from a failed call.
+
 To see which faces already have one, without a call per face:
 
 ```bash
