@@ -38,6 +38,9 @@ faces face:unshare      <alias>  (--from ACCOUNT... | --all)  [--yes]
 faces face:publish      <alias>  --yes        # every account can chat it; a global override on top of sharing
 faces face:unpublish    <alias>
 faces face:sources      <alias>  [--type doc|thread]
+                                                       # STATUS reads `finishing` first: a source the server is still working on,
+                                                       # including an automatic retry, shows `finishing` and needs NO action.
+                                                       # GAVE is how much it contributed; 0 means it had nothing usable in it.
                                                        # every source in the face, docs and threads in one table: label, tokens, status,
                                                        # medium, updated. Exits 4 for a face that does not exist, which is a DIFFERENT
                                                        # answer from a face with no sources (exit 0). Never prints content and never
@@ -626,6 +629,33 @@ faces style:status --face alice        # recover the job id
 faces style:status JOB_ID --wait
 ```
 
+
+## Compile state: read `finishing` first
+
+A source carries a `finishing` boolean as well as `synced` and `prepare_status`. **Branch
+on `finishing` first; read `prepare_status` only when it is false.**
+
+| `finishing` | means | what to do |
+|---|---|---|
+| `true` | running, or queued for an automatic retry | show progress, **offer no action**, keep polling |
+| `false` | finished, out of retries, or paused | read `prepare_status` to tell those apart |
+
+`finishing: true` never coexists with `synced: true`. It is not the opposite of `synced`
+(a source never compiled is neither), and it is **not** true for `paused`, because a pause
+waits on you rather than on the server.
+
+**Never offer to compile a source that is finishing.** `"stalled"` is retried
+automatically, so presenting it as an error and telling someone to re-run is asking them
+to do what the system is already doing, and invites a second charge for work in flight.
+`faces compile:all` skips them and says how many it skipped.
+
+`prepare_status` keeps its terminal set (`synced` / `ready` / `failed`), so an existing
+poll loop needs no change.
+
+**A synced source with `GAVE 0`** had nothing the compiler could use, such as a PDF that
+is only images. A compile that extracts nothing from real text no longer reports success,
+so this no longer hides a provider failure. Recompiling costs again and will usually give
+the same result.
 
 ## Deleting sources
 
