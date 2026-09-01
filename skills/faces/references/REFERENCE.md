@@ -156,16 +156,22 @@ faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--time
                                                        # first poll. A build started for several shows them all; one started before
                                                        # this was recorded shows `-`. A build can be started from anywhere, so this
                                                        # is the only way to name one this client did not start.
-faces style:versions    <alias>                        # what has been captured, per medium, and which is in use. SEVERAL can be in
+faces style:versions    <alias>                        # what has been captured, per medium, and which is in use. SOURCES is how
+                                                       # many the build behind each version read, so a Revert confirmation can say
+                                                       # what it goes back to. SEVERAL can be in
                                                        # use at once — one per medium — and version numbers restart per medium.
                                                        # REVERTABLE says whether style:revert would succeed. Exits 4 for no such
                                                        # face; a face with no style yet exits 0 and says so.
 faces style:revert      <alias>  [--medium KIND]  --yes # toggle between the two versions kept for a medium: running it again returns
                                                        # to where you started. A face holds one style PER MEDIUM, so --medium is
                                                        # required once it has more than one (see style:versions). Requires --yes.
-faces style:delete      <alias>  [--yes]               # forget the captured style. NEVER deletes documents, threads or uploaded
-                                                       # material — the style can be captured again without re-uploading. To
-                                                       # delete source text use compile:doc:delete / compile:thread:delete.
+faces style:delete      <alias>  [--medium KIND | --all]  [--yes]
+                                                       # forget a captured style. A face holds ONE PER MEDIUM: name which with
+                                                       # --medium, or --all for every one. An unscoped delete on a face with
+                                                       # several is REFUSED rather than taking them all.
+                                                       # NEVER deletes documents, threads or uploaded material. To delete source
+                                                       # text use compile:doc:delete; to withdraw a source from the face while
+                                                       # KEEPING it, use compile:doc:reset / compile:thread:reset.
 
 faces catalog:doctor      [--fix]  [--generate]
 faces catalog:list
@@ -658,13 +664,25 @@ faces style:versions alice                        # REVERTABLE says whether it w
 faces style:revert alice --medium essay --yes
 ```
 
-**Deleting.** `style:delete` forgets the captured style and nothing else. Documents,
-threads and uploaded material are always kept, so the style can be captured again without
-re-uploading:
+**Deleting.** A face holds one style per medium, so say which:
 
 ```bash
-faces style:delete alice --yes
+faces style:delete alice --medium email --yes   # that one, leaving the rest
+faces style:delete alice --all --yes            # every one
 ```
+
+An unscoped delete on a face with more than one style is **refused**, naming them, rather
+than taking them all. Documents, threads and uploaded material are always kept either way,
+so a style can be captured again without re-uploading.
+
+**To withdraw a SOURCE from a face without deleting it**, use `compile:doc:reset` /
+`compile:thread:reset`. That wipes what was extracted, so the knowledge leaves the face,
+and leaves the material to be recompiled. It is the way to undo a compile that went wrong
+without paying to upload again.
+
+**Third-person material cannot produce a style.** A capture naming only sources marked
+`perspective: third-person` is refused: writing rules come from what the subject wrote,
+not from writing about them. `face:sources --json` reports each document's perspective.
 
 It cannot delete source text. To remove that, use the commands that own it —
 `compile:doc:delete` and `compile:thread:delete` — where deleting is the point of the call
