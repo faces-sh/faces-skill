@@ -134,10 +134,16 @@ faces compile:thread:reset    <thread_id>  [--yes]
 faces compile:thread:sync     <thread_id>
 faces compile:thread:delete   <thread_id>  [--yes]
 
-faces style:upload      <alias>  <file>  [--type email_jsonl|thread_json]  [--messages-per-room N]  [--strict]
-                                                       # load a corpus of the person's OWN writing (mail export, message archive).
-                                                       # Stores only: nothing is compiled and nothing is billed. Invalid rows are
-                                                       # skipped and reported; --strict refuses the whole file instead.
+faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json]  [--messages-per-room N]  [--strict]
+                                                       # load a corpus of the person's OWN writing (mail, messages, anything with
+                                                       # one JSON object per line). Stores only: nothing compiled, nothing billed.
+                                                       # Invalid rows are skipped and reported; --strict refuses the whole file.
+                                                       # UPLOAD ONE MEDIUM PER FILE. The output line `medium:` is what the rooms
+                                                       # were actually stamped with; `none` means they teach NO writing rules and
+                                                       # cannot be asked for by medium later. Check it, do not assume it.
+                                                       # --messages-per-room sets the ROOM size, and a room is the unit a style is
+                                                       # learned from. Set it ABOVE the length of a conversation you want kept
+                                                       # whole; the default 50 slices a long one into arbitrary fragments.
 faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KIND]  [--model MODEL]  [--allow-paid]  [--no-compile]  [--best-of N]  [--timeout N]  [--no-wait]
                                                        # capture how the face writes and install it. --all takes every document and
                                                        # every imported corpus room; live threads still compiling are skipped and
@@ -577,6 +583,23 @@ faces compile:thread:edit THREAD_ID --clear-medium
 ```
 
 What the corpus arrived as is kept underneath and never overwritten.
+
+**Uploading a corpus: one medium per file.** The upload response reports the medium the
+rooms were stamped with, derived from the messages rather than anything you send:
+
+```bash
+faces style:upload alice ./messages.jsonl --messages-per-room 500
+# medium:   text message      <- assert this
+```
+
+`medium: none` means the file mixed media, or its messages declared none. Those rooms
+**teach no writing rules and cannot be asked for by medium at inference** — the upload
+succeeds and the face quietly learns nothing about how its subject writes. It is the one
+silent failure on this path, so check the line rather than assuming it.
+
+Set `--messages-per-room` above the length of a conversation you want kept whole: a room
+is the unit a style is learned from, and the default of 50 cuts a long conversation into
+arbitrary slices.
 
 **Declare the medium.** Each medium is analysed on its own, so an essay never teaches a
 rule about email. A source that does not say what it is gets refused rather than guessed:
