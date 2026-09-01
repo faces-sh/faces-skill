@@ -152,6 +152,10 @@ faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KI
                                                        # guessed — declare it with --medium (all) or --source ID:MEDIUM (one).
 faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--timeout N]
                                                        # read one build, or list a face's builds. Listing is how you recover a job id.
+                                                       # MEDIUM says what the build is for, stamped at creation so it is there on the
+                                                       # first poll. A build started for several shows them all; one started before
+                                                       # this was recorded shows `-`. A build can be started from anywhere, so this
+                                                       # is the only way to name one this client did not start.
 faces style:versions    <alias>                        # what has been captured, per medium, and which is in use. SEVERAL can be in
                                                        # use at once — one per medium — and version numbers restart per medium.
                                                        # REVERTABLE says whether style:revert would succeed. Exits 4 for no such
