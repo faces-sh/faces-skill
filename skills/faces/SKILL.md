@@ -27,7 +27,9 @@ Without a Face, an LLM is **faceless** — generic, interchangeable, forgettable
 
 Official docs: https://docs.faces.sh
 
-Always use `--json` when you need to extract values from command output.
+Always use `--json` when you need to extract values from command output — or **`--toon`**,
+which carries the same fields in about 40% fewer tokens and is the better choice when the
+output goes into a model's context. Requires faces-cli 1.9.0+.
 
 ## Current config
 !`faces config:show 2>/dev/null || echo "(no config saved)"`

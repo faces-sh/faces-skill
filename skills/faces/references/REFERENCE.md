@@ -824,12 +824,31 @@ faces face:edit maria --attr religion=Buddhist --attr ethnicity="Korean American
 
 > Note: `--attr` cannot be combined with `--formula`. Composite faces inherit their facts from their component faces.
 
+## Output format: `--json` and `--toon`
+
+Every command that takes `--json` also takes `--toon`, which emits the **same data and the
+same field names** in [TOON](https://toonformat.dev/) instead. Measured across this CLI it
+is **about 40% fewer tokens** than `--json` — 73% on `billing:llm-costs`, 17% on
+`face:list` — so for an agent paying for its own context it is the better default.
+
+```bash
+faces face:list --toon      # same fields as --json, fewer tokens
+faces face:list --json      # unchanged
+faces face:list             # human output, unchanged
+```
+
+The two are mutually exclusive. Errors keep the same structured shape in either. Nothing
+about the data changes, so anything that reads `--json` can read `--toon` by decoding it
+instead of parsing JSON.
+
+Requires faces-cli 1.9.0 or newer.
+
 ## Global flags
 
 Any command accepts these flags:
 
 ```
-faces [--base-url URL] [--token JWT] [--api-key KEY] [--json] COMMAND
+faces [--base-url URL] [--token JWT] [--api-key KEY] [--json | --toon] COMMAND
 ```
 
 ## Environment variables
