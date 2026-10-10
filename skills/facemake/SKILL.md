@@ -466,16 +466,30 @@ faces compile:upload <alias> --file <path> --kind document --no-wait --json
 
 **`--medium` is required and must not be guessed.** A compile reads writing differently
 per medium, and the server refuses to infer one rather than risk teaching the wrong
-voice. One of: `academic paper`, `blog post`, `conversation`, `email`, `essay`,
-`lecture`, `legal document`, `social post`, `text message`, `thread reply`.
+voice. Eleven values, spelled exactly: `academic paper`, `blog post`, `conversation`,
+`email`, `essay`, `lecture`, `legal document`, `other`, `social post`, `text message`,
+`thread reply`. No synonyms — `transcript`, `keynote` and `sms` are each a 422.
 
 **Ask the user which it is** when they have not said. One question, obvious answer, and
 it decides whether the face writes like them. Do not infer it from the filename.
+
+**`other` is for writing in none of those forms** — a few paragraphs that are not an
+email, an essay, a lecture or a legal document. It compiles, and is read as prose with
+no form-specific conventions assumed. Reach for it when nothing fits; do not reach for
+it to skip asking, and do not file a letter or a memo there, which are forms with rules
+of their own.
 
 Poll status: `faces compile:thread:get ID --status-only --json | jq '{prepare_status, chunks_completed, chunks_total}'`
 
 For audio/video sources, always review the transcript with the user before
 compiling — transcription quality varies and speaker labels may need correction.
+
+**A corpus file's per-message `kind` is held to the same eleven.** `style:upload
+--type thread_json` / `email_jsonl` pass a file whose messages each declare their own
+`kind`. That used to be checked only for shape, so `kind: "talk"` was accepted and then
+mislabelled internally. It is validated now, and a file with an unknown kind is refused
+naming the offending message index and value. If you ever write one of these files,
+spell the kind as one of the eleven.
 
 **The upload now tells you what it dropped.** A thread upload reports `warnings` and
 `warning_count`, and faces-cli 1.10.0 prints them. Two matter:

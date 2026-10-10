@@ -88,15 +88,22 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # --best-of N (1-5) writes N replies and serves the closest to the style.
                                                        # It multiplies the cost by N, needs a + alias, and cannot be streamed.
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
-                                                       # --medium declares WHAT THE WRITING IS so the reply is shaped for the occasion:
-                                                       # email, text message, social post, essay, academic paper, blog post,
-                                                       # legal document, thread reply, conversation (dialogue: transcripts,
-                                                       # interviews, calls), lecture (sustained speech nobody interrupts: talks,
-                                                       # sermons, keynotes). Synonyms fold: transcript/interview/call -> conversation,
-                                                       # talk/sermon/keynote/speech -> lecture. It is NOT tone or style.
+                                                       # --medium declares WHAT THE WRITING IS so the reply is shaped for the occasion.
+                                                       # ELEVEN VALUES, SPELLED EXACTLY: email, text message, social post, essay,
+                                                       # academic paper, blog post, legal document, thread reply, conversation,
+                                                       # lecture, other. It is NOT tone or style.
+                                                       # Which one to reach for: `conversation` is dialogue — a transcript, an
+                                                       # interview, a call. `lecture` is sustained speech nobody interrupts — a
+                                                       # talk, a sermon, a keynote. `other` is writing in none of the named forms.
+                                                       # THOSE ARE DESCRIPTIONS, NOT ACCEPTED INPUTS: send the value itself.
+                                                       # There are NO SYNONYMS any more. `transcript`, `keynote`, `sms` and the
+                                                       # other 32 aliases used to fold and are each a 422 on compile now.
                                                        # OMIT IT IF YOU DO NOT KNOW — never infer it from the text. A wrong
                                                        # declaration is worse than none, because a declaration is trusted.
-                                                       # Chat ignores an unknown value; compile rejects it with a 422.
+                                                       # On CHAT the medium picks WHICH CAPTURED STYLE answers, so it does nothing
+                                                       # without a `+` alias; with one, a medium the face has no style for is
+                                                       # refused naming the ones it has. Omitting it classifies one from the text.
+                                                       # On COMPILE it is required and the spelling is held to exactly.
 faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]
 faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--stream]  [--medium KIND]  [--oauth-only]
 faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--medium KIND]  [--oauth-only]   # start a new thread
@@ -531,10 +538,37 @@ faces compile:doc alice --file essay.txt --medium essay
 ```
 
 `--medium` is required: a document that has not said what it is gets refused at the
-compile step with `error_code: "no_medium"`, having already been created. One of
-`academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,
-`legal document`, `social post`, `text message`, `thread reply`. Never guess one — a
-wrong medium teaches the wrong voice and nothing afterwards says it happened.
+compile step with `error_code: "no_medium"`, having already been created. Eleven
+values, spelled exactly — `academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,
+`legal document`, `other`, `social post`, `text message`, `thread reply`. Never guess one — a wrong medium teaches the wrong voice and nothing
+afterwards says it happened.
+
+**No synonyms.** `transcript`, `keynote`, `sms`, `article` and the other 32 aliases used
+to fold and are each a 422 naming all eleven. Only case and surrounding spaces are
+forgiven. The folding was removed because it threw away what the caller said: a document
+sent `medium: "transcript"` was stored as `conversation` and the word "transcript" was
+kept nowhere, so afterwards nothing recorded what had been declared.
+
+**`other`** is for writing in none of the named forms, read as prose with no
+form-specific conventions assumed. Its rules are stored under `other` and applied only
+to `other`. It is not a dumping ground: a letter, a diary entry and a memo are forms
+with rules of their own, and filing them under `other` is the same error as filing them
+under `essay`.
+
+`other` and a null medium are not the same thing, and the difference is the point:
+
+| | |
+|---|---|
+| no `--medium` | nobody has declared anything. `compilable: false`, `no_medium`, and the document can never teach the face. |
+| `--medium other` | the author says it is not one of the forms. Compiles. |
+
+**The same flag name does different work on each surface**, which is worth holding
+separately:
+
+| surface | no `--medium` | what it does |
+|---|---|---|
+| `chat:*` | fine — one is classified from the request text | picks which captured style answers. Only does anything on a `+` alias; with one, a medium the face has no style for is refused naming the ones it has. So `other` on chat needs an `other` style captured, and is not a form-neutral fallback. |
+| `compile:doc`, `compile:upload --kind document` | the document cannot be compiled until one is set | decides how the writing is read, and the spelling is held to exactly |
 
 Output:
 ```

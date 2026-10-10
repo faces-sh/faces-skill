@@ -36,6 +36,11 @@ output goes into a model's context. Requires faces-cli 1.9.0+.
 422 on every call, `--status-only` does not exist, and nothing reads whether a compiled
 source is still current. The setup block below reports the installed version.
 
+**Which media are accepted is the server's rule, not the CLI's, so it holds at every
+version.** A CLI older than 1.10.1 prints a list of ten that omits `other` and still
+promises that synonyms fold; neither is true. Trust the eleven below over the `--medium`
+help text on an older install.
+
 ## Current config
 !`faces config:show 2>/dev/null || echo "(no config saved)"`
 
@@ -149,8 +154,27 @@ faces compile:doc alias --file biography.txt --medium essay --perspective third-
 writing differently per medium and the server refuses to infer one, because a wrong
 medium teaches the wrong voice and nothing afterwards says it happened.
 
-One of: `academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,
-`legal document`, `social post`, `text message`, `thread reply`.
+**Eleven values, spelled exactly.** There are no synonyms: `transcript`, `keynote`,
+`sms` and the other 32 aliases used to fold and are each a 422 now.
+
+`academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,
+`legal document`, `other`, `social post`, `text message`, `thread reply`.
+
+`conversation` is dialogue — a transcript, an interview, a call. `lecture` is sustained
+speech nobody interrupts — a talk, a sermon, a keynote. Those are descriptions of which
+value to reach for, not spellings that work: send the value itself.
+
+**`other` is the eleventh, and it is the answer when none of the forms fit** — a few
+paragraphs someone wrote that are not an email, an essay, a lecture or a legal
+document. It is a declaration by the author and it compiles. A source filed this way is
+read as prose with no form-specific conventions assumed, and its rules are stored under
+`other` and applied only to `other`, so nobody's email habits reach it and its habits
+reach nothing else.
+
+It is **not** a shrug and not a dumping ground. A letter, a diary entry and a memo are
+real forms with their own rules, and filing those under `other` is the same mistake as
+filing them under `essay`. Reaching for `other` because nothing fits is right; reaching
+for it to avoid asking is exactly what "do not guess" is about.
 
 `faces compile:doc` refuses before creating anything, so there is nothing to clean up.
 `faces compile:doc:create` without one succeeds, and the later `compile:doc:make` is
