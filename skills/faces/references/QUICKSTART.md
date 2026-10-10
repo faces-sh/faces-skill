@@ -142,7 +142,7 @@ If `--type thread` fails with 422, retry with `--type document`.
 
 **Raw text:**
 ```bash
-DOC_ID=$(faces compile:doc:create alice --label "Notes" --content "Text here..." --json | jq -r '.id')
+DOC_ID=$(faces compile:doc:create alice --label "Notes" --medium essay --content "Text here..." --json | jq -r '.id')
 ```
 
 ## 5. Compile
@@ -157,8 +157,8 @@ faces compile:doc:make "$DOC_ID" --no-wait --json
 Or, if you created the document inline (step 4, "Raw text"), you can create and compile in one step:
 
 ```bash
-faces compile:doc alice --file essay.txt --no-wait --json
-# Poll: faces compile:doc:get DOC_ID --json | jq '{prepare_status}'
+faces compile:doc alice --file essay.txt --medium essay --no-wait --json
+# Poll: faces compile:doc:get DOC_ID --status-only --json | jq '{prepare_status}'
 ```
 
 For threads:
@@ -167,7 +167,11 @@ For threads:
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 
-Poll status: `faces compile:thread:get THREAD_ID --json | jq '{prepare_status, chunks_completed, chunks_total}'`
+Poll status: `faces compile:thread:get THREAD_ID --status-only --json | jq '{prepare_status, chunks_completed, chunks_total}'`
+
+`--status-only` leaves out the messages. Polling without it pulls the whole thread back
+every tick — a few hundred bytes against 120KB in one measurement — and for an agent
+that is the transcript landing in context repeatedly.
 
 ## 6. Chat
 

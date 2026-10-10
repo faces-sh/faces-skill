@@ -440,7 +440,7 @@ ffmpeg -i video.mp4 -vn -ac 1 -b:a 48k audio.mp3
 THREAD_ID=$(faces compile:upload <alias> --file audio.mp3 --kind thread \
   --no-wait --json | jq -r '.thread_id // .id')
 # Poll for transcription:
-faces compile:thread:get "$THREAD_ID" --json | jq '{prepare_status}'
+faces compile:thread:get "$THREAD_ID" --status-only --json | jq '{prepare_status}'
 # When done, review and remap speaker:
 faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
@@ -448,14 +448,15 @@ faces compile:thread:make "$THREAD_ID" --no-wait --json
 
 # Text you already have — a transcript in hand, a draft, anything not on disk.
 # Pass it verbatim; do NOT retype or summarise it, or the face learns your paraphrase.
-faces compile:doc <alias> --content "<text>" --label "<name>" --no-wait --json
+faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --no-wait --json
 # Local text file — by the subject (first-person is the default)
-faces compile:doc <alias> --file <path> --no-wait --json
+faces compile:doc <alias> --file <path> --medium <medium> --no-wait --json
 # Several sources at once — --file is repeatable, each becomes its own document.
 # Returns {"documents":[{file, document_id}...]} in input order. One call, not one per file.
-faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --no-wait --json
+# One --medium applies to all of them, so group files of the same kind in one call.
+faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --medium essay --no-wait --json
 # Local text file — about the subject (biography, Wikipedia, news profile)
-faces compile:doc <alias> --file <path> --perspective third-person --no-wait --json
+faces compile:doc <alias> --file <path> --medium <medium> --perspective third-person --no-wait --json
 # PDF, Word (.docx), audio or video: use compile:upload — compile:doc takes text only
 faces compile:upload <alias> --file <path> --kind document --no-wait --json
 
@@ -463,10 +464,31 @@ faces compile:upload <alias> --file <path> --kind document --no-wait --json
 # See ../faces/references/INTERVIEWS.md for the full workflow
 ```
 
-Poll status: `faces compile:thread:get ID --json | jq '{prepare_status, chunks_completed, chunks_total}'`
+**`--medium` is required and must not be guessed.** A compile reads writing differently
+per medium, and the server refuses to infer one rather than risk teaching the wrong
+voice. One of: `academic paper`, `blog post`, `conversation`, `email`, `essay`,
+`lecture`, `legal document`, `social post`, `text message`, `thread reply`.
+
+**Ask the user which it is** when they have not said. One question, obvious answer, and
+it decides whether the face writes like them. Do not infer it from the filename.
+
+Poll status: `faces compile:thread:get ID --status-only --json | jq '{prepare_status, chunks_completed, chunks_total}'`
 
 For audio/video sources, always review the transcript with the user before
 compiling — transcription quality varies and speaker labels may need correction.
+
+**The upload now tells you what it dropped.** A thread upload reports `warnings` and
+`warning_count`, and faces-cli 1.10.0 prints them. Two matter:
+
+- `face_speaker_not_found` — the `--face-speaker` name matched nobody in the file, so
+  the face has **no turns of its own** and every line was read as somebody else talking.
+  This corrupts the face quietly. Re-upload with a name that appears in the file; the
+  warning lists the speakers it did find.
+- `unattributed_lines` — lines before the first `Speaker:` prefix. They are not in the
+  thread at all.
+
+The upload answers `200` with a plausible `message_count` either way, so the warnings
+are the only thing that distinguishes a clean import from a broken one. Read them.
 
 After each successful compile, update the FACE.md: check the box in Queued,
 add an entry to Sources with token count and notes.

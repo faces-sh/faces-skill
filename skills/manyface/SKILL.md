@@ -209,6 +209,36 @@ For solo roles, use `/facemake` (the full guided flow or quick mode). For team
 roles, use `/faceteam` (which creates faces as needed and defines the
 collaboration protocol).
 
+**Casting from other people's faces.** Published faces are a real option for
+option D, and worth offering before building a face from scratch for a role
+somebody has already done the work on:
+
+```bash
+faces face:list --public                            # every published face
+faces face:list --public --from-users <username>    # one account's
+faces face:list --public --include owner_follow     # marks the accounts you follow
+```
+
+A published face is chatted as `owner:alias` and **requires an explicit
+`@model`**; it cannot join a team or be edited, so a role that needs either
+has to be its own face. From faces-cli 1.10.0 `faces face:get owner:alias`
+and `faces face:neighbors owner:alias` work too, so you can read one before
+casting it.
+
+The accounts behind those faces can be read and followed:
+
+```bash
+faces user:get <username>          # name, follower counts, whether you follow them
+faces user:follow <username>
+faces user:following <username>    # who they follow — how you find more
+faces user:followers <username>
+```
+
+`faces user:following <username>` is the useful one when casting: the accounts
+a person you trust follows are where the next good face usually is. Following
+is a plain preference and costs nothing, but it is still the user's call —
+offer it, do not do it unasked.
+
 #### Step 4: Write the manyfaced skill
 
 Output a new directory:
