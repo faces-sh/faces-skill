@@ -217,6 +217,9 @@ somebody has already done the work on:
 faces face:list --public                            # every published face
 faces face:list --public --from-users <username>    # one account's
 faces face:list --public --include owner_follow     # marks the accounts you follow
+faces face:list --public --search "<role or topic>" # matches alias, name and description
+faces face:list --public --search "<text>" --sort relevance   # best match first
+faces face:list --public --sort usage               # most used first — what others actually reach for
 ```
 
 A published face is chatted as `owner:alias` and **requires an explicit
@@ -233,6 +236,11 @@ faces user:follow <username>
 faces user:following <username>    # who they follow — how you find more
 faces user:followers <username>
 ```
+
+`--search` with `--sort relevance` is the fastest way to find a face for a role
+somebody has already built, and `--sort usage` surfaces the ones other people
+actually reach for. Both need faces-cli 1.11.0; below that a listing is always
+newest-first and there is no way to ask for anything else.
 
 `faces user:following <username>` is the useful one when casting: the accounts
 a person you trust follows are where the next good face usually is. Following
