@@ -359,9 +359,12 @@ has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
    - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --no-wait --json`
      — pass it verbatim; retyping or summarising teaches the face your paraphrase
    - `--medium` is required and must not be guessed: a compile reads writing differently
-     per medium and the server refuses to infer one. One of `academic paper`, `blog post`,
-     `conversation`, `email`, `essay`, `lecture`, `legal document`, `social post`,
-     `text message`, `thread reply`. **Ask the user** where the FACE.md does not say.
+     per medium and the server refuses to infer one. Eleven values, spelled exactly:
+     `academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,
+     `legal document`, `other`, `social post`, `text message`, `thread reply`. There are
+     no synonyms, so `transcript` and `keynote` are each a 422. `other` is for writing in
+     none of those forms and it compiles; it is not a way to avoid choosing.
+     **Ask the user** where the FACE.md does not say.
    - For material *about* the person (biography, Wikipedia, news profile), add
      `--perspective third-person` — the default (`first-person`) compiles it as
      the subject's own voice and corrupts the face. See `/facemake` Step 5.
