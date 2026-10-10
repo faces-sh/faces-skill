@@ -479,7 +479,28 @@ no form-specific conventions assumed. Reach for it when nothing fits; do not rea
 it to skip asking, and do not file a letter or a memo there, which are forms with rules
 of their own.
 
-Poll status: `faces compile:thread:get ID --status-only --json | jq '{prepare_status, chunks_completed, chunks_total}'`
+Poll one source: `faces compile:thread:get ID --status-only --json | jq '{prepare_status, chunks_completed, chunks_total}'`
+
+**Poll the whole set with one call instead.** This step queues several compiles with
+`--no-wait`, so the question is "are they all done", not "is this one done":
+
+```bash
+faces compile:status --json | jq '{sources_active, measurable, chunks_completed}'
+faces compile:status --watch      # blocks until the account is quiet, then exits
+```
+
+136 bytes idle, against one request per id. Needs faces-cli 1.11.0.
+
+Two things to get right when reporting it back to the user:
+
+- **An empty answer means nothing is running, not nothing is outstanding.** A paused
+  source is absent; a stalled one is present, because it is retried automatically. If
+  you paused something, seeing nothing here is not evidence it finished.
+- **Do not report a percentage when `measurable` is false.** A source still
+  transcribing has no chunk count, so there is no denominator. Say how many chunks are
+  done and leave it there — summing the totals that do exist makes a denominator that
+  grows, so the percentage would go backwards, and narrating that is worse than saying
+  nothing.
 
 For audio/video sources, always review the transcript with the user before
 compiling — transcription quality varies and speaker labels may need correction.
