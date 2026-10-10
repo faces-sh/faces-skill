@@ -12,6 +12,13 @@ faces auth:connections
 
 faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--specialty TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH]
 faces face:list         [--has-style]  [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile,sharing,avatar,usage,owner_follow]  [--public]  [--shared]  [--system]  [--from-users USER...]  [--not-from-users USER...]
+                        [--search TEXT]  [--sort created|alias|relevance|usage]  [--order asc|desc]
+                                                       # faces-cli 1.11.0+. --search matches alias, name and description.
+                                                       # OMIT --order to keep each field's own direction: newest first for
+                                                       # created, most used first for usage, best match first for relevance,
+                                                       # A to Z for alias. Sending the direction a field already had looks
+                                                       # like a no-op and flips the others.
+                                                       # --sort relevance ranks against --search and needs one.
                                                        # --public = open to everybody; --shared = shared with YOU. Independent, and they
                                                        # compose. A face reachable both directly and via a workspace appears ONCE with
                                                        # both routes — never deduplicate. Faces you do not own print as owner:alias.
