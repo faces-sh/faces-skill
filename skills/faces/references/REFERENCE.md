@@ -10,12 +10,12 @@ faces auth:connect      openai   # device-code flow: prints a code + URL, polls 
 faces auth:disconnect   <provider>
 faces auth:connections
 
-faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH]
-faces face:list         [--has-style]  [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile]  [--public]  [--shared]  [--system]  [--from-users USER...]  [--not-from-users USER...]
+faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--specialty TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH]
+faces face:list         [--has-style]  [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile,sharing,avatar,usage,owner_follow]  [--public]  [--shared]  [--system]  [--from-users USER...]  [--not-from-users USER...]
                                                        # --public = open to everybody; --shared = shared with YOU. Independent, and they
                                                        # compose. A face reachable both directly and via a workspace appears ONCE with
                                                        # both routes — never deduplicate. Faces you do not own print as owner:alias.
-faces face:get          <alias | owner:alias>  [--include tags,teams,profile]  [--full]
+faces face:get          <alias | owner:alias>  [--include tags,teams,profile,sharing,avatar,usage]  [--full]
                                                        # prints `style: installed` when the face has a captured style.
                                                        # owner:alias is looked up through the LISTING, which is the only route that
                                                        # serves other accounts' faces. The listing can lag the resolver, so a miss
@@ -24,7 +24,7 @@ faces face:get          <alias | owner:alias>  [--include tags,teams,profile]  [
                                                        # a published or shared face resolves under owner:alias, the same address chat
                                                        # uses, and prints an `access:` line saying you do not own it.
 faces face:attributes
-faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
+faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--specialty TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
 faces face:delete       <alias>  [--yes]
 faces face:lock         <alias>              # freeze the face (read-only)
 faces face:unlock       <alias>              # unfreeze the face (writable)
@@ -47,12 +47,30 @@ faces face:sources      <alias>  [--type doc|thread]
                                                        # truncates. --json carries a stable id per row for later delete/recompile.
 faces face:stats
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
-faces face:neighbors    <alias>  [--k N]  [--component face|POSITION]  [--direction nearest|furthest]
+faces face:neighbors    <alias | owner:alias>  [--k N]  [--component face|POSITION]  [--direction nearest|furthest]
+                                             # owner:alias works on the face routes from 1.10.0. The face being compared may
+                                             # belong to another account; the faces it is ranked against are always your own.
                                                        # --component: `face` (default) ranks on overall similarity; a position (e.g. 1)
                                                        # ranks on one component. Which positions are comparable varies per face — pick a
                                                        # wrong one and the error names the valid ones. A face with nothing at that position
                                                        # reports "no data" and exits 0, matching the null at the same index in face:diff.
                                                        # --direction nearest (default) = most SIMILAR; furthest = most DIFFERENT / unlike / opposite
+
+faces face:avatar:list    <alias | owner:alias>          # versions, which one is served, which no longer match the face
+faces face:avatar:get     <alias | owner:alias>  [--size sm|md|lg]  [--format png|svg]  [--width PX]  [--version N]  [--prefer organic|uploaded]  [--out PATH]
+                                             # FREE. Writes the image and reports which version arrived, generated or
+                                             # uploaded, and whether it still matches what the face knows.
+faces face:avatar:make    <alias>  --allow-paid  [--seed N]
+                                             # COSTS MONEY. Refuses without --allow-paid and sends nothing. Prints the
+                                             # amount charged. --seed reproduces a particular avatar.
+faces face:avatar:upload  <alias>  --file PATH          # your own picture: png, jpeg, webp, gif or bmp. Free; replaces any previous upload.
+faces face:avatar:delete  <alias>  [--yes]              # removes only the UPLOAD. Generated versions stay and one is served again.
+
+faces user:get           <username>           # name, follower counts, and whether you follow them
+faces user:follow        <username>
+faces user:unfollow      <username>
+faces user:followers     <username>           # followed to the end, not just the first page
+faces user:following     <username>
 
 faces face:tag:list     <alias>
 faces face:tag:add      <alias>  --tag TAG  [--tag TAG...]
@@ -105,13 +123,15 @@ faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
 faces compile:doc:reset    <doc_id>  [--yes]
 faces compile:doc:list     <alias>  [--verbose]
                                                        # document text is omitted unless --verbose (--json always includes it)
-faces compile:doc:get      <doc_id>
+faces compile:doc:get      <doc_id>  [--status-only]   # --status-only leaves out the text: a few hundred bytes rather than the
+                                                       # whole document, which was 21KB in one measurement and grows with it. Poll with it.
 faces compile:doc:edit     <doc_id>  [--label]  [--content TEXT | --file PATH]  [--medium KIND]  [--perspective first-person|third-person]
 faces compile:doc:delete   <doc_id>
 
 faces compile:thread:create   <alias>  [--label]  [--oauth-only]
 faces compile:thread:list     <alias>
-faces compile:thread:get      <thread_id>
+faces compile:thread:get      <thread_id>  [--status-only]  # --status-only leaves out the messages: a few hundred bytes rather than
+                                                       # every message, 120KB in one measurement. Poll with it.
 faces compile:thread:edit     <thread_id>  [--label TEXT]  [--medium KIND | --clear-medium]  [--face-speaker NAME]
                                                        # --medium corrects what a thread is READ as, and sticks. Use it on an imported
                                                        # corpus room whose messages declared nothing (it shows as medium `unknown`,
@@ -122,8 +142,12 @@ faces compile:thread:replace  <thread_id>  --file PATH  [--face-speaker NAME]
                                                        # conversation stays ONE thread: send the whole transcript again and
                                                        # compile:thread:make it, instead of uploading each new stretch as another
                                                        # thread. Takes the same "SPEAKER: text" transcript compile:upload --kind
-                                                       # thread accepts, or a JSON array of {role, content, from}; which one is
-                                                       # detected and reported. Writes content only — nothing generated, nothing
+                                                       # thread accepts, or a JSON array of {role, content, name}; which one is
+                                                       # detected and reported. `name` is the speaker label. An input file may
+                                                       # still say `from` and the CLI maps it, but the API itself rejects `from`
+                                                       # outright, so faces-cli BELOW 1.10.0 cannot run this command at all:
+                                                       # every call is a 422. Check with `npm list -g faces-cli`.
+                                                       # Writes content only — nothing generated, nothing
                                                        # billed. Refuses an empty file rather than emptying the thread.
 faces compile:thread:message  <thread_id>  -m MSG  [--oauth-only]
                                                        # NOT the same thing: this INTERVIEWS the face — it appends your message AND
@@ -382,6 +406,22 @@ faces face:edit ada --description "Updated bio"
 
 `catalog:doctor --fix` pulls descriptions from the server. `catalog:doctor --generate` creates descriptions via LLM and syncs them back to the server.
 
+## Face specialty (`--specialty`)
+
+A short line saying what the face is for, shown beside its name in listings and on its
+card. Separate from `--description`, which is the bio.
+
+```bash
+faces face:create --name "Ada" --alias ada --specialty "first-principles physics"
+faces face:edit ada --specialty "theoretical physics"
+faces face:edit ada --specialty ""                   # clears it
+```
+
+`face:get` also reports `updated` — when the face itself last changed, which moves
+independently of its compiled material — and `usage` with `--include usage`, which
+carries 30-day user and token counts used for discovery sorting. Both are null unless
+asked for, so their absence says nothing was requested rather than nothing happened.
+
 ## Per-face system prompt (`profile_addendum`)
 
 A face can store an arbitrary system prompt (`profile_addendum`). At inference the backend assembles the instruction stack as **persona profile → profile_addendum → per-request system prompt**, so it's durable, face-level behavior that still leaves room for a per-call `--system`/`--instructions`. Applies on all three endpoints (`chat:chat`, `chat:messages`, `chat:responses`).
@@ -487,8 +527,14 @@ Teams also have a local TEAM.md representation at `~/.faces/teams/<name>/TEAM.md
 `compile:doc` is the recommended one-step command for compiling a document into a face. Pass the face alias as the first argument. It handles create → compile (prepare + sync) automatically with real-time progress:
 
 ```bash
-faces compile:doc alice --file essay.txt
+faces compile:doc alice --file essay.txt --medium essay
 ```
+
+`--medium` is required: a document that has not said what it is gets refused at the
+compile step with `error_code: "no_medium"`, having already been created. One of
+`academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,
+`legal document`, `social post`, `text message`, `thread reply`. Never guess one — a
+wrong medium teaches the wrong voice and nothing afterwards says it happened.
 
 Output:
 ```
@@ -725,6 +771,81 @@ is only images. A compile that extracts nothing from real text no longer reports
 so this no longer hides a provider failure. Recompiling costs again and will usually give
 the same result.
 
+## Compile state: is the compiled knowledge still current?
+
+`synced: true` only ever meant "a compile ran at some point against some revision of this
+text". It never said *which* revision, so a source edited after its compile reported
+exactly the same as one that was current. The API publishes the revision now, and the
+distinction matters more for an agent than for a person: an agent compiles a source,
+edits it later in the same session, and has no reason to doubt a `synced: true`.
+
+| | field | meaning |
+|---|---|---|
+| document | `version` / `synced_version` | the current revision, and the one the compile read |
+| thread | `version` / `synced_version` | the same pair |
+| thread | `synced_at` | the fixed point every message instant is compared against |
+| each message | `timestamp` | when that message was last written — created, or edited in place |
+
+- **A document is stale** when `synced_version < version`, by that many revisions.
+- **A thread is stale per message**: `message.timestamp > thread.synced_at` identifies
+  exactly the messages the compile never read. An agent that edited message 4 of 500 can
+  see that message 4 alone is the reason to recompile.
+
+**Two states are unknown, and unknown is not stale.** Reporting either as stale sends
+someone to pay for a recompile they may not need:
+
+- A **null `timestamp`** means the instant was never recorded. That is not the same as
+  edited.
+- A thread with **`synced_at` set and `synced_version` null** was compiled before the
+  revision was recorded. That is 204 of 208 threads on a mature account, draining as they
+  recompile.
+
+**A reorder moves the revision and restamps no message.** Per-message staleness alone
+cannot see it; the revision pair can. If the pair says stale and no message looks new,
+the order changed.
+
+The CLI reads all of this from 1.10.0 on. `face:sources` folds it into the STATUS cell,
+so a row reads `stale (2 behind)` rather than `synced`; `compile:doc:get`,
+`compile:doc:list`, `compile:thread:get` and `compile:thread:list` say what moved and
+what a compile would be refused for. Below 1.10.0 none of it is read and every compiled
+source reads as current.
+
+## `compilable`: whether the action exists at all
+
+Every source row and detail response carries:
+
+```json
+{ "compilable": false, "compile_blocked_reason": "no_medium" }
+```
+
+`compile_blocked_reason` is a short stable code — `empty`, `no_medium`,
+`no_user_messages`, `corpus_room` — and you write the sentence.
+
+**The two booleans compose.** Branch on `finishing` to decide between showing progress
+and offering an action, and on `compilable` to decide whether the action exists:
+
+| `finishing` | `compilable` | what to do |
+|---|---|---|
+| `true` | either | show progress, offer nothing, keep polling |
+| `false` | `true` | a compile is available; offer it if the source is stale or never compiled |
+| `false` | `false` | say why from `compile_blocked_reason`; never offer a compile |
+
+**Never offer to compile a source the server will refuse.** On a real account 33 of 70
+documents are `no_medium` and 202 of 208 threads are `corpus_room`, so this is the common
+case, not the edge. `faces compile:all` skips them from 1.10.0 and reports the counts by
+reason.
+
+Three traps, each worth being explicit about:
+
+- **It is not about whether a compile would change anything.** That is `synced` and the
+  revision pair above. A source whose text was rewritten is `compilable: true` and stale,
+  and recompiling it is exactly right.
+- **It is not transient.** A running compile, a locked face and an empty balance are
+  refused too, but by other means (409, 409, 402) and none of them is a property of the
+  source. `finishing` already covers the first.
+- **Treat an unknown code as "cannot be compiled."** More will be added; the set is not
+  closed.
+
 ## Deleting sources
 
 `compile:thread:delete` and `compile:doc:delete` are clean — they remove all
@@ -842,6 +963,32 @@ about the data changes, so anything that reads `--json` can read `--toon` by dec
 instead of parsing JSON.
 
 Requires faces-cli 1.9.0 or newer.
+
+## Paged listings
+
+`GET /v1/faces` is cursor-paged: 100 per page by default, with `has_more` and
+`next_cursor` on the response. **faces-cli 1.10.0 follows the cursor to the end**, so
+`face:list`, `compile:all`, `catalog:backup` and `catalog:doctor` see every face, and
+each says so when a list came back short rather than presenting it as complete.
+`catalog:backup` and `catalog:doctor` refuse outright on a short list — a backup that
+restores short, and a comparison against rows it never read, are both worse than an
+error.
+
+**Below 1.10.0 these read only the first page.** On an account with more than 100 faces
+`face:list` silently truncates and `compile:all` silently skips, with nothing said. Do
+not tell a user a listing is complete unless 1.10.0 or newer is installed.
+
+`user:followers` and `user:following` are paged the same way and followed the same way.
+
+## Errors
+
+A client's mistake is a `422`, not a `500`. Every error body uses one `detail` shape and
+carries a reference code; `https://docs.faces.sh/errors` describes the shape and which
+statuses are worth retrying — `503` is the retryable one. A `409` means the thing is
+busy or frozen, a `402` means no credits, and neither is fixed by retrying.
+
+Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_messages`,
+`corpus_room`); see the `compilable` section above. The CLI prints the repair for each.
 
 ## Global flags
 

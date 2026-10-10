@@ -355,14 +355,18 @@ has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
 1. Read the face's FACE.md from `~/.faces/catalog/<alias>/FACE.md`
 2. Walk through each Queued item using `--no-wait`:
    - YouTube: `faces compile:import <alias> --url "<url>" --type document --no-wait --json`
-   - Local file: `faces compile:doc <alias> --file <path> --no-wait --json`
-   - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --no-wait --json`
+   - Local file: `faces compile:doc <alias> --file <path> --medium <medium> --no-wait --json`
+   - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --no-wait --json`
      — pass it verbatim; retyping or summarising teaches the face your paraphrase
+   - `--medium` is required and must not be guessed: a compile reads writing differently
+     per medium and the server refuses to infer one. One of `academic paper`, `blog post`,
+     `conversation`, `email`, `essay`, `lecture`, `legal document`, `social post`,
+     `text message`, `thread reply`. **Ask the user** where the FACE.md does not say.
    - For material *about* the person (biography, Wikipedia, news profile), add
      `--perspective third-person` — the default (`first-person`) compiles it as
      the subject's own voice and corrupts the face. See `/facemake` Step 5.
 3. Fire all compiles in parallel — don't wait for one to finish before starting the next
-4. Poll all at the end: `faces compile:doc:get ID --json | jq '{prepare_status}'`
+4. Poll all at the end: `faces compile:doc:get ID --status-only --json | jq '{prepare_status}'`
 5. Update each FACE.md: check boxes in Queued, add entries to Sources
 
 Compile all team members before telling the user the team is ready. The goal
