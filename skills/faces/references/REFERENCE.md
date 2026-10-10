@@ -218,6 +218,14 @@ faces catalog:restore     [FILE]  [--compile]
 faces catalog:manyfaced   [--skill NAME]  [--install NAME --skills-dir PATH]  [--refresh]
 
 faces compile:all         [--timeout N]
+faces compile:status      [--watch]  [--interval SECONDS]
+                                                       # faces-cli 1.11.0+. What is compiling on the ACCOUNT, grouped by face,
+                                                       # in one small call: 136 bytes idle against 2.1MB for the document list.
+                                                       # --watch polls until nothing is in flight, then exits.
+                                                       # Branch on sources_active. An EMPTY answer means nothing is RUNNING,
+                                                       # not nothing outstanding: a paused source is absent, a stalled one is
+                                                       # present because it is retried. Not the same as compile:stats, which
+                                                       # is quota and per-face counts.
 
 faces keys:create   --name  [--expires-days N]  [--budget F]  [--face ALIAS]...  [--model NAME]...  [--no-save]
 faces keys:list
@@ -811,6 +819,59 @@ poll loop needs no change.
 is only images. A compile that extracts nothing from real text no longer reports success,
 so this no longer hides a provider failure. Recompiling costs again and will usually give
 the same result.
+
+## Is anything compiling? (`compile:status`)
+
+`finishing` above answers it for one source. For the account, `faces compile:status`
+answers for everything at once — 136 bytes idle, against 2.1MB to walk the document
+list. Needs faces-cli 1.11.0.
+
+```bash
+faces compile:status                 # grouped by face
+faces compile:status --json          # branch on sources_active
+faces compile:status --watch         # poll until quiet, then exit
+```
+
+Idle it is exactly:
+
+```json
+{"object":"compile_activity","faces":[],"faces_active":0,"sources_active":0,
+ "chunks_completed":0,"chunks_total":null,"measurable":false}
+```
+
+With work in hand each entry in `faces` carries `alias`, `sources_active`,
+`chunks_completed`, `chunks_total`, `measurable`, and a `sources` list of
+`{id, kind, label, prepare_status, chunks_completed, chunks_total, stall_reason}`.
+
+**This is the question a resumed session cannot answer from memory.** A compile started
+in an earlier turn, or by someone on another machine, is otherwise invisible, and the
+failure is reporting work finished while it is still running.
+
+**An empty answer means nothing is RUNNING, not nothing is outstanding.** Membership is
+the same `finishing` predicate as above: a pause waits on you, so a paused source is
+**absent**; a stall is retried automatically, so a stalled one is **present**. Having
+paused a compile and then seeing nothing here is not evidence it completed. Find a
+paused source through `faces face:sources <alias>`.
+
+**Branch on `measurable` before reporting a percentage.** A source that is transcribing
+or harvesting has no chunk count, so `chunks_total` is null. When `measurable` is false,
+report `chunks_completed` alone and call it working: "8 chunks done" is true, "of what"
+is not. It is all-or-nothing across a group deliberately — summing only the totals that
+exist gives a denominator that grows when the missing one arrives, so a percentage runs
+*backwards*. A single face can be `measurable: true` while the account is false. Read
+`sources_active` first, since `measurable` is false on an idle account, which is neither
+true nor useful.
+
+A **source** entry carries no `measurable` of its own and does not need one: its
+`chunks_total` is either a number or null, and a number can be trusted, because one
+source is not a sum.
+
+`faces` is activity, not a roster. A face appears only while it has work, so this is
+never a listing of the account's faces.
+
+Note `?status_only=true` is a per-item thing: the two account-wide list routes ignore it
+and return the full body. `compile:status` is the account-wide question, not a trimmed
+list.
 
 ## Compile state: is the compiled knowledge still current?
 

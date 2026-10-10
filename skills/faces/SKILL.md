@@ -44,6 +44,9 @@ help text on an older install.
 ## Current config
 !`faces config:show 2>/dev/null || echo "(no config saved)"`
 
+## Anything compiling right now
+!`faces compile:status 2>/dev/null || echo "(needs faces-cli 1.11.0)"`
+
 ## Setup
 
 ```bash
@@ -253,6 +256,44 @@ response is a few hundred bytes where the full one was 21KB for a document and 1
 a thread, and it grows with the source while this does not. The cheap response carries
 everything a poller needs, including `synced`, `version`, `synced_version` and
 `synced_at`.
+
+`--status-only` is a **per-item** thing. The account-wide `compile:doc:list` and
+`compile:thread:list` do not take it, and the underlying routes ignore
+`?status_only=true` entirely — asking for it there returns the full 2.1MB. To ask what
+is compiling across the whole account, use `compile:status` below rather than a list.
+
+**To ask whether anything is still compiling, use `faces compile:status`** rather than
+polling sources one by one. It answers for the whole account in one small call: 136
+bytes idle, against 2.1MB for the document list. Needs faces-cli 1.11.0.
+
+```bash
+faces compile:status                 # what is in flight, grouped by face
+faces compile:status --json          # sources_active is the field to branch on
+faces compile:status --watch         # poll until the account is quiet, then exit
+```
+
+This is the question a resumed session cannot answer from its own memory. A compile
+started in an earlier turn, or by the user on another machine, is otherwise invisible,
+and the failure mode is reporting work finished when it is still running.
+
+**An empty answer means nothing is RUNNING, not nothing is outstanding.** A paused
+source does not appear here; a stalled one does, because it is being retried. That is
+the same `finishing` distinction as below. So if you paused a compile and then check
+here, seeing nothing does not mean the work completed — find a paused source through
+`faces face:sources <alias>`.
+
+**Branch on `measurable` before reporting a percentage.** A source that is transcribing
+or harvesting has no chunk count, so `chunks_total` is null and a percentage from it
+would be invented. When `measurable` is false, say "working" and report
+`chunks_completed` on its own: "8 chunks done" is true, "of what" is not. It is
+all-or-nothing across a group on purpose — summing only the totals that exist gives a
+denominator that grows when the missing one arrives, so a percentage would go
+*backwards*, and narrating that regression is worse than saying nothing. Read
+`sources_active` first: `measurable` is false on an idle account, which is neither true
+nor useful.
+
+`faces` in that response is activity, not a roster. A face appears only while it has
+work, so it is never a listing of the account's faces.
 
 Status meanings (`prepare_status` field):
 
