@@ -86,7 +86,11 @@ faces billing:llm-costs --provider openai
 faces billing:llm-costs --provider anthropic
 ```
 
-Lists available LLMs and their per-token costs. Filter by provider.
+Lists available LLMs, their per-token costs and the user's spend on each. Each model appears
+once, under the id its lab gives it, and `--provider` filters by that **lab** (openai,
+anthropic, xai, qwen, z-ai, moonshot, …), never by the service that runs it. A model's price is
+fixed whichever service runs it, so read it here rather than quoting one from memory. From
+faces-cli 1.13.0, old host-prefixed ids that have no spend on them are left out.
 
 ## Usage analytics
 

@@ -99,4 +99,14 @@ The recommended onboarding path is to link OAuth first, then compile.
 
 ## Supported OAuth models
 
-Current models supported via ChatGPT OAuth: `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.3-codex`, `gpt-5.2`. These codex models auto-route to `/v1/responses` and are billed $0 while a ChatGPT account is linked (the paid API rate otherwise). See [REFERENCE.md](REFERENCE.md#chat-auto-routing) for the full routing table.
+Which models can run on ChatGPT changes, so it is read from the catalog rather than listed here:
+a model with `codex_eligible: true` in `GET /v1/models` auto-routes to `/v1/responses` and is
+billed $0 while a ChatGPT account is linked (the paid API rate otherwise). There is one entry
+per model; the separate `provider: "openai_oauth"` copies are gone. Eligible means it **can**
+run there, not that every ChatGPT plan serves it: a plan that does not answers
+`422 model_not_supported`. See [REFERENCE.md](REFERENCE.md#chat-auto-routing) for the full
+routing table.
+
+**Was a call free?** Read `_meta.billing` in `--json` chat output (faces-cli 1.13.0+), from the
+`X-Faces-Billing` header: `oauth` means the linked ChatGPT subscription paid, `credits` means it
+was billed. `_meta.provider` is the model's lab and no longer reads `openai-codex` for a free call.

@@ -241,7 +241,9 @@ faces compile:stats
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
 faces billing:topup      --amount F  [--payment-ref REF]
 faces billing:card-setup
-faces billing:llm-costs  [--provider openai|anthropic|...]
+faces billing:llm-costs  [--provider openai|anthropic|qwen|...]
+                                                       # one row per model, under its lab's id. --provider is the LAB that
+                                                       # made it, never the service that runs it.
 
 faces team:create       --name  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]  [--tag TAG...]
 faces team:list
@@ -270,10 +272,11 @@ faces account:preferences [KEY] [VALUE]  [--allow-paid]
                                                        # auto_style on|off|default. Turning it on off Connect bills per capture,
                                                        # so it is refused there without --allow-paid. 1.13.0+ for auto_style*.
 
-faces decide <alias>  (--state TEXT | --state-file PATH)
+faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
                       (--question TEXT --option NAME=DEFINITION... [--id KEY] | --questions-file PATH)
                       [--readout jev-latest|clef|clef-flash|faces-latest]  [--no-retry]
-                                                       # faces-cli 1.13.0+. A probability per option, as this face. See Decisions.
+                                                       # faces-cli 1.13.0+. A probability per option, as this face, or with
+                                                       # no face for --baseline. See Decisions.
 
 faces config:set    <key> <value>
 faces config:show
@@ -306,13 +309,26 @@ New faces inherit the account default model at creation time (one-time copy, not
 |-------------|----------|----------------|
 | `gpt-5.x` / codex (`gpt-5.2`, `gpt-5.4`, `gpt-5.3-codex`, `gpt-5-nano`, …) | `/v1/responses` | OpenAI Responses (`output` / `output_text`) |
 | `claude-*` | `/v1/messages` | Anthropic Messages |
-| `gpt-4o`, xai, venice, fireworks | `/v1/chat/completions` | OpenAI ChatCompletion |
+| everything else (`gpt-4o`, xai, qwen, z-ai, …) | `/v1/chat/completions` | OpenAI ChatCompletion |
+
+**One model, one name.** `GET /v1/models` lists each model once, under the id its lab gives it,
+and its `provider` (and `owned_by`) is that **lab**: `openai`, `anthropic`, `xai`, `qwen`,
+`z-ai`, `moonshot`, … Which service actually runs a model is the platform's choice, can change
+without notice, and is never shown, so do not group, label or reason about models by host. A
+model's price is the same whichever service runs it; read it from `faces billing:llm-costs`
+rather than writing it down. Old host-prefixed ids (`openai-gpt-52`, `z-ai-glm-5-3-flash`) are
+still accepted in any case, in requests, `--default-model` and API-key model lists, and resolve
+to the public id (`gpt-5.2`, `glm-5-3-flash`). Do not offer them. The free route is
+`codex_eligible: true` on the one entry; the separate `openai_oauth` copies are gone.
 
 For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint. A bare alias only ever resolves **your own** faces; a namespaced `owner:alias` (e.g. `head:socrates`) addresses a published face owned by another account — see [System & published faces](#system--published-faces). System faces have no `default_model`, so they always require an explicit `@model`.
 
 **Codex models are free when a ChatGPT account is linked** (Subscription Connect), otherwise billed at the paid API rate — same endpoint and response either way. A connect-plan user with no linked token (and `api_fallback` off) gets a 422 on codex; the CLI then suggests `faces auth:connect openai`.
 
-`--responses` forces the Responses endpoint as an escape hatch; routing is automatic otherwise. In `--json` mode the response includes a `_meta` block with `provider`, `cost_usd`, and `endpoint`.
+`codex_eligible` says a model **can** run on ChatGPT, not that the user's ChatGPT plan serves it. A
+plan that does not answers `422 model_not_supported`; pick another model, or allow paid fallback.
+
+`--responses` forces the Responses endpoint as an escape hatch; routing is automatic otherwise. In `--json` mode the response includes a `_meta` block with `provider` (the model's lab), `billing` (`oauth` or `credits`, 1.13.0+), `cost_usd`, and `endpoint`. **`billing` is how to tell free from paid.** `provider` used to read `openai-codex` on a free call and no longer does.
 
 `chat:messages` (always `/v1/messages`) and `chat:responses` (always `/v1/responses`) remain available for direct, single-endpoint access.
 
@@ -472,13 +488,23 @@ For several questions (1 to 32), write them to a file in the API's shape and pas
   Keep options mutually exclusive, because the probability is split between them. The CLI
   refuses a `--question` with fewer than two options.
 - **`--readout`** picks the model that reads the face's answer out as numbers (default
-  `jev-latest`). The face decides either way. There is no bare-model form: a decision is
-  always made as one face, never a composite and never a `+` alias.
+  `jev-latest`). The face decides either way. A decision is made as one face, never a
+  composite and never a `+` alias. `faces-latest` takes at most **10 options** per question;
+  the CLI refuses more before sending.
+- **`--baseline`** leaves the face out: the readout alone reads the questions against the
+  situation, in about a second, and costs only the readout. It is what any model would say,
+  so it is the number to compare a face's answer against (`{"keep": 0.86}` from a face means
+  more next to `{"keep": 0.40}` from the baseline). `faces decide --baseline --readout
+  clef-flash ...`.
 - The face's reasoning is not returned.
 
-**Timing.** A warm call takes 20 to 25 seconds. After an idle spell the first is a `503`
-while the face warms up; the CLI waits a minute and asks **once** more. `--no-retry` returns
-the 503 instead. Do not wrap it in your own retry loop: each attempt is a full decision.
+**Timing.** A face's answer takes about 10 to 20 seconds; a baseline about one. After an idle
+spell the models behind decisions start cold, and warming takes about two minutes. During the
+warm-up every request is answered `503` at once with a `Retry-After` header (seconds); the CLI
+waits **exactly** that and asks again, for up to five minutes in all, printing the wait to
+stderr. `--no-retry` returns the 503 instead. Do not wrap it in your own retry loop. A `503`
+with **no** `Retry-After` is different: that readout is unavailable right now, nothing was
+charged, and another `--readout` is the fix.
 
 **Cost.** Pay-per-token: billed per token from credits. Subscription Connect: included,
 within the monthly allowance; past it, `api_fallback` decides between billing credits and a
@@ -487,13 +513,14 @@ within the monthly allowance; past it, `api_fallback` decides between billing cr
 
 | Code | Meaning | What to do |
 |---|---|---|
-| `400` | Not `face@readout`, or a composite face | Fix the request |
+| `400` | Not `face@readout` or a bare readout, or a composite face | Fix the request |
 | `404` | No such face, or not yours to use | Check the alias |
-| `409` | Decisions is not switched on for this face yet | Not retryable; it is rolling out face by face |
+| `409` | Decisions is not switched on for this face | Not retryable |
 | `422` | Wrong shape: missing field, too many questions, value too long | Read the message |
 | `429` | Connect allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
-| `502` | Face not compiled since the rollout, or a step failed | Compile one of its sources again; otherwise report it |
-| `503` | Warming up | Already retried once; try again in a minute |
+| `502` | Face not compiled since decisions launched, or a step failed | Compile one of its sources again; otherwise report it |
+| `503` + `Retry-After` | Warming up from a cold start | The CLI waits it out; with `--no-retry`, retry after that many seconds |
+| `503`, no `Retry-After` | That readout is unavailable right now; nothing charged | Try another `--readout`, or later |
 
 ## Face description (`--description`)
 

@@ -469,9 +469,9 @@ See [REFERENCE.md → Style](references/REFERENCE.md#style-how-a-face-writes-sty
 faces chat:chat alias -m "message"
 ```
 
-Auto-routes off the model catalog: `gpt-5.x`/codex → `/v1/responses` (free when a ChatGPT account is linked, else paid), `claude-*` → `/v1/messages`, `gpt-4o`/xai/venice/fireworks → `/v1/chat/completions`. Override the model with `--llm MODEL`. See [references/REFERENCE.md](references/REFERENCE.md#chat-auto-routing).
+Auto-routes off the model catalog: `gpt-5.x`/codex → `/v1/responses` (free when a ChatGPT account is linked, else paid), `claude-*` → `/v1/messages`, everything else → `/v1/chat/completions`. Override the model with `--llm MODEL`. Each model is listed **once, under its lab's id** (`gpt-5.2`, `glm-5-3-flash`), and `faces billing:llm-costs` lists them; old host-prefixed ids such as `openai-gpt-52` still resolve, but do not offer them. See [references/REFERENCE.md](references/REFERENCE.md#chat-auto-routing).
 Subscription Connect users: add `--oauth-only` to prevent paid fallback.
-In `--json` mode, response includes `_meta` with `provider`, `cost_usd`, and `endpoint`.
+In `--json` mode, response includes `_meta` with `provider` (the model's **lab**, not who ran it), `billing` (`oauth` = the linked ChatGPT subscription paid, so it cost nothing; `credits` = billed; faces-cli 1.13.0+), `cost_usd`, and `endpoint`. Branch on `billing`, never on `provider`.
 Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](references/TEMPLATES.md).
 
 `chat:chat` is stateless (one turn, no memory). For a conversation the face remembers across turns, use `chat:thread` — history is stored locally and resumed by id (`--id`); set the model/system prompt once when starting. See [references/REFERENCE.md](references/REFERENCE.md#multi-turn-threads-chatthread).
@@ -488,13 +488,17 @@ faces decide alias --state "A colleague asks you to sign a grant proposal you ha
   --option yes="signs it as asked" --option no="declines to sign" --option later="asks for time to read it first" --json
 # {"answer": {"yes": 0.0, "no": 0.995, "later": 0.005}}
 faces decide alias --state-file situation.txt --questions-file questions.json --json   # up to 32 questions
+faces decide --baseline --readout clef-flash --state-file situation.txt --questions-file questions.json --json
 ```
 
-Option **definitions** do the work, so make them specific and mutually exclusive. A warm call
-takes 20 to 25 seconds; after an idle spell the first one is a `503` while the face warms up,
-and the CLI waits a minute and asks once more by itself. `409` means decisions is not switched
-on for that face yet (it is rolling out face by face) and is not worth retrying. A `502` that
-says the face has not been compiled since the rollout is fixed by compiling one of its sources
+Option **definitions** do the work, so make them specific and mutually exclusive. A face's
+answer takes 10 to 20 seconds. `--baseline` (no face) asks the readout alone, in about a
+second: it is the number to compare a face's answer against, since `0.86` from a face means
+more next to `0.40` from the baseline. After an idle spell the models start cold for about two
+minutes; the server answers `503` with a `Retry-After`, and the CLI waits exactly that and asks
+again by itself. Do not add your own retry loop. A `503` with no wait means that readout is down:
+try another `--readout`. `faces-latest` takes at most 10 options per question. A `502` that says
+the face has not been compiled since decisions launched is fixed by compiling one of its sources
 again. On Subscription Connect it counts against the monthly allowance; on pay-per-token it
 bills per token. See [REFERENCE.md → Decisions](references/REFERENCE.md#decisions-decide).
 
