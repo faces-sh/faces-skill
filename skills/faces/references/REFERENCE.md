@@ -86,7 +86,9 @@ faces face:tag:remove   <alias>  <tag>
 faces face:tag:all
 faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 
-faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]  [--medium KIND]  [--best-of N]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
+faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]  [--medium KIND]  [--best-of N]  [--reasoning | --reasoning-only]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
+                                                       # --reasoning: the face's reasoning to stderr before the reply.
+                                                       # --reasoning-only: that alone, no reply (1.13.0+).
                                                        # PREFIX THE ALIAS WITH + to answer in the style the face captured. Without it
                                                        # the face uses its ordinary voice; both are valid and the caller chooses per
                                                        # request. --medium selects WHICH captured style, since a face holds one per
@@ -111,11 +113,13 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # without a `+` alias; with one, a medium the face has no style for is
                                                        # refused naming the ones it has. Omitting it classifies one from the text.
                                                        # On COMPILE it is required and the spelling is held to exactly.
-faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]
-faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--stream]  [--medium KIND]  [--oauth-only]
-faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--medium KIND]  [--oauth-only]   # start a new thread
+faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]  [--reasoning]
+faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--stream]  [--medium KIND]  [--oauth-only]  [--reasoning]
+                                                       # These two send the model as typed. A bare alias gets the face's
+                                                       # reasoning only, no reply (printed in its place, with a note).
+faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--medium KIND]  [--oauth-only]  [--reasoning]   # start a new thread
                                                        # --medium is per REQUEST, not per thread: send it on each turn you want shaped.
-faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]                                    # resume a thread
+faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]  [--reasoning]                     # resume a thread
 faces chat:thread       --list                                                                                                                    # list saved threads
 faces chat:thread       --id THREAD_ID  (--show | --delete)                                                                                        # show transcript / delete
 
@@ -273,10 +277,11 @@ faces account:preferences [KEY] [VALUE]  [--allow-paid]
                                                        # so it is refused there without --allow-paid. 1.13.0+ for auto_style*.
 
 faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
-                      (--question TEXT --option NAME=DEFINITION... [--id KEY] | --questions-file PATH)
-                      [--model jev-latest|clef|clef-flash|faces-latest]  [--no-retry]
-                                                       # faces-cli 1.13.0+. A probability per option, as this face, or with
-                                                       # no face for --baseline. See Decisions.
+                      [--question TEXT [--type noul|choice|score] [--option NAME[=DESCRIPTION]... | --level DESCRIPTION...] [--id KEY] | --questions-file PATH]
+                      [--model jev-latest|clef|clef-flash|faces-latest]  [--reasoning]  [--no-retry]
+                                                       # faces-cli 1.13.0+. Jev's typed answers, as this face, or with no
+                                                       # face for --baseline. A face with no questions gives its reasoning
+                                                       # alone. A .json --state-file is sent as JSON. See Decisions.
 
 faces config:set    <key> <value>
 faces config:show
@@ -321,7 +326,7 @@ still accepted in any case, in requests, `--default-model` and API-key model lis
 to the public id (`gpt-5.2`, `glm-5-3-flash`). Do not offer them. The free route is
 `codex_eligible: true` on the one entry; the separate `openai_oauth` copies are gone.
 
-For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint. A bare alias only ever resolves **your own** faces; a namespaced `owner:alias` (e.g. `head:socrates`) addresses a published face owned by another account — see [System & published faces](#system--published-faces). System faces have no `default_model`, so they always require an explicit `@model`.
+For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint, and on `chat:chat` and `chat:thread` (faces-cli 1.13.0+) sends `alias@default_model`, because the API answers a bare alias with the face's reasoning only. A face with no `default_model` is refused before sending: name the model, or use `--reasoning-only` for the reasoning alone. A bare alias only ever resolves **your own** faces; a namespaced `owner:alias` (e.g. `head:socrates`) addresses a published face owned by another account — see [System & published faces](#system--published-faces). System faces have no `default_model`, so they always require an explicit `@model`.
 
 **Codex models are free when a ChatGPT account is linked** (Subscription Connect), otherwise billed at the paid API rate — same endpoint and response either way. A connect-plan user with no linked token (and `api_fallback` off) gets a 422 on codex; the CLI then suggests `faces auth:connect openai`.
 
@@ -412,7 +417,7 @@ faces chat:thread --id t_abc123 --delete  # remove the local thread file
 **Message input:** provide the user message with `-m/--message` or read it from a file with `--file PATH` (one or the other is required when sending).
 
 **`--llm` and `--system` are start-only.** They are read **only when starting a new thread** and then frozen onto the thread:
-- `--llm MODEL` sets the model for the whole thread. Starting with `--llm` pins the model as `alias@MODEL` (e.g. `socrates@claude-haiku-4-5`); without it, the thread uses the face's bare alias and resolves the face's `default_model`. Either way the endpoint is resolved once (via the same [auto-routing](#chat-auto-routing) as `chat:chat`) and **cached on the thread**, so every resume hits the same provider/endpoint.
+- `--llm MODEL` sets the model for the whole thread. Starting with `--llm` pins the model as `alias@MODEL` (e.g. `socrates@claude-haiku-4-5`); without it, the thread resolves the face's `default_model` and pins that as `alias@MODEL` (faces-cli 1.13.0+; a thread saved earlier with a bare alias is moved onto its default model on the next turn). Either way the endpoint is resolved once (via the same [auto-routing](#chat-auto-routing) as `chat:chat`) and **cached on the thread**, so every resume hits the same provider/endpoint.
 - `--system TEXT` sets a system prompt stored on the thread and re-sent every turn (as Anthropic `system`, Responses `instructions`, or a Chat Completions `system` message, depending on the routed endpoint).
 - Passing `--llm` or `--system` together with `--id` (resume) prints a warning and **ignores them** — the values stored on the thread always win. To change the model or system prompt, start a new thread.
 
@@ -457,72 +462,89 @@ pay-per-token every automatic capture bills; the CLI refuses `auto_style on` the
 
 *Requires faces-cli 1.13.0 or newer.*
 
-Chat gives you what a face would **say**. `faces decide` gives you what it would **choose**:
-describe a situation, list the options, get back a probability for each, as this face.
+Chat gives you what a face would **say**. `faces decide` gives you what it would **decide**:
+describe a situation, ask typed questions about it, and get back numbers, as this face. It is
+TypeSafe's Jev API exactly (same `state`, `questions` and answers, same confidence formulas),
+with a face in it.
 
 ```bash
 faces decide alice --state "A colleague asks you to put your name on a grant proposal you have not read, due in an hour. They say it is a formality." \
   --question "Does the speaker sign the proposal?" \
   --option yes="signs it as asked" --option no="declines to sign" --option later="asks for time to read it first"
-# answer
-#   no      99.5%  ####################
-#   later    0.5%
-#   yes      0.0%
+# answer: no, confidence 0.90
+#   no      96.6%  ###################
+#   later    2.6%  #
+#   yes      0.9%
 ```
 
-With `--json` the result is the API's own shape, keyed by question id then option name:
-`{"answer": {"yes": 0.0, "no": 0.995, "later": 0.005}}`. `--id` renames `answer`.
+Three question types. With `--question`, the type follows from the flags, or say it with `--type`:
+
+| Type | Flags | Answer (`--json`) |
+|---|---|---|
+| `noul` | neither `--option` nor `--level` | `{type, noul}`: the probability of yes, 0 to 1 |
+| `choice` | `--option name="description"` (2 or more; a bare name sends no description) | `{type, choice, probabilities, confidence}` |
+| `score` | `--level "description"` (2 to 10, lowest first) | `{type, score, legend, probabilities, confidence}`: the expected level, 0 to n-1 |
+
+With `--json` the result is the API's own: `{"model", "answers", "usage", "reasoning"}`,
+`answers` keyed by question id (`--id` renames the default `answer`). `model` comes back with
+the decision model's versioned id (`alice@jev-1.13.0`).
 
 For several questions (1 to 32), write them to a file in the API's shape and pass
 `--questions-file`. A whole request body (`{"model", "state", "questions"}`) also works; its
 `questions` are used:
 
 ```json
-{"sign": {"instructions": "Does the speaker sign?", "options": {"yes": "signs it as asked", "no": "declines to sign"}},
- "tone": {"instructions": "How does the speaker reply?", "options": {"warm": "replies warmly", "curt": "replies curtly"}}}
+{"sign":  {"type": "choice", "instructions": "Does the speaker sign?", "criteria": {"yes": "signs it as asked", "no": "declines to sign", "later": null}},
+ "irked": {"type": "noul", "instructions": "Is the speaker irritated?"},
+ "firm":  {"type": "score", "instructions": "How firm is the reply?", "criteria": ["yields", "hedges", "firm"]}}
 ```
 
+A noul's `criteria` are optional, `{"true": "...", "false": "..."}`. `instructions` may be a
+string, an object or an array. The old `{instructions, options}` shape is a `422`.
+
 - **`--state`** is the turn the face is answering, up to 60,000 characters. Write it the way
-  the face would hear it. `--state-file` reads it from disk.
-- **Option definitions do the work.** `no` alone is ambiguous; `declines to sign` is not.
-  Keep options mutually exclusive, because the probability is split between them. The CLI
-  refuses a `--question` with fewer than two options.
-- **`--model`** picks the **decision model** (default `jev-latest`): the model that turns the
-  face's view into a probability per option, as opposed to a generative model that writes
-  text. On the wire this is `face@decision-model`, e.g. `alice@clef-flash`. Call these
-  "decision models" when talking to a user. A decision is made as one face, never a
-  composite and never a `+` alias. `faces-latest` takes at most **10 options** per question;
-  the CLI refuses more before sending.
-- **`--baseline`** asks the decision model alone (no-face baseline): the questions are read
-  against the situation with no face, in about a second, and it costs only the decision model. It is what any model would say,
-  so it is the number to compare a face's answer against (`{"keep": 0.86}` from a face means
-  more next to `{"keep": 0.40}` from the baseline). `faces decide --baseline --model
-  clef-flash ...`.
-- The face's reasoning is not returned.
+  the face would hear it. `--state-file` reads it from disk; a `.json` file is sent as the JSON
+  it holds, so the state can be an object or an array.
+- **Criteria do the work.** `no` alone is ambiguous; `declines to sign` is not. Keep choice
+  options mutually exclusive, because the probability is split between them.
+- **`--model`** picks the **decision model** (default `jev-latest`): the model that answers
+  your questions over the situation and the face's reasoning, as opposed to a generative model
+  that writes text. On the wire this is `face@decision-model`, e.g. `alice@clef-flash`. Call
+  these "decision models" when talking to a user. A decision is made as one face, never a
+  composite and never a `+` alias. `faces-latest` takes at most **10 options or levels** per
+  question (a noul counts as 2); the CLI refuses more before sending.
+- **`--baseline`** asks the decision model alone (no-face baseline): exactly what Jev would say,
+  in about a second, costing only the decision model. It is the number to compare a face's
+  answer against (`no` at 0.99 from a face means more next to 0.63 from the baseline).
+- **The face's reasoning** comes back in `reasoning` whenever a face is named: how it reads the
+  situation, in its own voice, which is what the decision model reads beside the state.
+  `--reasoning` prints it to stderr in human output. Name a face and ask **no questions** for
+  the reasoning alone (`{model, reasoning, usage}`).
 
 **Timing.** A face's answer takes about 10 to 20 seconds; a baseline about one. After an idle
 spell the models behind decisions start cold, and warming takes about two minutes. During the
 warm-up every request is answered `503` at once with a `Retry-After` header (seconds); the CLI
 waits **exactly** that and asks again, for up to five minutes in all, printing the wait to
 stderr. `--no-retry` returns the 503 instead. Do not wrap it in your own retry loop. A `503`
-with **no** `Retry-After` is different: that decision model is unavailable right now, nothing
-was charged, and another `--model` is the fix.
+with **no** `Retry-After` is a step or the decision model failing: retry, and if the message
+names the decision model, another `--model` may answer.
 
 **Cost.** Pay-per-token: billed per token from credits. Subscription Connect: included,
 within the monthly allowance; past it, `api_fallback` decides between billing credits and a
 `429`. Nothing is charged for a request refused before work starts (`400`, `402`, `403`,
-`409`, `429`).
+`409`, `422`, `429`).
 
 | Code | Meaning | What to do |
 |---|---|---|
-| `400` | Not `face@decision-model` or a bare decision model, or a composite face | Fix the request |
+| `400` | `model` is not `face@decision-model`, a bare decision model or a bare face, or names a composite | Fix the request |
 | `404` | No such face, or not yours to use | Check the alias |
-| `409` | Decisions is not switched on for this face | Not retryable |
-| `422` | Wrong shape: missing field, too many questions, value too long | Read the message |
+| `409` | The face needs recompiling (not compiled since decisions launched) | Compile one of its sources again; not retryable as it is |
+| `422` | Wrong shape: missing `type`, criteria that do not fit the type, more than 10 options for `faces-latest`, questions with a bare face | Read the message |
 | `429` | Connect allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
-| `502` | Face not compiled since decisions launched, or a step failed | Compile one of its sources again; otherwise report it |
 | `503` + `Retry-After` | Warming up from a cold start | The CLI waits it out; with `--no-retry`, retry after that many seconds |
-| `503`, no `Retry-After` | That decision model is unavailable right now; nothing charged | Try another `--model`, or later |
+| `503`, no `Retry-After` | A step or the decision model failed | Retry; another `--model` if the message names the decision model |
+
+Decisions never answers `502`.
 
 ## Face description (`--description`)
 

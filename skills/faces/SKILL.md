@@ -474,35 +474,52 @@ Subscription Connect users: add `--oauth-only` to prevent paid fallback.
 In `--json` mode, response includes `_meta` with `provider` (the model's **lab**, not who ran it), `billing` (`oauth` = the linked ChatGPT subscription paid, so it cost nothing; `credits` = billed; faces-cli 1.13.0+), `cost_usd`, and `endpoint`. Branch on `billing`, never on `provider`.
 Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](references/TEMPLATES.md).
 
+**The face's reasoning** (*faces-cli 1.13.0+*): before it answers, a face reasons about the
+conversation in its own voice. `--reasoning` prints that to stderr ahead of the reply (stdout
+stays the reply alone); `--reasoning-only` on `chat:chat` asks for the reasoning and nothing else,
+with no model called to answer. In `--json` it is where each API keeps reasoning:
+`message.reasoning_content` (chat completions), a `reasoning` output item (responses), a
+`thinking` block (messages). Treat it as reasoning, apart from the reply; never present it as
+what the face said. On the API a bare alias now returns **only** the reasoning, so `chat:chat`
+and `chat:thread` add the face's `default_model` for you; `chat:responses` and `chat:messages`
+send the model as typed, so name the model there (`alias@model`).
+
 `chat:chat` is stateless (one turn, no memory). For a conversation the face remembers across turns, use `chat:thread` — history is stored locally and resumed by id (`--id`); set the model/system prompt once when starting. See [references/REFERENCE.md](references/REFERENCE.md#multi-turn-threads-chatthread).
 
 **System & published faces:** every account can chat a curated set of faces served under the `head` account, using an `owner:alias@model` handle (the `@model` is **required**) — e.g. `faces chat:chat head:socrates@gpt-5.4 -m "…"`. List them with `faces face:list --system` (or `--public` for all published faces). A bare alias only ever resolves your own faces; you pay inference at normal rates, the owner is never charged. From faces-cli 1.10.0 the same `owner:alias` handle works on `faces face:get` and `faces face:neighbors`, so a published face can be read before it is used. See [references/REFERENCE.md](references/REFERENCE.md#system--published-faces).
 
-**What it would choose, not what it would say** (*faces-cli 1.13.0+*): `faces decide` asks a
-face a multiple-choice question about a situation and returns a probability per option. Use it
-when you need a number to branch on, for routing, simulations or a panel of faces voting:
+**What it would decide, not what it would say** (*faces-cli 1.13.0+*): `faces decide` asks a
+face typed questions about a situation and returns numbers: a yes-or-no (`noul`), a pick
+between options (`choice`), or a place on a graded scale (`score`). Use it when you need a
+number to branch on, for routing, simulations or a panel of faces voting:
 
 ```bash
 faces decide alias --state "A colleague asks you to sign a grant proposal you have not read, due in an hour." \
   --question "Does the speaker sign?" \
   --option yes="signs it as asked" --option no="declines to sign" --option later="asks for time to read it first" --json
-# {"answer": {"yes": 0.0, "no": 0.995, "later": 0.005}}
+# {"model": "alias@jev-1.13.0", "answers": {"answer": {"type": "choice", "choice": "no", "confidence": 0.98,
+#   "probabilities": {"yes": 0.0, "no": 0.99, "later": 0.01}}}, "usage": {...}, "reasoning": "..."}
+faces decide alias --state-file situation.txt --question "Is the speaker irritated?"            # noul
+faces decide alias --state-file situation.txt --question "How firm is the reply?" --level yields --level hedges --level firm   # score
 faces decide alias --state-file situation.txt --questions-file questions.json --json   # up to 32 questions
 faces decide --baseline --model clef-flash --state-file situation.txt --questions-file questions.json --json
+faces decide alias --state-file situation.txt          # no questions: the face's reasoning alone
 ```
 
-Option **definitions** do the work, so make them specific and mutually exclusive. The
-probabilities come from a **decision model** (`--model`; `jev-latest`, `clef`, `clef-flash` or
-`faces-latest`): a model that turns a situation into a probability per option, as opposed to
-a generative model that writes text. A face's answer takes 10 to 20 seconds. `--baseline` asks
-the decision model alone (no-face baseline), in about a second: it is the number to compare a face's answer against, since `0.86` from a face means
-more next to `0.40` from the baseline. After an idle spell the models start cold for about two
-minutes; the server answers `503` with a `Retry-After`, and the CLI waits exactly that and asks
-again by itself. Do not add your own retry loop. A `503` with no wait means that decision model is
-down: try another `--model`. `faces-latest` takes at most 10 options per question. A `502` that says
-the face has not been compiled since decisions launched is fixed by compiling one of its sources
-again. On Subscription Connect it counts against the monthly allowance; on pay-per-token it
-bills per token. See [REFERENCE.md → Decisions](references/REFERENCE.md#decisions-decide).
+The type follows from the flags: `--option` makes a choice, `--level` a score, neither a noul.
+Criteria do the work, so make option descriptions specific and mutually exclusive. The answers
+come from a **decision model** (`--model`; `jev-latest`, `clef`, `clef-flash` or
+`faces-latest`), which reads the situation plus the face's own reasoning about it. `--json`
+returns the API's shape exactly (`model`, `answers`, `usage`, `reasoning`); it is TypeSafe's Jev
+API, so code written for Jev reads it. A face's answer takes 10 to 20 seconds. `--baseline`
+asks the decision model alone (no-face baseline), in about a second: the number to compare a
+face's answer against. After an idle spell the models start cold for about two minutes; the
+server answers `503` with a `Retry-After`, and the CLI waits exactly that and asks again by
+itself. Do not add your own retry loop. A `503` with no wait: retry, or try another `--model`.
+`faces-latest` takes at most 10 options or levels per question. A `409` means the face needs
+recompiling: compile one of its sources again. On Subscription Connect it counts against the
+monthly allowance; on pay-per-token it bills per token. See
+[REFERENCE.md → Decisions](references/REFERENCE.md#decisions-decide).
 
 **Run-time composites:** pass a Face Math formula in the face position to chat with an on-the-fly blend of your own faces — `faces chat:chat "(alice | bob)@claude-sonnet-4-6" -m "…"` (or `--formula "alice | bob" --llm …`). No pre-creation step. See [§4 Compare & compose](#4-compare--compose).
 
