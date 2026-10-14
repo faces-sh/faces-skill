@@ -489,7 +489,7 @@ faces compile:status --json | jq '{sources_active, measurable, chunks_completed}
 faces compile:status --watch      # blocks until the account is quiet, then exits
 ```
 
-136 bytes idle, against one request per id. Needs faces-cli 1.11.0.
+136 bytes idle, against one request per id. Needs faces-cli 1.12.0.
 
 Two things to get right when reporting it back to the user:
 

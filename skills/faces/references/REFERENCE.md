@@ -219,7 +219,7 @@ faces catalog:manyfaced   [--skill NAME]  [--install NAME --skills-dir PATH]  [-
 
 faces compile:all         [--timeout N]
 faces compile:status      [--watch]  [--interval SECONDS]
-                                                       # faces-cli 1.11.0+. What is compiling on the ACCOUNT, grouped by face,
+                                                       # faces-cli 1.12.0+. What is compiling on the ACCOUNT, grouped by face,
                                                        # in one small call: 136 bytes idle against 2.1MB for the document list.
                                                        # --watch polls until nothing is in flight, then exits.
                                                        # Branch on sources_active. An EMPTY answer means nothing is RUNNING,
@@ -824,7 +824,7 @@ the same result.
 
 `finishing` above answers it for one source. For the account, `faces compile:status`
 answers for everything at once — 136 bytes idle, against 2.1MB to walk the document
-list. Needs faces-cli 1.11.0.
+list. Needs faces-cli 1.12.0.
 
 ```bash
 faces compile:status                 # grouped by face
