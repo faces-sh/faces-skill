@@ -41,11 +41,14 @@ version.** A CLI older than 1.10.1 prints a list of ten that omits `other` and s
 promises that synonyms fold; neither is true. Trust the eleven below over the `--medium`
 help text on an older install.
 
+Two later additions have their own floors: `face:list --sort/--order/--search` needs
+**1.11.0**, and `compile:status` needs **1.12.0**. Each is marked where it appears.
+
 ## Current config
 !`faces config:show 2>/dev/null || echo "(no config saved)"`
 
 ## Anything compiling right now
-!`faces compile:status 2>/dev/null || echo "(needs faces-cli 1.11.0)"`
+!`faces compile:status 2>/dev/null || echo "(needs faces-cli 1.12.0)"`
 
 ## Setup
 
@@ -264,7 +267,7 @@ is compiling across the whole account, use `compile:status` below rather than a 
 
 **To ask whether anything is still compiling, use `faces compile:status`** rather than
 polling sources one by one. It answers for the whole account in one small call: 136
-bytes idle, against 2.1MB for the document list. Needs faces-cli 1.11.0.
+bytes idle, against 2.1MB for the document list. Needs faces-cli 1.12.0.
 
 ```bash
 faces compile:status                 # what is in flight, grouped by face
