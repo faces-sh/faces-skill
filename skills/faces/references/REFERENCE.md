@@ -274,7 +274,7 @@ faces account:preferences [KEY] [VALUE]  [--allow-paid]
 
 faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
                       (--question TEXT --option NAME=DEFINITION... [--id KEY] | --questions-file PATH)
-                      [--readout jev-latest|clef|clef-flash|faces-latest]  [--no-retry]
+                      [--model jev-latest|clef|clef-flash|faces-latest]  [--no-retry]
                                                        # faces-cli 1.13.0+. A probability per option, as this face, or with
                                                        # no face for --baseline. See Decisions.
 
@@ -487,14 +487,16 @@ For several questions (1 to 32), write them to a file in the API's shape and pas
 - **Option definitions do the work.** `no` alone is ambiguous; `declines to sign` is not.
   Keep options mutually exclusive, because the probability is split between them. The CLI
   refuses a `--question` with fewer than two options.
-- **`--readout`** picks the model that reads the face's answer out as numbers (default
-  `jev-latest`). The face decides either way. A decision is made as one face, never a
+- **`--model`** picks the **decision model** (default `jev-latest`): the model that turns the
+  face's view into a probability per option, as opposed to a generative model that writes
+  text. On the wire this is `face@decision-model`, e.g. `alice@clef-flash`. Call these
+  "decision models" when talking to a user. A decision is made as one face, never a
   composite and never a `+` alias. `faces-latest` takes at most **10 options** per question;
   the CLI refuses more before sending.
-- **`--baseline`** leaves the face out: the readout alone reads the questions against the
-  situation, in about a second, and costs only the readout. It is what any model would say,
+- **`--baseline`** asks the decision model alone (no-face baseline): the questions are read
+  against the situation with no face, in about a second, and it costs only the decision model. It is what any model would say,
   so it is the number to compare a face's answer against (`{"keep": 0.86}` from a face means
-  more next to `{"keep": 0.40}` from the baseline). `faces decide --baseline --readout
+  more next to `{"keep": 0.40}` from the baseline). `faces decide --baseline --model
   clef-flash ...`.
 - The face's reasoning is not returned.
 
@@ -503,8 +505,8 @@ spell the models behind decisions start cold, and warming takes about two minute
 warm-up every request is answered `503` at once with a `Retry-After` header (seconds); the CLI
 waits **exactly** that and asks again, for up to five minutes in all, printing the wait to
 stderr. `--no-retry` returns the 503 instead. Do not wrap it in your own retry loop. A `503`
-with **no** `Retry-After` is different: that readout is unavailable right now, nothing was
-charged, and another `--readout` is the fix.
+with **no** `Retry-After` is different: that decision model is unavailable right now, nothing
+was charged, and another `--model` is the fix.
 
 **Cost.** Pay-per-token: billed per token from credits. Subscription Connect: included,
 within the monthly allowance; past it, `api_fallback` decides between billing credits and a
@@ -513,14 +515,14 @@ within the monthly allowance; past it, `api_fallback` decides between billing cr
 
 | Code | Meaning | What to do |
 |---|---|---|
-| `400` | Not `face@readout` or a bare readout, or a composite face | Fix the request |
+| `400` | Not `face@decision-model` or a bare decision model, or a composite face | Fix the request |
 | `404` | No such face, or not yours to use | Check the alias |
 | `409` | Decisions is not switched on for this face | Not retryable |
 | `422` | Wrong shape: missing field, too many questions, value too long | Read the message |
 | `429` | Connect allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
 | `502` | Face not compiled since decisions launched, or a step failed | Compile one of its sources again; otherwise report it |
 | `503` + `Retry-After` | Warming up from a cold start | The CLI waits it out; with `--no-retry`, retry after that many seconds |
-| `503`, no `Retry-After` | That readout is unavailable right now; nothing charged | Try another `--readout`, or later |
+| `503`, no `Retry-After` | That decision model is unavailable right now; nothing charged | Try another `--model`, or later |
 
 ## Face description (`--description`)
 

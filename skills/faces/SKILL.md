@@ -488,16 +488,18 @@ faces decide alias --state "A colleague asks you to sign a grant proposal you ha
   --option yes="signs it as asked" --option no="declines to sign" --option later="asks for time to read it first" --json
 # {"answer": {"yes": 0.0, "no": 0.995, "later": 0.005}}
 faces decide alias --state-file situation.txt --questions-file questions.json --json   # up to 32 questions
-faces decide --baseline --readout clef-flash --state-file situation.txt --questions-file questions.json --json
+faces decide --baseline --model clef-flash --state-file situation.txt --questions-file questions.json --json
 ```
 
-Option **definitions** do the work, so make them specific and mutually exclusive. A face's
-answer takes 10 to 20 seconds. `--baseline` (no face) asks the readout alone, in about a
-second: it is the number to compare a face's answer against, since `0.86` from a face means
+Option **definitions** do the work, so make them specific and mutually exclusive. The
+probabilities come from a **decision model** (`--model`; `jev-latest`, `clef`, `clef-flash` or
+`faces-latest`): a model that turns a situation into a probability per option, as opposed to
+a generative model that writes text. A face's answer takes 10 to 20 seconds. `--baseline` asks
+the decision model alone (no-face baseline), in about a second: it is the number to compare a face's answer against, since `0.86` from a face means
 more next to `0.40` from the baseline. After an idle spell the models start cold for about two
 minutes; the server answers `503` with a `Retry-After`, and the CLI waits exactly that and asks
-again by itself. Do not add your own retry loop. A `503` with no wait means that readout is down:
-try another `--readout`. `faces-latest` takes at most 10 options per question. A `502` that says
+again by itself. Do not add your own retry loop. A `503` with no wait means that decision model is
+down: try another `--model`. `faces-latest` takes at most 10 options per question. A `502` that says
 the face has not been compiled since decisions launched is fixed by compiling one of its sources
 again. On Subscription Connect it counts against the monthly allowance; on pay-per-token it
 bills per token. See [REFERENCE.md → Decisions](references/REFERENCE.md#decisions-decide).
