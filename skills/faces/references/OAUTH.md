@@ -80,6 +80,14 @@ faces chat:chat alice -m "hello" --oauth-only    # force OAuth, no fallback (eve
 
 The `--oauth-only` flag is available on `chat:chat`, `chat:messages`, `chat:responses`, `compile:thread:create`, and `compile:thread:message`.
 
+## A reply that stops partway (`502 oauth_incomplete`)
+
+ChatGPT sometimes ends a reply before finishing. Faces retries once. If the second attempt
+also stops short, `api_fallback` decides: **on**, it is answered on the paid route and billed;
+**off**, it is a `502 oauth_incomplete` and nothing is charged, so retrying is free. The same
+rule covers compile interviews and style captures; a style capture that is free-only never
+falls back, it retries and then fails.
+
 ## Subscription Connect onboarding
 
 A new Subscription Connect user who hasn't linked OAuth will get 422 errors when using select OpenAI models until they either:
@@ -91,4 +99,14 @@ The recommended onboarding path is to link OAuth first, then compile.
 
 ## Supported OAuth models
 
-Current models supported via ChatGPT OAuth: `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.3-codex`, `gpt-5.2`. These codex models auto-route to `/v1/responses` and are billed $0 while a ChatGPT account is linked (the paid API rate otherwise). See [REFERENCE.md](REFERENCE.md#chat-auto-routing) for the full routing table.
+Which models can run on ChatGPT changes, so it is read from the catalog rather than listed here:
+a model with `codex_eligible: true` in `GET /v1/models` auto-routes to `/v1/responses` and is
+billed $0 while a ChatGPT account is linked (the paid API rate otherwise). There is one entry
+per model; the separate `provider: "openai_oauth"` copies are gone. Eligible means it **can**
+run there, not that every ChatGPT plan serves it: a plan that does not answers
+`422 model_not_supported`. See [REFERENCE.md](REFERENCE.md#chat-auto-routing) for the full
+routing table.
+
+**Was a call free?** Read `_meta.billing` in `--json` chat output (faces-cli 1.13.0+), from the
+`X-Faces-Billing` header: `oauth` means the linked ChatGPT subscription paid, `credits` means it
+was billed. `_meta.provider` is the model's lab and no longer reads `openai-codex` for a free call.

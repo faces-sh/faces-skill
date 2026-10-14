@@ -86,7 +86,9 @@ faces face:tag:remove   <alias>  <tag>
 faces face:tag:all
 faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 
-faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]  [--medium KIND]  [--best-of N]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
+faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]  [--medium KIND]  [--best-of N]  [--reasoning | --reasoning-only]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
+                                                       # --reasoning: the face's reasoning to stderr before the reply.
+                                                       # --reasoning-only: that alone, no reply (1.13.0+).
                                                        # PREFIX THE ALIAS WITH + to answer in the style the face captured. Without it
                                                        # the face uses its ordinary voice; both are valid and the caller chooses per
                                                        # request. --medium selects WHICH captured style, since a face holds one per
@@ -111,11 +113,13 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # without a `+` alias; with one, a medium the face has no style for is
                                                        # refused naming the ones it has. Omitting it classifies one from the text.
                                                        # On COMPILE it is required and the spelling is held to exactly.
-faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]
-faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--stream]  [--medium KIND]  [--oauth-only]
-faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--medium KIND]  [--oauth-only]   # start a new thread
+faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]  [--reasoning]
+faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--stream]  [--medium KIND]  [--oauth-only]  [--reasoning]
+                                                       # These two send the model as typed. A bare alias gets the face's
+                                                       # reasoning only, no reply (printed in its place, with a note).
+faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--medium KIND]  [--oauth-only]  [--reasoning]   # start a new thread
                                                        # --medium is per REQUEST, not per thread: send it on each turn you want shaped.
-faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]                                    # resume a thread
+faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]  [--reasoning]                     # resume a thread
 faces chat:thread       --list                                                                                                                    # list saved threads
 faces chat:thread       --id THREAD_ID  (--show | --delete)                                                                                        # show transcript / delete
 
@@ -233,14 +237,17 @@ faces keys:revoke   <key_id>  [--yes]
 faces keys:update   <key_id>  [--name]  [--budget F]  [--reset-spent]
 
 faces billing:balance
-faces billing:subscription
+faces billing:subscription                             # on Connect, also the monthly allowance: used, limit, reset.
+                                                       # absorbed_limit_usd < 0 in --json means UNLIMITED, never "used up".
 faces billing:subscription:activate  [--plan connect]
 faces billing:subscription:cancel    [--yes]
 faces compile:stats
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
 faces billing:topup      --amount F  [--payment-ref REF]
 faces billing:card-setup
-faces billing:llm-costs  [--provider openai|anthropic|...]
+faces billing:llm-costs  [--provider openai|anthropic|qwen|...]
+                                                       # one row per model, under its lab's id. --provider is the LAB that
+                                                       # made it, never the service that runs it.
 
 faces team:create       --name  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]  [--tag TAG...]
 faces team:list
@@ -264,7 +271,17 @@ faces team:tag:set      <team_id>  --tag TAG  [--tag TAG...]
 faces team:tag:remove   <team_id>  <tag>
 
 faces account:state
-faces account:preferences [KEY] [VALUE]
+faces account:preferences [KEY] [VALUE]  [--allow-paid]
+                                                       # KEY: api_fallback, default_model, auto_style, auto_style_thresholds.
+                                                       # auto_style on|off|default. Turning it on off Connect bills per capture,
+                                                       # so it is refused there without --allow-paid. 1.13.0+ for auto_style*.
+
+faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
+                      [--question TEXT [--type noul|choice|score] [--option NAME[=DESCRIPTION]... | --level DESCRIPTION...] [--id KEY] | --questions-file PATH]
+                      [--model jev-latest|clef|clef-flash|faces-latest]  [--reasoning]  [--no-retry]
+                                                       # faces-cli 1.13.0+. Jev's typed answers, as this face, or with no
+                                                       # face for --baseline. A face with no questions gives its reasoning
+                                                       # alone. A .json --state-file is sent as JSON. See Decisions.
 
 faces config:set    <key> <value>
 faces config:show
@@ -297,13 +314,26 @@ New faces inherit the account default model at creation time (one-time copy, not
 |-------------|----------|----------------|
 | `gpt-5.x` / codex (`gpt-5.2`, `gpt-5.4`, `gpt-5.3-codex`, `gpt-5-nano`, …) | `/v1/responses` | OpenAI Responses (`output` / `output_text`) |
 | `claude-*` | `/v1/messages` | Anthropic Messages |
-| `gpt-4o`, xai, venice, fireworks | `/v1/chat/completions` | OpenAI ChatCompletion |
+| everything else (`gpt-4o`, xai, qwen, z-ai, …) | `/v1/chat/completions` | OpenAI ChatCompletion |
 
-For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint. A bare alias only ever resolves **your own** faces; a namespaced `owner:alias` (e.g. `head:socrates`) addresses a published face owned by another account — see [System & published faces](#system--published-faces). System faces have no `default_model`, so they always require an explicit `@model`.
+**One model, one name.** `GET /v1/models` lists each model once, under the id its lab gives it,
+and its `provider` (and `owned_by`) is that **lab**: `openai`, `anthropic`, `xai`, `qwen`,
+`z-ai`, `moonshot`, … Which service actually runs a model is the platform's choice, can change
+without notice, and is never shown, so do not group, label or reason about models by host. A
+model's price is the same whichever service runs it; read it from `faces billing:llm-costs`
+rather than writing it down. Old host-prefixed ids (`openai-gpt-52`, `z-ai-glm-5-3-flash`) are
+still accepted in any case, in requests, `--default-model` and API-key model lists, and resolve
+to the public id (`gpt-5.2`, `glm-5-3-flash`). Do not offer them. The free route is
+`codex_eligible: true` on the one entry; the separate `openai_oauth` copies are gone.
+
+For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint, and on `chat:chat` and `chat:thread` (faces-cli 1.13.0+) sends `alias@default_model`, because the API answers a bare alias with the face's reasoning only. A face with no `default_model` is refused before sending: name the model, or use `--reasoning-only` for the reasoning alone. A bare alias only ever resolves **your own** faces; a namespaced `owner:alias` (e.g. `head:socrates`) addresses a published face owned by another account — see [System & published faces](#system--published-faces). System faces have no `default_model`, so they always require an explicit `@model`.
 
 **Codex models are free when a ChatGPT account is linked** (Subscription Connect), otherwise billed at the paid API rate — same endpoint and response either way. A connect-plan user with no linked token (and `api_fallback` off) gets a 422 on codex; the CLI then suggests `faces auth:connect openai`.
 
-`--responses` forces the Responses endpoint as an escape hatch; routing is automatic otherwise. In `--json` mode the response includes a `_meta` block with `provider`, `cost_usd`, and `endpoint`.
+`codex_eligible` says a model **can** run on ChatGPT, not that the user's ChatGPT plan serves it. A
+plan that does not answers `422 model_not_supported`; pick another model, or allow paid fallback.
+
+`--responses` forces the Responses endpoint as an escape hatch; routing is automatic otherwise. In `--json` mode the response includes a `_meta` block with `provider` (the model's lab), `billing` (`oauth` or `credits`, 1.13.0+), `cost_usd`, and `endpoint`. **`billing` is how to tell free from paid.** `provider` used to read `openai-codex` on a free call and no longer does.
 
 `chat:messages` (always `/v1/messages`) and `chat:responses` (always `/v1/responses`) remain available for direct, single-endpoint access.
 
@@ -387,7 +417,7 @@ faces chat:thread --id t_abc123 --delete  # remove the local thread file
 **Message input:** provide the user message with `-m/--message` or read it from a file with `--file PATH` (one or the other is required when sending).
 
 **`--llm` and `--system` are start-only.** They are read **only when starting a new thread** and then frozen onto the thread:
-- `--llm MODEL` sets the model for the whole thread. Starting with `--llm` pins the model as `alias@MODEL` (e.g. `socrates@claude-haiku-4-5`); without it, the thread uses the face's bare alias and resolves the face's `default_model`. Either way the endpoint is resolved once (via the same [auto-routing](#chat-auto-routing) as `chat:chat`) and **cached on the thread**, so every resume hits the same provider/endpoint.
+- `--llm MODEL` sets the model for the whole thread. Starting with `--llm` pins the model as `alias@MODEL` (e.g. `socrates@claude-haiku-4-5`); without it, the thread resolves the face's `default_model` and pins that as `alias@MODEL` (faces-cli 1.13.0+; a thread saved earlier with a bare alias is moved onto its default model on the next turn). Either way the endpoint is resolved once (via the same [auto-routing](#chat-auto-routing) as `chat:chat`) and **cached on the thread**, so every resume hits the same provider/endpoint.
 - `--system TEXT` sets a system prompt stored on the thread and re-sent every turn (as Anthropic `system`, Responses `instructions`, or a Chat Completions `system` message, depending on the routed endpoint).
 - Passing `--llm` or `--system` together with `--id` (resume) prints a warning and **ignores them** — the values stored on the thread always win. To change the model or system prompt, start a new thread.
 
@@ -416,6 +446,105 @@ Server-side preferences stored on the user's account. Viewed and modified with `
 |---|---|---|---|
 | `api_fallback` | `true` / `false` | `false` | When false, OAuth failures return 422 instead of falling back to paid system keys |
 | `default_model` | any valid model | `gpt-5.4` | Model inherited by new faces that don't specify `--default-model` |
+| `auto_style` | `on` / `off` / `default` | `default` | Capture each face's style automatically once it has enough of its own writing in a medium. `default` follows the plan: on for Subscription Connect (free), off for pay-per-token (bills per token when on). 1.13.0+ |
+| `auto_style_thresholds` | `medium=words,...` | 10,000 / 15,000 | Words of the face's own writing before a capture runs, per medium. At least 500; `default` resets one. Merged into what is stored. 1.13.0+ |
+
+Read back, `auto_style` is the **effective** answer (is it running now) and
+`auto_style_setting` is what was stored, `null` meaning the plan's default. The human output
+says which, and whether it costs anything. `auto_style_thresholds` lists every medium with
+defaults filled in. `other` appears there but is never captured automatically.
+
+**Leave `auto_style` alone unless the user asks.** Its cost depends on the plan, and on
+pay-per-token every automatic capture bills; the CLI refuses `auto_style on` there without
+`--allow-paid`, and sends nothing when it refuses.
+
+## Decisions (`decide`)
+
+*Requires faces-cli 1.13.0 or newer.*
+
+Chat gives you what a face would **say**. `faces decide` gives you what it would **decide**:
+describe a situation, ask typed questions about it, and get back numbers, as this face. It is
+TypeSafe's Jev API exactly (same `state`, `questions` and answers, same confidence formulas),
+with a face in it.
+
+```bash
+faces decide alice --state "A colleague asks you to put your name on a grant proposal you have not read, due in an hour. They say it is a formality." \
+  --question "Does the speaker sign the proposal?" \
+  --option yes="signs it as asked" --option no="declines to sign" --option later="asks for time to read it first"
+# answer: no, confidence 0.90
+#   no      96.6%  ###################
+#   later    2.6%  #
+#   yes      0.9%
+```
+
+Three question types. With `--question`, the type follows from the flags, or say it with `--type`:
+
+| Type | Flags | Answer (`--json`) |
+|---|---|---|
+| `noul` | neither `--option` nor `--level` | `{type, noul}`: the probability of yes, 0 to 1 |
+| `choice` | `--option name="description"` (2 or more; a bare name sends no description) | `{type, choice, probabilities, confidence}` |
+| `score` | `--level "description"` (2 to 10, lowest first) | `{type, score, legend, probabilities, confidence}`: the expected level, 0 to n-1 |
+
+With `--json` the result is the API's own: `{"model", "answers", "usage", "reasoning"}`,
+`answers` keyed by question id (`--id` renames the default `answer`). `model` comes back with
+the decision model's versioned id (`alice@jev-1.13.0`).
+
+For several questions (1 to 32), write them to a file in the API's shape and pass
+`--questions-file`. A whole request body (`{"model", "state", "questions"}`) also works; its
+`questions` are used:
+
+```json
+{"sign":  {"type": "choice", "instructions": "Does the speaker sign?", "criteria": {"yes": "signs it as asked", "no": "declines to sign", "later": null}},
+ "irked": {"type": "noul", "instructions": "Is the speaker irritated?"},
+ "firm":  {"type": "score", "instructions": "How firm is the reply?", "criteria": ["yields", "hedges", "firm"]}}
+```
+
+A noul's `criteria` are optional, `{"true": "...", "false": "..."}`. `instructions` may be a
+string, an object or an array. The old `{instructions, options}` shape is a `422`.
+
+- **`--state`** is the turn the face is answering, up to 60,000 characters. Write it the way
+  the face would hear it. `--state-file` reads it from disk; a `.json` file is sent as the JSON
+  it holds, so the state can be an object or an array.
+- **Criteria do the work.** `no` alone is ambiguous; `declines to sign` is not. Keep choice
+  options mutually exclusive, because the probability is split between them.
+- **`--model`** picks the **decision model** (default `jev-latest`): the model that answers
+  your questions over the situation and the face's reasoning, as opposed to a generative model
+  that writes text. On the wire this is `face@decision-model`, e.g. `alice@clef-flash`. Call
+  these "decision models" when talking to a user. A decision is made as one face, never a
+  composite and never a `+` alias. `faces-latest` takes at most **10 options or levels** per
+  question (a noul counts as 2); the CLI refuses more before sending.
+- **`--baseline`** asks the decision model alone (no-face baseline): exactly what Jev would say,
+  in about a second, costing only the decision model. It is the number to compare a face's
+  answer against (`no` at 0.99 from a face means more next to 0.63 from the baseline).
+- **The face's reasoning** comes back in `reasoning` whenever a face is named: how it reads the
+  situation, in its own voice, which is what the decision model reads beside the state.
+  `--reasoning` prints it to stderr in human output. Name a face and ask **no questions** for
+  the reasoning alone (`{model, reasoning, usage}`).
+
+**Timing.** A face's answer takes about 10 to 20 seconds; a baseline about one. After an idle
+spell the models behind decisions start cold, and warming takes about two minutes. During the
+warm-up every request is answered `503` at once with a `Retry-After` header (seconds); the CLI
+waits **exactly** that and asks again, for up to five minutes in all, printing the wait to
+stderr. `--no-retry` returns the 503 instead. Do not wrap it in your own retry loop. A `503`
+with **no** `Retry-After` is a step or the decision model failing: retry, and if the message
+names the decision model, another `--model` may answer.
+
+**Cost.** Pay-per-token: billed per token from credits. Subscription Connect: included,
+within the monthly allowance; past it, `api_fallback` decides between billing credits and a
+`429`. Nothing is charged for a request refused before work starts (`400`, `402`, `403`,
+`409`, `422`, `429`).
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `400` | `model` is not `face@decision-model`, a bare decision model or a bare face, or names a composite | Fix the request |
+| `404` | No such face, or not yours to use | Check the alias |
+| `409` | The face needs recompiling (not compiled since decisions launched) | Compile one of its sources again; not retryable as it is |
+| `422` | Wrong shape: missing `type`, criteria that do not fit the type, more than 10 options for `faces-latest`, questions with a bare face | Read the message |
+| `429` | Connect allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
+| `503` + `Retry-After` | Warming up from a cold start | The CLI waits it out; with `--no-retry`, retry after that many seconds |
+| `503`, no `Retry-After` | A step or the decision model failed | Retry; another `--model` if the message names the decision model |
+
+Decisions never answers `502`.
 
 ## Face description (`--description`)
 
@@ -792,6 +921,47 @@ faces style:status --face alice        # recover the job id
 faces style:status JOB_ID --wait
 ```
 
+**One capture per face and medium at a time.** Starting another while one runs is refused
+with `409 build_in_progress`, naming the running job; the CLI prints the `style:status
+JOB_ID --wait` to follow it. Nothing was started or charged. Do not retry in a loop.
+
+**What a finished capture warns about.** Two report fields, printed by `style:make` and
+`style:status JOB_ID`, and kept in `--json` under `report`:
+
+- `skipped_third_person`: documents left out because they are writing *about* the subject.
+  If one is really their own writing, fix it with `faces compile:doc:edit ID --perspective
+  first-person` and capture again.
+- `thin_corpus`: `{medium: {words, threshold}}` for each medium captured from less writing
+  than the automatic threshold. It installed anyway; a manual capture has no minimum.
+
+**When the free route refuses** (the default, with no `--allow-paid`), the job's error
+starts with a code, and each has its own fix:
+
+| Code | Meaning | Fix |
+|---|---|---|
+| `CONNECT_REQUIRED` | Not on Subscription Connect, so there is no free route | `--allow-paid` to pay from credits, if the user agrees |
+| `MODEL_NOT_FREE` | That model has no free ChatGPT route | Use the default model, or `--allow-paid` |
+| `CHATGPT_AUTH` | The ChatGPT link expired | `faces auth:connect openai`, then capture again |
+
+**Automatic captures** (*faces-cli 1.13.0+ to see and control them*). The server captures a
+medium on its own once the face has enough of its **own** writing in it: 10,000 words for
+essay, academic paper, blog post and legal document, 15,000 for the rest. It runs again only
+at 2x, 3x and so on, never on every upload. Only the face's own messages in uploaded threads
+and `first-person` documents count; email and text message count only from uploaded message
+threads; `other` never triggers one. The check runs when a compile finishes and when a mailbox
+or transcript upload arrives.
+
+It installs immediately and `style:revert` undoes it. `style:status --face` marks these rows
+`BY auto`, and `style:status JOB_ID` says why it ran (`started by: automatic capture after an
+upload (31240 words, past 2x the 15000-word threshold)`). `--json` carries the same under
+`report.auto`. On Subscription Connect they are on by default, run on the linked ChatGPT
+account and are never billed (an expired link fails and is retried later, not charged). On
+pay-per-token they are off by default and bill per token when on. Control them with the
+`auto_style` preferences (see Account preferences).
+
+A capture after a revert keeps the version you reverted **to** as its previous one, so
+reverting and then capturing again never loses the style you chose.
+
 
 ## Compile state: read `finishing` first
 
@@ -1091,6 +1261,15 @@ busy or frozen, a `402` means no credits, and neither is fixed by retrying.
 
 Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_messages`,
 `corpus_room`); see the `compilable` section above. The CLI prints the repair for each.
+
+Two refusals can come from almost any route, and the CLI adds what to do to both (1.13.0+):
+
+- **`429` naming the Connect allowance.** Subscription Connect's monthly allowance (compiling,
+  decisions, and the part of chat not run on the user's ChatGPT subscription) is used up and
+  `api_fallback` is off. Starting a compile is refused this way too. Wait for the reset, or turn
+  on `api_fallback` to bill credits. An ordinary rate-limit `429` names no allowance.
+- **`502 oauth_incomplete`.** ChatGPT stopped its reply partway on two attempts. Nothing was
+  charged; retry. With `api_fallback` on it would have finished on the paid route and billed.
 
 ## Global flags
 
