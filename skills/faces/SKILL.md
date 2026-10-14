@@ -475,14 +475,17 @@ In `--json` mode, response includes `_meta` with `provider` (the model's **lab**
 Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](references/TEMPLATES.md).
 
 **The face's reasoning** (*faces-cli 1.13.0+*): before it answers, a face reasons about the
-conversation in its own voice. `--reasoning` prints that to stderr ahead of the reply (stdout
-stays the reply alone); `--reasoning-only` on `chat:chat` asks for the reasoning and nothing else,
-with no model called to answer. In `--json` it is where each API keeps reasoning:
-`message.reasoning_content` (chat completions), a `reasoning` output item (responses), a
-`thinking` block (messages). Treat it as reasoning, apart from the reply; never present it as
-what the face said. On the API a bare alias now returns **only** the reasoning, so `chat:chat`
-and `chat:thread` add the face's `default_model` for you; `chat:responses` and `chat:messages`
-send the model as typed, so name the model there (`alias@model`).
+conversation in its own voice: its **cause**. `--reasoning` prints that to stderr ahead of the
+reply (stdout stays the reply alone); `--reasoning-only` on `chat:chat` asks for the cause and
+nothing else, with no model called to answer. In `--json` it is always marked as the face's:
+`message.cause` on chat completions (faces-cli 1.13.1+ reads it there), the `reasoning` item
+with id `rs_faces_…` on responses, the `thinking` block with signature `faces-reasoning` on
+messages. A reasoning model's own working (`reasoning_content`, its own reasoning items or
+signed thinking blocks) is separate: never present that as the face's. Treat the cause as
+reasoning, apart from the reply; never present it as what the face said. On the API a bare
+alias now returns **only** the cause, so `chat:chat` and `chat:thread` add the face's
+`default_model` for you; `chat:responses` and `chat:messages` send the model as typed, so name
+the model there (`alias@model`).
 
 `chat:chat` is stateless (one turn, no memory). For a conversation the face remembers across turns, use `chat:thread` — history is stored locally and resumed by id (`--id`); set the model/system prompt once when starting. See [references/REFERENCE.md](references/REFERENCE.md#multi-turn-threads-chatthread).
 

@@ -421,6 +421,8 @@ faces chat:thread --id t_abc123 --delete  # remove the local thread file
 - `--system TEXT` sets a system prompt stored on the thread and re-sent every turn (as Anthropic `system`, Responses `instructions`, or a Chat Completions `system` message, depending on the routed endpoint).
 - Passing `--llm` or `--system` together with `--id` (resume) prints a warning and **ignores them** — the values stored on the thread always win. To change the model or system prompt, start a new thread.
 
+**The face's reasoning adds up across turns** (faces-cli 1.13.1+). Each assistant turn on the thread keeps the face's cause, and every resume sends it back exactly as the endpoint returned it: `cause` on a chat completions turn, the `rs_faces_…` reasoning item before a responses message, the `faces-reasoning` thinking block on a messages turn. The face then builds on its earlier thoughts instead of starting fresh; the server carries the last 10. Nothing has to be stripped. If you build a transcript yourself against the API, do the same: send back what was returned. `--reasoning` shows each turn's cause on stderr.
+
 **Per-turn flags** (honored on every send, new or resumed): `--max-tokens N` (Anthropic defaults to 1024 when unset), `--temperature F` (OpenAI / Chat Completions endpoints only — ignored on Anthropic and Responses), `--stream`, and `--oauth-only` (see below).
 
 **`--json` output** returns `{thread_id, model, provider, assistant, turns}`; `--list` returns an array of `{id, face, model, turns, created_at, updated_at}`; `--show` returns the full stored thread object.
