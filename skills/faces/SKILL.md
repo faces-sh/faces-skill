@@ -41,8 +41,9 @@ version.** A CLI older than 1.10.1 prints a list of ten that omits `other` and s
 promises that synonyms fold; neither is true. Trust the eleven below over the `--medium`
 help text on an older install.
 
-Two later additions have their own floors: `face:list --sort/--order/--search` needs
-**1.11.0**, and `compile:status` needs **1.12.0**. Each is marked where it appears.
+Later additions have their own floors: `face:list --sort/--order/--search` needs
+**1.11.0**, `compile:status` needs **1.12.0**, and `faces decide` and the `auto_style`
+preferences need **1.13.0**. Each is marked where it appears.
 
 ## Current config
 !`faces config:show 2>/dev/null || echo "(no config saved)"`
@@ -435,6 +436,31 @@ To see which faces already have one, without a call per face:
 faces face:list --has-style          # marked [style] in the normal listing too
 ```
 
+**Styles can also capture themselves.** Once a face has enough of its **own** writing in a
+medium (10,000 words for essay, academic paper, blog post and legal document; 15,000 for the
+rest), the server captures that medium without being asked, and again at 2x and 3x the
+threshold. It installs at once, like a manual capture, and `style:revert` undoes it. Email
+and text message count only from uploaded message threads, and `other` is never captured
+this way. On Subscription Connect it is **on by default and free**; on pay-per-token it is
+**off by default and bills per token** when turned on. So after a large upload of the subject's own
+writing, a style may appear that nobody ran: `faces style:status --face alias` marks those
+`BY auto`. Change it only when the user asks (*faces-cli 1.13.0+*):
+
+```bash
+faces account:preferences                                # auto_style: on/off, and why
+faces account:preferences auto_style off                 # stop future automatic captures
+faces account:preferences auto_style default             # back to the plan's default
+faces account:preferences auto_style on --allow-paid     # pay-per-token: refused without --allow-paid
+faces account:preferences auto_style_thresholds "email=25000,essay=default"
+```
+
+Turning it off removes nothing already installed.
+
+**One capture per face and medium at a time.** Starting a second is a `409
+build_in_progress` naming the running job: follow it with `faces style:status JOB_ID --wait`
+rather than retrying. A finished capture can warn that it **left out third-person documents**
+or rests on a **thin sample** for a medium; it installed anyway, so pass those on to the user.
+
 See [REFERENCE.md → Style](references/REFERENCE.md#style-how-a-face-writes-style).
 
 ### 4. Chat
@@ -451,6 +477,26 @@ Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](ref
 `chat:chat` is stateless (one turn, no memory). For a conversation the face remembers across turns, use `chat:thread` — history is stored locally and resumed by id (`--id`); set the model/system prompt once when starting. See [references/REFERENCE.md](references/REFERENCE.md#multi-turn-threads-chatthread).
 
 **System & published faces:** every account can chat a curated set of faces served under the `head` account, using an `owner:alias@model` handle (the `@model` is **required**) — e.g. `faces chat:chat head:socrates@gpt-5.4 -m "…"`. List them with `faces face:list --system` (or `--public` for all published faces). A bare alias only ever resolves your own faces; you pay inference at normal rates, the owner is never charged. From faces-cli 1.10.0 the same `owner:alias` handle works on `faces face:get` and `faces face:neighbors`, so a published face can be read before it is used. See [references/REFERENCE.md](references/REFERENCE.md#system--published-faces).
+
+**What it would choose, not what it would say** (*faces-cli 1.13.0+*): `faces decide` asks a
+face a multiple-choice question about a situation and returns a probability per option. Use it
+when you need a number to branch on, for routing, simulations or a panel of faces voting:
+
+```bash
+faces decide alias --state "A colleague asks you to sign a grant proposal you have not read, due in an hour." \
+  --question "Does the speaker sign?" \
+  --option yes="signs it as asked" --option no="declines to sign" --option later="asks for time to read it first" --json
+# {"answer": {"yes": 0.0, "no": 0.995, "later": 0.005}}
+faces decide alias --state-file situation.txt --questions-file questions.json --json   # up to 32 questions
+```
+
+Option **definitions** do the work, so make them specific and mutually exclusive. A warm call
+takes 20 to 25 seconds; after an idle spell the first one is a `503` while the face warms up,
+and the CLI waits a minute and asks once more by itself. `409` means decisions is not switched
+on for that face yet (it is rolling out face by face) and is not worth retrying. A `502` that
+says the face has not been compiled since the rollout is fixed by compiling one of its sources
+again. On Subscription Connect it counts against the monthly allowance; on pay-per-token it
+bills per token. See [REFERENCE.md → Decisions](references/REFERENCE.md#decisions-decide).
 
 **Run-time composites:** pass a Face Math formula in the face position to chat with an on-the-fly blend of your own faces — `faces chat:chat "(alice | bob)@claude-sonnet-4-6" -m "…"` (or `--formula "alice | bob" --llm …`). No pre-creation step. See [§4 Compare & compose](#4-compare--compose).
 
@@ -553,7 +599,12 @@ View or update server-side preferences:
 faces account:preferences                            # show current
 faces account:preferences default_model gpt-5.4      # set default model for new faces
 faces account:preferences api_fallback true           # allow paid fallback when OAuth fails
+faces account:preferences auto_style off              # stop automatic style captures (1.13.0+)
 ```
+
+`auto_style` and its thresholds are covered under [§3](#3-capture-how-it-writes-optional).
+Do not turn automatic captures on for a pay-per-token account unless the user asked: each
+one bills.
 
 ## Important: never run `config:clear`
 
@@ -571,6 +622,9 @@ faces account:preferences api_fallback true           # allow paid fallback when
 | status "failed" | Out of attempts. `stall_reason` says why; do not re-run without fixing it |
 | `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1). If no payment method on file: `faces billing:card-setup` first. See [BILLING.md](references/BILLING.md) |
 | `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
+| `429` naming the Connect allowance | Subscription Connect's monthly allowance is used up and `api_fallback` is off. Wait for the reset (`faces billing:subscription` shows the date), or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. An ordinary `429` rate limit just needs a delay |
+| `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry. With `api_fallback` on it would have finished on the paid route instead |
+| `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
 | `422` on thread import | Retry with `--type document` |
 | `409` read-only on edit | The document/thread is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
 | Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID` — pause is a request, so wait for `prepare_status: "paused"` before reading results (the CLI waits for you unless you pass `--no-wait`). Then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |

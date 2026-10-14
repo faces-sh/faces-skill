@@ -80,6 +80,14 @@ faces chat:chat alice -m "hello" --oauth-only    # force OAuth, no fallback (eve
 
 The `--oauth-only` flag is available on `chat:chat`, `chat:messages`, `chat:responses`, `compile:thread:create`, and `compile:thread:message`.
 
+## A reply that stops partway (`502 oauth_incomplete`)
+
+ChatGPT sometimes ends a reply before finishing. Faces retries once. If the second attempt
+also stops short, `api_fallback` decides: **on**, it is answered on the paid route and billed;
+**off**, it is a `502 oauth_incomplete` and nothing is charged, so retrying is free. The same
+rule covers compile interviews and style captures; a style capture that is free-only never
+falls back, it retries and then fails.
+
 ## Subscription Connect onboarding
 
 A new Subscription Connect user who hasn't linked OAuth will get 422 errors when using select OpenAI models until they either:

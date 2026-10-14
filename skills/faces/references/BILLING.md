@@ -36,6 +36,24 @@ faces billing:subscription --json
 
 Returns plan type (`free` = pay-per-token, or `connect` = Subscription Connect), face count, and renewal date.
 
+On Subscription Connect it also reports the **monthly allowance** (faces-cli 1.13.0+ prints
+it as a sentence). Some work runs on models Faces pays for rather than on the user's ChatGPT
+subscription: compiling, `faces decide`, and the part of chat that works out a face's side.
+That is included in the plan, not taken from credits, and counted against the allowance:
+
+| field | meaning |
+|---|---|
+| `absorbed_usd` | What that work has cost in this 30-day window |
+| `absorbed_limit_usd` | The allowance. **Negative means unlimited**, not used up |
+| `absorbed_resets_at` | When the window resets |
+
+All three are `null` on pay-per-token. Work on the user's own ChatGPT subscription is never
+counted. Past the allowance, `api_fallback` decides: **on** bills credits (a `402` with none),
+**off** refuses with `429` naming the reset date. It resets by itself.
+
+The same negative-means-unlimited rule applies to `compile:stats`' `tokens_limit` and
+`tokens_remaining`; from 1.13.0 the human output says `unlimited`.
+
 ## Activate Subscription Connect
 
 ```bash

@@ -233,7 +233,8 @@ faces keys:revoke   <key_id>  [--yes]
 faces keys:update   <key_id>  [--name]  [--budget F]  [--reset-spent]
 
 faces billing:balance
-faces billing:subscription
+faces billing:subscription                             # on Connect, also the monthly allowance: used, limit, reset.
+                                                       # absorbed_limit_usd < 0 in --json means UNLIMITED, never "used up".
 faces billing:subscription:activate  [--plan connect]
 faces billing:subscription:cancel    [--yes]
 faces compile:stats
@@ -264,7 +265,15 @@ faces team:tag:set      <team_id>  --tag TAG  [--tag TAG...]
 faces team:tag:remove   <team_id>  <tag>
 
 faces account:state
-faces account:preferences [KEY] [VALUE]
+faces account:preferences [KEY] [VALUE]  [--allow-paid]
+                                                       # KEY: api_fallback, default_model, auto_style, auto_style_thresholds.
+                                                       # auto_style on|off|default. Turning it on off Connect bills per capture,
+                                                       # so it is refused there without --allow-paid. 1.13.0+ for auto_style*.
+
+faces decide <alias>  (--state TEXT | --state-file PATH)
+                      (--question TEXT --option NAME=DEFINITION... [--id KEY] | --questions-file PATH)
+                      [--readout jev-latest|clef|clef-flash|faces-latest]  [--no-retry]
+                                                       # faces-cli 1.13.0+. A probability per option, as this face. See Decisions.
 
 faces config:set    <key> <value>
 faces config:show
@@ -416,6 +425,75 @@ Server-side preferences stored on the user's account. Viewed and modified with `
 |---|---|---|---|
 | `api_fallback` | `true` / `false` | `false` | When false, OAuth failures return 422 instead of falling back to paid system keys |
 | `default_model` | any valid model | `gpt-5.4` | Model inherited by new faces that don't specify `--default-model` |
+| `auto_style` | `on` / `off` / `default` | `default` | Capture each face's style automatically once it has enough of its own writing in a medium. `default` follows the plan: on for Subscription Connect (free), off for pay-per-token (bills per token when on). 1.13.0+ |
+| `auto_style_thresholds` | `medium=words,...` | 10,000 / 15,000 | Words of the face's own writing before a capture runs, per medium. At least 500; `default` resets one. Merged into what is stored. 1.13.0+ |
+
+Read back, `auto_style` is the **effective** answer (is it running now) and
+`auto_style_setting` is what was stored, `null` meaning the plan's default. The human output
+says which, and whether it costs anything. `auto_style_thresholds` lists every medium with
+defaults filled in. `other` appears there but is never captured automatically.
+
+**Leave `auto_style` alone unless the user asks.** Its cost depends on the plan, and on
+pay-per-token every automatic capture bills; the CLI refuses `auto_style on` there without
+`--allow-paid`, and sends nothing when it refuses.
+
+## Decisions (`decide`)
+
+*Requires faces-cli 1.13.0 or newer.*
+
+Chat gives you what a face would **say**. `faces decide` gives you what it would **choose**:
+describe a situation, list the options, get back a probability for each, as this face.
+
+```bash
+faces decide alice --state "A colleague asks you to put your name on a grant proposal you have not read, due in an hour. They say it is a formality." \
+  --question "Does the speaker sign the proposal?" \
+  --option yes="signs it as asked" --option no="declines to sign" --option later="asks for time to read it first"
+# answer
+#   no      99.5%  ####################
+#   later    0.5%
+#   yes      0.0%
+```
+
+With `--json` the result is the API's own shape, keyed by question id then option name:
+`{"answer": {"yes": 0.0, "no": 0.995, "later": 0.005}}`. `--id` renames `answer`.
+
+For several questions (1 to 32), write them to a file in the API's shape and pass
+`--questions-file`. A whole request body (`{"model", "state", "questions"}`) also works; its
+`questions` are used:
+
+```json
+{"sign": {"instructions": "Does the speaker sign?", "options": {"yes": "signs it as asked", "no": "declines to sign"}},
+ "tone": {"instructions": "How does the speaker reply?", "options": {"warm": "replies warmly", "curt": "replies curtly"}}}
+```
+
+- **`--state`** is the turn the face is answering, up to 60,000 characters. Write it the way
+  the face would hear it. `--state-file` reads it from disk.
+- **Option definitions do the work.** `no` alone is ambiguous; `declines to sign` is not.
+  Keep options mutually exclusive, because the probability is split between them. The CLI
+  refuses a `--question` with fewer than two options.
+- **`--readout`** picks the model that reads the face's answer out as numbers (default
+  `jev-latest`). The face decides either way. There is no bare-model form: a decision is
+  always made as one face, never a composite and never a `+` alias.
+- The face's reasoning is not returned.
+
+**Timing.** A warm call takes 20 to 25 seconds. After an idle spell the first is a `503`
+while the face warms up; the CLI waits a minute and asks **once** more. `--no-retry` returns
+the 503 instead. Do not wrap it in your own retry loop: each attempt is a full decision.
+
+**Cost.** Pay-per-token: billed per token from credits. Subscription Connect: included,
+within the monthly allowance; past it, `api_fallback` decides between billing credits and a
+`429`. Nothing is charged for a request refused before work starts (`400`, `402`, `403`,
+`409`, `429`).
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `400` | Not `face@readout`, or a composite face | Fix the request |
+| `404` | No such face, or not yours to use | Check the alias |
+| `409` | Decisions is not switched on for this face yet | Not retryable; it is rolling out face by face |
+| `422` | Wrong shape: missing field, too many questions, value too long | Read the message |
+| `429` | Connect allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
+| `502` | Face not compiled since the rollout, or a step failed | Compile one of its sources again; otherwise report it |
+| `503` | Warming up | Already retried once; try again in a minute |
 
 ## Face description (`--description`)
 
@@ -792,6 +870,47 @@ faces style:status --face alice        # recover the job id
 faces style:status JOB_ID --wait
 ```
 
+**One capture per face and medium at a time.** Starting another while one runs is refused
+with `409 build_in_progress`, naming the running job; the CLI prints the `style:status
+JOB_ID --wait` to follow it. Nothing was started or charged. Do not retry in a loop.
+
+**What a finished capture warns about.** Two report fields, printed by `style:make` and
+`style:status JOB_ID`, and kept in `--json` under `report`:
+
+- `skipped_third_person`: documents left out because they are writing *about* the subject.
+  If one is really their own writing, fix it with `faces compile:doc:edit ID --perspective
+  first-person` and capture again.
+- `thin_corpus`: `{medium: {words, threshold}}` for each medium captured from less writing
+  than the automatic threshold. It installed anyway; a manual capture has no minimum.
+
+**When the free route refuses** (the default, with no `--allow-paid`), the job's error
+starts with a code, and each has its own fix:
+
+| Code | Meaning | Fix |
+|---|---|---|
+| `CONNECT_REQUIRED` | Not on Subscription Connect, so there is no free route | `--allow-paid` to pay from credits, if the user agrees |
+| `MODEL_NOT_FREE` | That model has no free ChatGPT route | Use the default model, or `--allow-paid` |
+| `CHATGPT_AUTH` | The ChatGPT link expired | `faces auth:connect openai`, then capture again |
+
+**Automatic captures** (*faces-cli 1.13.0+ to see and control them*). The server captures a
+medium on its own once the face has enough of its **own** writing in it: 10,000 words for
+essay, academic paper, blog post and legal document, 15,000 for the rest. It runs again only
+at 2x, 3x and so on, never on every upload. Only the face's own messages in uploaded threads
+and `first-person` documents count; email and text message count only from uploaded message
+threads; `other` never triggers one. The check runs when a compile finishes and when a mailbox
+or transcript upload arrives.
+
+It installs immediately and `style:revert` undoes it. `style:status --face` marks these rows
+`BY auto`, and `style:status JOB_ID` says why it ran (`started by: automatic capture after an
+upload (31240 words, past 2x the 15000-word threshold)`). `--json` carries the same under
+`report.auto`. On Subscription Connect they are on by default, run on the linked ChatGPT
+account and are never billed (an expired link fails and is retried later, not charged). On
+pay-per-token they are off by default and bill per token when on. Control them with the
+`auto_style` preferences (see Account preferences).
+
+A capture after a revert keeps the version you reverted **to** as its previous one, so
+reverting and then capturing again never loses the style you chose.
+
 
 ## Compile state: read `finishing` first
 
@@ -1091,6 +1210,15 @@ busy or frozen, a `402` means no credits, and neither is fixed by retrying.
 
 Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_messages`,
 `corpus_room`); see the `compilable` section above. The CLI prints the repair for each.
+
+Two refusals can come from almost any route, and the CLI adds what to do to both (1.13.0+):
+
+- **`429` naming the Connect allowance.** Subscription Connect's monthly allowance (compiling,
+  decisions, and the part of chat not run on the user's ChatGPT subscription) is used up and
+  `api_fallback` is off. Starting a compile is refused this way too. Wait for the reset, or turn
+  on `api_fallback` to bill credits. An ordinary rate-limit `429` names no allowance.
+- **`502 oauth_incomplete`.** ChatGPT stopped its reply partway on two attempts. Nothing was
+  charged; retry. With `api_fallback` on it would have finished on the paid route and billed.
 
 ## Global flags
 
