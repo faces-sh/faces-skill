@@ -488,6 +488,16 @@ alias now returns **only** the cause, so `chat:chat` and `chat:thread` add the f
 `default_model` for you; `chat:responses` and `chat:messages` send the model as typed, so name
 the model there (`alias@model`).
 
+**Supplying the cause yourself** (*faces-cli 1.15.0+*): `--cause "TEXT"` (or `--cause-file
+PATH`) on any `chat:*` command gives the face its reasoning for this turn, and it answers on that
+instead of working out its own. No reasoning runs, so **the cause is not charged for** (only the
+answering model is, or nothing on a linked ChatGPT subscription), and it is faster: about 5s
+instead of about 18. It needs a model named; with the face alone the CLI refuses before sending
+(the API answers `400`). The supplied cause comes back as the face's, and a thread keeps it like
+any other. A blank cause is ignored and the face reasons as usual. Use it when you, or the
+user, already know how the face reads the moment; otherwise let the face reason. On the API it is
+a top-level `"cause"` string, up to 30,000 tokens (over that, or not a string, is a `422`).
+
 **Stream face chats** (*faces-cli 1.14.0+ does it for you*). A face reasons before it answers,
 and that can take a while. A streamed request waits for it as long as it takes; one that is
 not streamed gets 35s, then a `503` with `Retry-After` while the models warm from a cold
