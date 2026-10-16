@@ -86,16 +86,18 @@ faces face:tag:remove   <alias>  <tag>
 faces face:tag:all
 faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 
-faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--stream]  [--medium KIND]  [--best-of N]  [--reasoning | --reasoning-only]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
+faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--no-stream]  [--medium KIND]  [--best-of N]  [--reasoning | --reasoning-only]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
                                                        # --reasoning: the face's reasoning to stderr before the reply.
                                                        # --reasoning-only: that alone, no reply (1.13.0+).
+                                                       # Streamed by default (1.14.0+); --no-stream and --json are not, and
+                                                       # wait out a warm-up 503 once by themselves. See "Streaming face chats".
                                                        # PREFIX THE ALIAS WITH + to answer in the style the face captured. Without it
                                                        # the face uses its ordinary voice; both are valid and the caller chooses per
                                                        # request. --medium selects WHICH captured style, since a face holds one per
                                                        # medium. + on a face with no style is a 409, not a fallback. Check
                                                        # with face:list --has-style, or drop the +.
                                                        # --best-of N (1-5) writes N replies and serves the closest to the style.
-                                                       # It multiplies the cost by N, needs a + alias, and cannot be streamed.
+                                                       # It multiplies the cost by N, needs a + alias, and is never streamed.
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
                                                        # --medium declares WHAT THE WRITING IS so the reply is shaped for the occasion.
                                                        # ELEVEN VALUES, SPELLED EXACTLY: email, text message, social post, essay,
@@ -113,13 +115,13 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # without a `+` alias; with one, a medium the face has no style for is
                                                        # refused naming the ones it has. Omitting it classifies one from the text.
                                                        # On COMPILE it is required and the spelling is held to exactly.
-faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]  [--reasoning]
-faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--stream]  [--medium KIND]  [--oauth-only]  [--reasoning]
+faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--no-stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]  [--reasoning]
+faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]
                                                        # These two send the model as typed. A bare alias gets the face's
                                                        # reasoning only, no reply (printed in its place, with a note).
-faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--stream]  [--medium KIND]  [--oauth-only]  [--reasoning]   # start a new thread
+faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]   # start a new thread
                                                        # --medium is per REQUEST, not per thread: send it on each turn you want shaped.
-faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--stream]  [--oauth-only]  [--reasoning]                     # resume a thread
+faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--no-stream]  [--oauth-only]  [--reasoning]                  # resume a thread
 faces chat:thread       --list                                                                                                                    # list saved threads
 faces chat:thread       --id THREAD_ID  (--show | --delete)                                                                                        # show transcript / delete
 
@@ -423,9 +425,54 @@ faces chat:thread --id t_abc123 --delete  # remove the local thread file
 
 **The face's reasoning adds up across turns** (faces-cli 1.13.1+). Each assistant turn on the thread keeps the face's cause, and every resume sends it back exactly as the endpoint returned it: `cause` on a chat completions turn, the `rs_faces_…` reasoning item before a responses message, the `faces-reasoning` thinking block on a messages turn. The face then builds on its earlier thoughts instead of starting fresh; the server carries the last 10. Nothing has to be stripped. If you build a transcript yourself against the API, do the same: send back what was returned. `--reasoning` shows each turn's cause on stderr.
 
-**Per-turn flags** (honored on every send, new or resumed): `--max-tokens N` (Anthropic defaults to 1024 when unset), `--temperature F` (OpenAI / Chat Completions endpoints only — ignored on Anthropic and Responses), `--stream`, and `--oauth-only` (see below).
+**Per-turn flags** (honored on every send, new or resumed): `--max-tokens N` (Anthropic defaults to 1024 when unset), `--temperature F` (OpenAI / Chat Completions endpoints only — ignored on Anthropic and Responses), `--no-stream` (turns are streamed by default from 1.14.0), and `--oauth-only` (see below). A refused turn is not saved, so the same message can be sent again on the thread.
 
 **`--json` output** returns `{thread_id, model, provider, assistant, turns}`; `--list` returns an array of `{id, face, model, turns, created_at, updated_at}`; `--show` returns the full stored thread object.
+
+## Streaming face chats
+
+A face reasons about the conversation before it answers, and the reasoning can take a while.
+How long a request may wait for it depends on whether it is streamed:
+
+- **Streamed** (`"stream": true`): waits as long as it takes. If the reasoning runs past 20s the
+  response starts `200` and sends `: keep-alive` comment lines every 10s until the answer
+  begins. (The edge cuts a request that sends nothing for 50s; the keep-alives prevent that.)
+- **Not streamed**: 35s, then a `503` with `Retry-After` (seconds) while the models warm from a
+  cold start. Refused before any work, so nothing is charged; wait exactly that long and retry
+  once.
+
+From faces-cli 1.14.0 every `chat:*` command streams by default. `--json` is never streamed
+(it returns the whole body with `_meta`), nor is `--best-of`; `--no-stream` turns it off. When
+not streamed, the CLI waits out a warm-up `503` and asks once more by itself, saying so on
+stderr. Do not wrap it in a retry loop of your own.
+
+**When you call the API directly**, stream any chat with a face. If you cannot, honour
+`Retry-After` on a `503`. A hand-written SSE reader has two jobs the OpenAI and Anthropic SDKs
+already do:
+
+1. **Skip every line that starts with `:`.** Those are the keep-alives.
+2. **Treat an error event as a failure.** Once the `200` has gone, a late refusal can only
+   arrive inside the stream, as one error event. Show its message and stop. Nothing was charged.
+
+| endpoint | late refusal |
+|---|---|
+| `/v1/chat/completions` | `data: {"error": {"message": "...", "code": 503}}`, then `data: [DONE]` |
+| `/v1/responses` | `event: error` with `{"type": "error", "code": "503", "message": "..."}` |
+| `/v1/messages` | `event: error` with `{"type": "error", "error": {"type": "overloaded_error", "message": "..."}}` |
+
+**Refusals.** A face's answer always comes with its cause now; where the cause cannot be given,
+the chat is refused, never quietly answered without it. Every refusal ends "Nothing was charged."
+
+| code | meaning | do |
+|---|---|---|
+| `409` | Compiled before reasoning launched (no face is in this state today). Also the reasoning alone (`"model": "alias"`, or `decide` with no questions) of a face with nothing compiled | Recompile, or give it a first source (`compile:upload`). Do not retry |
+| `422` | No message in the conversation for the face to answer | Fix the request. Do not retry |
+| `503` + `Retry-After` | Warming up (requests that are not streamed only) | Wait `Retry-After` seconds, then retry once |
+| `503` | A step of the reasoning failed | Retry |
+
+A face with **nothing compiled** still chats: it answers from its name, `profile_addendum` and
+attributes, with no cause and no reasoning charge. A caller with no credit gets the `402` at
+once.
 
 ## OAuth-only mode (`--oauth-only`) — Subscription Connect only
 
@@ -1182,39 +1229,42 @@ The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file p
 
 ## Attributes (`--attr`)
 
-The `--attr KEY=VALUE` flag on `face:create` and `face:edit` sets basic demographic facts on a Face directly, without compiling a document. The flag is repeatable — pass one `--attr` per fact. These facts anchor the persona and improve compilation quality when source material is added later.
+The `--attr KEY=VALUE` flag on `face:create` and `face:edit` sets basic facts about the person on a Face directly, without compiling a document. The flag is repeatable — pass one `--attr` per fact. These facts anchor the persona, and a face with nothing compiled answers from them.
 
-**Common attribute keys:**
+**There are twelve keys, and no others.** Three are fields that take a plain value; nine take a short sentence.
 
-| Key | Example value |
-|---|---|
-| `gender` | `female`, `male`, `non-binary` |
-| `age` | `34` |
-| `location` | `Portland, OR` |
-| `occupation` | `nurse practitioner` |
-| `education_level` | `master's degree` |
-| `religion` | `Buddhist` |
-| `ethnicity` | `Korean American` |
-| `nationality` | `American` |
-| `marital_status` | `married` |
+| Key | Format | Holds | Example value |
+|---|---|---|---|
+| `age` | value | their age | `45` |
+| `gender` | value | their gender | `woman` |
+| `location` | value | where they live now | `Lisbon, Portugal` |
+| `identity` | sentence | name, sexuality, where they are from | `Born in Seoul, raised in Los Angeles.` |
+| `education` | sentence | schooling and study | `Holds a master's degree in nursing.` |
+| `occupation` | sentence | work and career | `Works as a nurse practitioner at a county clinic.` |
+| `religion` | sentence | faith, or its absence | `A practising Buddhist.` |
+| `family` | sentence | parents, siblings, children | `Has two teenage sons.` |
+| `relationships` | sentence | partner, marriage, close ties | `Married for twelve years.` |
+| `health` | sentence | lasting health conditions | `Manages type 1 diabetes.` |
+| `languages` | sentence | languages spoken | `Speaks English and Korean.` |
+| `background` | sentence | formative history no other key covers | `Spent her twenties in the Peace Corps.` |
 
-These are the most common keys. Many more are accepted across categories including birth details, family, career, education, housing, and immigration. **Only keys on the accepted list work — unsupported keys are dropped with a warning in the response.** Run `faces face:attributes` for the complete categorized list.
+Anything else about the person goes in one of these as a sentence (nationality in `identity`, marital status in `relationships`). **Any other key is a `422` that names it, and nothing in that request is written**, so fix the key and send the whole request again. `faces face:attributes` lists the keys with what each holds and its `format` (`value` or `sentence`), from `GET /v1/faces/attributes`.
 
 Attributes appear as `attributes` in CLI responses (the API sends `basic_facts` but the CLI renames it).
 
 **Example — create a Face with attributes:**
 ```bash
 faces face:create --name "Maria Chen" --alias maria \
-  --attr gender=female --attr age=34 \
+  --attr gender=woman --attr age=34 \
   --attr location="Portland, OR" \
-  --attr occupation="nurse practitioner" \
-  --attr education_level="master's degree" \
-  --attr marital_status=married
+  --attr occupation="Works as a nurse practitioner at a county clinic." \
+  --attr education="Holds a master's degree in nursing." \
+  --attr relationships="Married for twelve years."
 ```
 
 **Example — add facts to an existing Face:**
 ```bash
-faces face:edit maria --attr religion=Buddhist --attr ethnicity="Korean American"
+faces face:edit maria --attr religion="A practising Buddhist." --attr identity="Korean American, born in Seoul."
 ```
 
 > Note: `--attr` cannot be combined with `--formula`. Composite faces inherit their facts from their component faces.
@@ -1259,7 +1309,9 @@ not tell a user a listing is complete unless 1.10.0 or newer is installed.
 A client's mistake is a `422`, not a `500`. Every error body uses one `detail` shape and
 carries a reference code; `https://docs.faces.sh/errors` describes the shape and which
 statuses are worth retrying — `503` is the retryable one. A `409` means the thing is
-busy or frozen, a `402` means no credits, and neither is fixed by retrying.
+busy or frozen, a `402` means no credits, and neither is fixed by retrying. A face chat's
+refusals, and the ones that arrive inside a stream, are under
+[Streaming face chats](#streaming-face-chats).
 
 Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_messages`,
 `corpus_room`); see the `compilable` section above. The CLI prints the repair for each.

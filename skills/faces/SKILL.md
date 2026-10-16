@@ -91,8 +91,8 @@ Never run `faces config:clear` (wipes everything with no recovery).
 faces face:create --name "Name" --alias slug --default-model MODEL \
   --description "Plain-text bio" \
   --specialty "what this face is for" \
-  --attr gender=male --attr age=34 --attr location="Portland, OR" \
-  --attr occupation="nurse practitioner" \
+  --attr gender=man --attr age=34 --attr location="Portland, OR" \
+  --attr occupation="Works as a nurse practitioner at a county clinic." \
   --tag research --tag physics
 ```
 
@@ -102,11 +102,12 @@ faces face:create --name "Name" --alias slug --default-model MODEL \
 clears the specialty.
 `--tag` adds lowercase labels for organization and search (repeatable, max 32 per face).
 
-Common `--attr` keys: gender, age, location, occupation, education_level,
-religion, ethnicity, nationality, marital_status.
-Run `faces face:attributes` for the full list. Attributes have an allow list —
-if an unsupported key is used, the command succeeds but prints a warning listing
-which attributes were dropped.
+`--attr` takes **twelve keys and no others**. Three are fields with a bare value: `age`
+(`"45"`), `gender` (`"woman"`), `location` (`"Lisbon, Portugal"`). Nine take a short
+sentence: `identity`, `education`, `occupation`, `religion`, `family`, `relationships`,
+`health`, `languages`, `background`. Anything else about the person goes in one of those as
+a sentence. Any other key is a `422` naming it, and **nothing in that request is saved**, so
+fix the key and send it all again. `faces face:attributes` lists them with what each holds.
 
 **Per-face system prompt (`--profile-addendum`).** Give a face a stored system prompt with `--profile-addendum "…"` (or `--profile-addendum-file path.txt` for long prompts; max 100,000 chars). At inference it sits **between** the auto-generated persona and any per-request `--system` prompt — use it for durable behavior rules (tone, format, hard constraints) that should apply to every chat. Edit it with `face:edit --profile-addendum …` and remove it with `face:edit --clear-profile-addendum`. `face:get` shows a preview + char count (`--full` dumps it); it's proprietary and only ever returned for your own faces. A run-time composite borrows its **first operand's** addendum; a persisted composite uses its own.
 
@@ -486,6 +487,33 @@ reasoning, apart from the reply; never present it as what the face said. On the 
 alias now returns **only** the cause, so `chat:chat` and `chat:thread` add the face's
 `default_model` for you; `chat:responses` and `chat:messages` send the model as typed, so name
 the model there (`alias@model`).
+
+**Stream face chats** (*faces-cli 1.14.0+ does it for you*). A face reasons before it answers,
+and that can take a while. A streamed request waits for it as long as it takes; one that is
+not streamed gets 35s, then a `503` with `Retry-After` while the models warm from a cold
+start. So every `chat:*` command streams by default. `--no-stream` and `--json` are not
+streamed, and on that `503` the CLI waits the seconds named and asks once more by itself; do
+not add your own retry loop. `--best-of` is never streamed.
+
+Refusals of a face chat end "Nothing was charged." and tell you what to do:
+
+| code | meaning | do |
+|---|---|---|
+| `409` | Compiled before reasoning launched, or reasoning alone asked of a face with nothing compiled | Recompile (or give it a first source); do not retry |
+| `422` | No message in the conversation for the face to answer | Fix the request; do not retry |
+| `503` + `Retry-After` | Warming up (requests that are not streamed only) | Wait that long, retry once |
+| `503` | A step of the reasoning failed | Retry |
+
+A refusal can also arrive **inside** a stream that already started `200`: the CLI prints it and
+exits non-zero, the same as any refusal. A face with nothing compiled still chats, from its
+name, `profile_addendum` and attributes, with no cause.
+
+**Calling the API yourself instead of the CLI?** Send `"stream": true` for any chat with a
+face; if you cannot stream, honour `Retry-After` on a `503` exactly, then retry once. A
+hand-written SSE reader must skip lines starting with `:` (the server sends `: keep-alive`
+every 10s while the reasoning runs) and must treat an error event as a failure; the OpenAI
+and Anthropic SDKs do both already. The shapes are in
+[REFERENCE.md → Streaming](references/REFERENCE.md#streaming-face-chats).
 
 `chat:chat` is stateless (one turn, no memory). For a conversation the face remembers across turns, use `chat:thread` — history is stored locally and resumed by id (`--id`); set the model/system prompt once when starting. See [references/REFERENCE.md](references/REFERENCE.md#multi-turn-threads-chatthread).
 
