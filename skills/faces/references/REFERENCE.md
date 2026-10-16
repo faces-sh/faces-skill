@@ -89,6 +89,8 @@ faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--no-stream]  [--medium KIND]  [--best-of N]  [--reasoning | --reasoning-only]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
                                                        # --reasoning: the face's reasoning to stderr before the reply.
                                                        # --reasoning-only: that alone, no reply (1.13.0+).
+                                                       # --cause TEXT | --cause-file PATH: supply the face's reasoning yourself;
+                                                       # it answers on that, free of the reasoning charge (1.15.0+). Needs a model.
                                                        # Streamed by default (1.14.0+); --no-stream and --json are not, and
                                                        # wait out a warm-up 503 once by themselves. See "Streaming face chats".
                                                        # PREFIX THE ALIAS WITH + to answer in the style the face captured. Without it
@@ -115,13 +117,13 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # without a `+` alias; with one, a medium the face has no style for is
                                                        # refused naming the ones it has. Omitting it classifies one from the text.
                                                        # On COMPILE it is required and the spelling is held to exactly.
-faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--no-stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]  [--reasoning]
-faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]
+faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--no-stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT | --cause-file PATH]
+faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT | --cause-file PATH]
                                                        # These two send the model as typed. A bare alias gets the face's
                                                        # reasoning only, no reply (printed in its place, with a note).
-faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]   # start a new thread
+faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT]   # start a new thread
                                                        # --medium is per REQUEST, not per thread: send it on each turn you want shaped.
-faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--no-stream]  [--oauth-only]  [--reasoning]                  # resume a thread
+faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--no-stream]  [--oauth-only]  [--reasoning]  [--cause TEXT]  # resume a thread
 faces chat:thread       --list                                                                                                                    # list saved threads
 faces chat:thread       --id THREAD_ID  (--show | --delete)                                                                                        # show transcript / delete
 
@@ -423,7 +425,7 @@ faces chat:thread --id t_abc123 --delete  # remove the local thread file
 - `--system TEXT` sets a system prompt stored on the thread and re-sent every turn (as Anthropic `system`, Responses `instructions`, or a Chat Completions `system` message, depending on the routed endpoint).
 - Passing `--llm` or `--system` together with `--id` (resume) prints a warning and **ignores them** — the values stored on the thread always win. To change the model or system prompt, start a new thread.
 
-**The face's reasoning adds up across turns** (faces-cli 1.13.1+). Each assistant turn on the thread keeps the face's cause, and every resume sends it back exactly as the endpoint returned it: `cause` on a chat completions turn, the `rs_faces_…` reasoning item before a responses message, the `faces-reasoning` thinking block on a messages turn. The face then builds on its earlier thoughts instead of starting fresh; the server carries the last 10. Nothing has to be stripped. If you build a transcript yourself against the API, do the same: send back what was returned. `--reasoning` shows each turn's cause on stderr.
+**The face's reasoning adds up across turns** (faces-cli 1.13.1+). Each assistant turn on the thread keeps the face's cause, and every resume sends it back exactly as the endpoint returned it: `cause` on a chat completions turn, the `rs_faces_…` reasoning item before a responses message, the `faces-reasoning` thinking block on a messages turn. The face then builds on its earlier thoughts instead of starting fresh; the server carries the last 10. Nothing has to be stripped. If you build a transcript yourself against the API, do the same: send back what was returned. `--reasoning` shows each turn's cause on stderr. `--cause TEXT` (or `--cause-file PATH`) on a turn supplies that turn's cause instead of letting the face reason (1.15.0+); it is kept on the thread the same way, and later turns build on it.
 
 **Per-turn flags** (honored on every send, new or resumed): `--max-tokens N` (Anthropic defaults to 1024 when unset), `--temperature F` (OpenAI / Chat Completions endpoints only — ignored on Anthropic and Responses), `--no-stream` (turns are streamed by default from 1.14.0), and `--oauth-only` (see below). A refused turn is not saved, so the same message can be sent again on the thread.
 
