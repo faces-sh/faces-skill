@@ -52,7 +52,7 @@ Once connected, OAuth routing is transparent — no flag needed on inference com
 
 ## If `auth:connect` errors
 
-- **`Connecting ChatGPT requires the Subscription Connect plan`** — the account isn't on connect. Upgrade with `faces billing checkout`.
+- **`Connecting ChatGPT requires the Subscription Connect plan`** — the account isn't on connect. Subscribe with `faces billing:subscribe --plan connect` (or `--plan pro`).
 - **`Device-code authorization is not enabled on your ChatGPT account yet`** — the enable-setting gate above; have the human flip the setting, then rerun.
 - **`Your Faces session is missing or expired`** — run `faces auth:login` and retry.
 - **`The code expired…`** — they took longer than 15 minutes; just rerun `faces auth:connect openai` for a fresh code.

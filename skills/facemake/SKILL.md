@@ -290,7 +290,7 @@ model to chat without specifying `--llm` every time.
 
 First check the user's plan and available models:
 ```bash
-faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" = pay-per-token, "connect" = Subscription Connect
+faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" pays as it goes; "connect" and "pro" can run gpt-5.x on a linked ChatGPT account; "team" is never charged
 faces billing:llm-costs --json 2>/dev/null
 ```
 
@@ -304,7 +304,7 @@ Do NOT hardcode model names — they change frequently. Use the models list
 output and WebSearch if needed to identify current latest versions. The
 examples below are illustrative; replace with whatever is actually latest.
 
-**If Subscription Connect (with ChatGPT linked):** A is latest GPT (no extra cost via ChatGPT passthrough), B is latest
+**If Connect or Pro (with ChatGPT linked):** A is latest GPT (no extra cost via ChatGPT passthrough), B is latest
 Claude Sonnet. **If pay-per-token:** A is latest Claude Sonnet, B is latest GPT.
 
 | Option | Category | Example | Notes |
