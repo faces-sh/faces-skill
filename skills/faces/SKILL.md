@@ -558,8 +558,9 @@ face's answer against. After an idle spell the models start cold for about two m
 server answers `503` with a `Retry-After`, and the CLI waits exactly that and asks again by
 itself. Do not add your own retry loop. A `503` with no wait: retry, or try another `--model`.
 `faces-latest` takes at most 10 options or levels per question. A `409` means the face needs
-recompiling: compile one of its sources again. On Subscription Connect it counts against the
-monthly allowance; on pay-per-token it bills per token. See
+recompiling: compile one of its sources again. The face's reasoning counts against a Connect or
+Pro allowance (or bills on Free), and the decision model is **always paid from credits**, on
+every plan: with no credit it is a `402`. See
 [REFERENCE.md → Decisions](references/REFERENCE.md#decisions-decide).
 
 **Run-time composites:** pass a Face Math formula in the face position to chat with an on-the-fly blend of your own faces — `faces chat:chat "(alice | bob)@claude-sonnet-4-6" -m "…"` (or `--formula "alice | bob" --llm …`). No pre-creation step. See [§4 Compare & compose](#4-compare--compose).
@@ -684,9 +685,9 @@ one bills.
 | status "preparing" | Compilation in progress — poll with `compile:doc:get ID --status-only --json` or `compile:thread:get ID --status-only --json` |
 | status "stalled" | Being retried automatically. Read `finishing`: `true` means keep waiting and offer nothing. `false` means it is out of retries — read `stall_reason` for why |
 | status "failed" | Out of attempts. `stall_reason` says why; do not re-run without fixing it |
-| `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1). If no payment method on file: `faces billing:card-setup` first. See [BILLING.md](references/BILLING.md) |
+| `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1; `--card pm_…` for a card other than the default). If no card on file: `faces billing:card-setup` first. Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
 | `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
-| `429` naming the Connect allowance | Subscription Connect's monthly allowance is used up and `api_fallback` is off. Wait for the reset (`faces billing:subscription` shows the date), or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. An ordinary `429` rate limit just needs a delay |
+| `429` naming an allowance | A Connect or Pro allowance (reasoning over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is: it names the allowance and the reset. Wait, or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter. An ordinary `429` rate limit just needs a delay |
 | `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry. With `api_fallback` on it would have finished on the paid route instead |
 | `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
 | `422` on thread import | Retry with `--type document` |

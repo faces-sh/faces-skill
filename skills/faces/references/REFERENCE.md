@@ -241,14 +241,18 @@ faces keys:revoke   <key_id>  [--yes]
 faces keys:update   <key_id>  [--name]  [--budget F]  [--reset-spent]
 
 faces billing:balance
-faces billing:subscription                             # on Connect, also the monthly allowance: used, limit, reset.
-                                                       # absorbed_limit_usd < 0 in --json means UNLIMITED, never "used up".
-faces billing:subscription:activate  [--plan connect]
+faces billing:subscription                             # plan (free|connect|pro|team), and on a paid plan a meter of each allowance.
+                                                       # allowances.*.limit < 0 in --json means UNLIMITED (Team), never "used up".
+faces billing:subscription:activate  [--plan connect|pro]    # alias billing:subscribe. First subscription, or reactivate.
+faces billing:subscription:plan      <connect|pro>  [--yes]  # already subscribed: switch in place, prorated (1.16.0+)
 faces billing:subscription:cancel    [--yes]
 faces compile:stats
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
-faces billing:topup      --amount F  [--payment-ref REF]
-faces billing:card-setup
+faces billing:topup      --amount F  [--card PM_ID]  [--payment-ref REF]
+faces billing:cards                                    # saved cards, newest first; one is the default (1.16.0+)
+faces billing:card-setup [--no-default]                # alias billing:card:add: a Stripe link to save a card
+faces billing:card:default  <PM_ID>
+faces billing:card:remove   <PM_ID>  [--yes]
 faces billing:llm-costs  [--provider openai|anthropic|qwen|...]
                                                        # one row per model, under its lab's id. --provider is the LAB that
                                                        # made it, never the service that runs it.
@@ -580,9 +584,10 @@ stderr. `--no-retry` returns the 503 instead. Do not wrap it in your own retry l
 with **no** `Retry-After` is a step or the decision model failing: retry, and if the message
 names the decision model, another `--model` may answer.
 
-**Cost.** Pay-per-token: billed per token from credits. Subscription Connect: included,
-within the monthly allowance; past it, `api_fallback` decides between billing credits and a
-`429`. Nothing is charged for a request refused before work starts (`400`, `402`, `403`,
+**Cost.** The face's reasoning counts against a Connect or Pro allowance (past it,
+`api_fallback` decides between billing credits and a `429`), or bills on Free. The decision
+model is charged at the provider's cost plus 5% **on every plan**, so a decision needs credit
+even on Connect and Pro: with none it is a `402`. Nothing is charged for a request refused before work starts (`400`, `402`, `403`,
 `409`, `422`, `429`).
 
 | Code | Meaning | What to do |
@@ -591,7 +596,8 @@ within the monthly allowance; past it, `api_fallback` decides between billing cr
 | `404` | No such face, or not yours to use | Check the alias |
 | `409` | The face needs recompiling (not compiled since decisions launched) | Compile one of its sources again; not retryable as it is |
 | `422` | Wrong shape: missing `type`, criteria that do not fit the type, more than 10 options for `faces-latest`, questions with a bare face | Read the message |
-| `429` | Connect allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
+| `402` | No credit for the decision model (on every plan) | `faces billing:topup` |
+| `429` | A reasoning allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
 | `503` + `Retry-After` | Warming up from a cold start | The CLI waits it out; with `--no-retry`, retry after that many seconds |
 | `503`, no `Retry-After` | A step or the decision model failed | Retry; another `--model` if the message names the decision model |
 
@@ -1320,10 +1326,13 @@ Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_mes
 
 Two refusals can come from almost any route, and the CLI adds what to do to both (1.13.0+):
 
-- **`429` naming the Connect allowance.** Subscription Connect's monthly allowance (compiling,
-  decisions, and the part of chat not run on the user's ChatGPT subscription) is used up and
-  `api_fallback` is off. Starting a compile is refused this way too. Wait for the reset, or turn
-  on `api_fallback` to bill credits. An ordinary rate-limit `429` names no allowance.
+- **`429` naming an allowance.** A Connect or Pro allowance (a face's reasoning over 5 hours,
+  the week or the month, or compiling over the month) is used up and `api_fallback` is off.
+  Starting a compile is refused this way too. The message says which, and when it resets: show
+  it as it is. Wait, or turn on `api_fallback` to pay from credits. An ordinary rate-limit `429`
+  names no allowance.
+- **`402`.** No credit for the request. On Connect and Pro the answering model and `decide`'s
+  decision model are still paid from credits, so this can happen on any plan. Top up.
 - **`502 oauth_incomplete`.** ChatGPT stopped its reply partway on two attempts. Nothing was
   charged; retry. With `api_fallback` on it would have finished on the paid route and billed.
 
