@@ -9,14 +9,15 @@ Registration requires a credit card payment to activate. The flow is:
 Ask the user which plan they want, then register with `--plan`:
 
 ```bash
-# Pay-per-token plan ($5 activation, 5% markup on all API calls)
+# Free plan ($5 activation, then everything pays as it goes from credits)
 faces auth:register \
   --email user@example.com \
   --password 'SecurePass123!' \
   --username alice \
   --json
 
-# Subscription Connect plan ($17/month, link your ChatGPT account for select OpenAI models)
+# Connect ($17/month) or Pro ($49/month): allowances for compiling and reasoning,
+# and gpt-5.x chat free on a linked ChatGPT account
 faces auth:register \
   --email user@example.com \
   --password 'SecurePass123!' \
@@ -25,7 +26,8 @@ faces auth:register \
   --json
 ```
 
-`--plan` defaults to `free` (pay-per-token) if omitted.
+`--plan` is `free` (the default), `connect` or `pro` (`pro` from faces-cli 1.17.0). Team is by
+promo code only, and Standard is retired.
 
 The response includes:
 
@@ -130,33 +132,39 @@ Some agent environments run a terminal security scanner that redacts `sk-`-prefi
 
 ## Plans
 
-### Pay-per-token
+### Free
 
 - **Activation:** $5 minimum initial spend (added as API credits).
-- **Pricing:** 5% markup on all API calls — both compilation (building faces) and inference (chatting with faces). Charged per token at the underlying provider's rate plus the markup.
+- **Pricing:** everything pays as it goes from credits: a face's reasoning at $0.75 per million reasoning tokens (each turn's input tokens plus 1,500), compiling at $28 per million source tokens, the answering model at the provider's price plus 5%.
 - **No monthly fee.**
 
-### Subscription Connect ($17/month)
+### Connect ($17/month) and Pro ($49/month)
 
-- **Same pricing** as pay-per-token (5% markup on all API calls), plus:
-- **ChatGPT passthrough:** Link your ChatGPT Plus or Pro account via `faces auth:connect openai` to use select OpenAI models at no additional cost (no markup, no per-token charge from Faces) when both compiling and chatting with faces. See [OAUTH.md](OAUTH.md) for supported models.
-- **Fallback:** By default, OAuth failures return 422 errors (no silent fallback to paid keys). Enable fallback with `faces account:preferences api_fallback true`.
+- **Allowances** for compiling and a face's reasoning: Connect 250k source tokens and 10M reasoning tokens a month, Pro 1M and 25M (with weekly and 5-hour limits too). See [BILLING.md](BILLING.md#plans).
+- **The answering model** is still paid at the provider's price plus 5%, except:
+- **ChatGPT passthrough:** Link your ChatGPT Plus or Pro account via `faces auth:connect openai` and gpt-5.x models run free on it. See [OAUTH.md](OAUTH.md) for supported models.
+- **Fallback:** By default, OAuth failures and a used-up allowance are refused, never silently billed. Enable fallback with `faces account:preferences api_fallback true`.
+
+### Team
+
+Comped: no limits, never charged. By promo code only.
 
 ### Checking the current plan
 
 ```bash
 faces billing:subscription --json   # plan, status, period end
 faces billing:balance --json        # credit balance, is_active
-faces compile:stats --json          # per-face compilation stats
+faces compile:stats --json          # this month's compile usage against the allowance (1.18.0+)
 ```
 
-### Activating Subscription Connect
+### Subscribing, and switching plans
 
 ```bash
-faces billing:subscription:activate
+faces billing:subscribe --plan connect     # or --plan pro; alias of billing:subscription:activate
+faces billing:subscription:plan pro        # already subscribed: switch in place, prorated
 ```
 
-Prints a Stripe Checkout URL. The human must open it in a browser to complete payment. If previously canceled, this reactivates the existing subscription.
+`billing:subscribe` prints a Stripe Checkout URL (it takes a promo code). The human must open it in a browser to complete payment. If previously canceled, this reactivates the existing subscription. Already subscribed, use `billing:subscription:plan` instead. See [BILLING.md](BILLING.md).
 
 ### Canceling
 

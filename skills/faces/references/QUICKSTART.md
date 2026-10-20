@@ -42,23 +42,24 @@ Verify: `faces auth:whoami`
 
 Ask the user which plan they want:
 
-> Faces has two plans. Which fits you better?
+> Faces has three plans. Which fits you better?
 >
-> A) **Pay-per-token** — $5 initial spend (added as API credits), 5% markup
->    on all API calls. No monthly fee. Good for trying it out.
-> B) **Subscription Connect ($17/month)** — same 5% markup, plus link your
->    ChatGPT Plus or Pro account to use select OpenAI models at no extra cost
->    when compiling and chatting with faces.
+> A) **Free** — $5 initial spend (added as API credits), then everything pays
+>    as it goes. No monthly fee. Good for trying it out.
+> B) **Connect ($17/month)** — monthly allowances for compiling and for the
+>    face's reasoning, and gpt-5.x chat free on your linked ChatGPT Plus or Pro
+>    account. Other models pay as they go.
+> C) **Pro ($49/month)** — Connect with larger allowances.
 
 Then register with the chosen plan:
 
 ```bash
-# Pay-per-token plan
+# Free plan
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --json)
 echo "$RESULT" | jq -r '.activation_checkout_url'
 
-# Subscription Connect plan
-RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --plan connect --json)
+# Connect or Pro plan
+RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --plan connect --json)   # or --plan pro
 echo "$RESULT" | jq -r '.activation_checkout_url'
 ```
 
@@ -115,16 +116,17 @@ Pick one or more methods depending on what the human has:
 **Local file — single-voice document (text, PDF):**
 ```bash
 # By the subject — first-person is the default
-DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --no-wait --json | jq -r '.document_id // .id')
+# --medium is required: say what the writing is (essay, email, ...), and ask if you do not know
+DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --medium essay --no-wait --json | jq -r '.document_id // .id')
 # About the subject (biography, Wikipedia, news profile) — add --perspective third-person
-DOC_ID=$(faces compile:upload alice --file /path/to/profile.pdf --kind document --perspective third-person --no-wait --json | jq -r '.document_id // .id')
+DOC_ID=$(faces compile:upload alice --file /path/to/profile.pdf --kind document --medium essay --perspective third-person --no-wait --json | jq -r '.document_id // .id')
 ```
 
 **YouTube video (solo speaker):**
 ```bash
 IMPORT=$(faces compile:import alice \
   --url "https://www.youtube.com/watch?v=VIDEO_ID" \
-  --type document --perspective first-person --no-wait --json)
+  --type document --medium lecture --perspective first-person --no-wait --json)
 DOC_ID=$(echo "$IMPORT" | jq -r '.document_id // .doc_id // .id')
 ```
 

@@ -354,7 +354,7 @@ has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
 
 1. Read the face's FACE.md from `~/.faces/catalog/<alias>/FACE.md`
 2. Walk through each Queued item using `--no-wait`:
-   - YouTube: `faces compile:import <alias> --url "<url>" --type document --no-wait --json`
+   - YouTube: `faces compile:import <alias> --url "<url>" --type document --medium lecture --no-wait --json` (a solo talk; ask if it is something else)
    - Local file: `faces compile:doc <alias> --file <path> --medium <medium> --no-wait --json`
    - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --no-wait --json`
      — pass it verbatim; retyping or summarising teaches the face your paraphrase

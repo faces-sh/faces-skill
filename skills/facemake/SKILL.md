@@ -290,7 +290,7 @@ model to chat without specifying `--llm` every time.
 
 First check the user's plan and available models:
 ```bash
-faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" = pay-per-token, "connect" = Subscription Connect
+faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" pays as it goes; "connect" and "pro" can run gpt-5.x on a linked ChatGPT account; "team" is never charged
 faces billing:llm-costs --json 2>/dev/null
 ```
 
@@ -304,7 +304,7 @@ Do NOT hardcode model names — they change frequently. Use the models list
 output and WebSearch if needed to identify current latest versions. The
 examples below are illustrative; replace with whatever is actually latest.
 
-**If Subscription Connect (with ChatGPT linked):** A is latest GPT (no extra cost via ChatGPT passthrough), B is latest
+**If Connect or Pro (with ChatGPT linked):** A is latest GPT (no extra cost via ChatGPT passthrough), B is latest
 Claude Sonnet. **If pay-per-token:** A is latest Claude Sonnet, B is latest GPT.
 
 | Option | Category | Example | Notes |
@@ -431,7 +431,7 @@ starting the next.
 ```bash
 # YouTube video — solo talk (single voice). For an interview/podcast, use
 # --type thread instead (see the multi-speaker path below).
-faces compile:import <alias> --url "<youtube-url>" --type document \
+faces compile:import <alias> --url "<youtube-url>" --type document --medium lecture \
   --perspective first-person --no-wait --json
 
 # If YouTube blocks: download locally, extract + compress audio (<100MB), upload
@@ -458,7 +458,7 @@ faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --medium essay 
 # Local text file — about the subject (biography, Wikipedia, news profile)
 faces compile:doc <alias> --file <path> --medium <medium> --perspective third-person --no-wait --json
 # PDF, Word (.docx), audio or video: use compile:upload — compile:doc takes text only
-faces compile:upload <alias> --file <path> --kind document --no-wait --json
+faces compile:upload <alias> --file <path> --kind document --medium <medium> --no-wait --json
 
 # Interview (agent-as-interviewer)
 # See ../faces/references/INTERVIEWS.md for the full workflow

@@ -3,72 +3,146 @@
 All billing commands: `faces billing:COMMAND`. Use `--json` on any command for
 structured output.
 
-## Check balance
+## Plans
+
+| plan | price | what it includes |
+|---|---|---|
+| `free` | $0 | Everything pays as it goes, from credits |
+| `connect` | $17/month | The allowances below; chat on gpt-5.x runs free on the user's linked ChatGPT subscription |
+| `pro` | $49/month | Larger allowances, and the same ChatGPT routing |
+| `team` | comped | No limits, never charged. By promo code only |
+
+The old **Standard** plan is retired: never offer it. `plan` in `billing:subscription --json`
+is one of `free`, `connect`, `pro`, `team`.
+
+A subscription is an **allowance**, not a fee per request. It covers compiling and a face's
+**reasoning** (its cause, in chat and `decide`), up to the limits below. The **answering model**
+(`alias@model`, or a decision model) is never part of it: on every plan that is paid at the
+provider's price plus 5%, unless it runs free on the user's ChatGPT subscription. So a Connect
+or Pro user still needs credit for most chats, and always for `faces decide`.
+
+| allowance | Connect | Pro |
+|---|---|---|
+| compile, per month | 250k source tokens | 1M |
+| reasoning, per month | 10M tokens | 25M |
+| reasoning, per week | 2.5M | 6.25M |
+| reasoning, per 5 hours (rolling) | 640k | 1.6M |
+
+- **Compile** counts a source's tokens **each time** it is compiled; a recompile counts again.
+- **Reasoning** counts the input tokens the face's reasoning read for a turn **plus 1,500**, with
+  no minimum. In a
+  chat with `alias@model` that is at most 10k a turn however long the conversation; the
+  reasoning alone (`--reasoning-only`) and `decide` read up to 30k.
+- The month is the subscription's 30-day window, weeks are 7-day blocks of it, and the 5-hour
+  window rolls.
+
+**Past an allowance**, the `api_fallback` preference decides:
+
+- **on:** the work carries on, paid from credits at the pay-as-you-go rates. With no credit it
+  is a `402`.
+- **off** (the default): refused with a `429`, and nothing is charged. The message names the
+  allowance and when it resets, for example: "Your Connect plan has used its weekly allowance
+  (2,500,000 of 2,500,000 tokens). It resets at 2026-10-22 14:00 UTC. Turn on API fallback to
+  continue on credits in the meantime. Nothing was charged." Show it as it is, and offer
+  `faces account:preferences api_fallback true` only if the user agrees to pay from credits.
+
+**Pay-as-you-go rates** (the Free plan, and past an allowance with fallback on): a face's
+reasoning $0.75 per million tokens (each turn's input tokens plus 1,500), compile $28 per
+million source tokens, any model you name the provider's price + 5%. `billing:subscription
+--json` carries them as `rates` (`cause_usd_per_million_input_tokens`, `cause_added_tokens`,
+`compile_usd_per_million_source_tokens`, `model_markup`), and the public `GET /v1/rates` has
+them with each plan's allowances. Read them there rather than quoting them from memory.
+
+## Check the plan and its allowances
 
 ```bash
-faces billing:balance --json
-```
-
-Returns credit balance and payment method status.
-
-## Top up credits
-
-```bash
-faces billing:topup --amount 5
-```
-
-Minimum $1. Requires a saved payment method. Credits are applied immediately.
-
-## Add a payment method
-
-```bash
-faces billing:card-setup
-```
-
-Opens a Stripe session to save a card. Required before `billing:topup` can
-charge.
-
-## Check subscription
-
-```bash
+faces billing:subscription
 faces billing:subscription --json
 ```
 
-Returns plan type (`free` = pay-per-token, or `connect` = Subscription Connect), face count, and renewal date.
+Shows the plan, renewal date and, on a paid plan, a meter of each allowance (faces-cli 1.17.0+):
 
-On Subscription Connect it also reports the **monthly allowance** (faces-cli 1.13.0+ prints
-it as a sentence). Some work runs on models Faces pays for rather than on the user's ChatGPT
-subscription: compiling, `faces decide`, and the part of chat that works out a face's side.
-That is included in the plan, not taken from credits, and counted against the allowance:
-
-| field | meaning |
-|---|---|
-| `absorbed_usd` | What that work has cost in this 30-day window |
-| `absorbed_limit_usd` | The allowance. **Negative means unlimited**, not used up |
-| `absorbed_resets_at` | When the window resets |
-
-All three are `null` on pay-per-token. Work on the user's own ChatGPT subscription is never
-counted. Past the allowance, `api_fallback` decides: **on** bills credits (a `402` with none),
-**off** refuses with `429` naming the reset date. It resets by itself.
-
-The same negative-means-unlimited rule applies to `compile:stats`' `tokens_limit` and
-`tokens_remaining`; from 1.13.0 the human output says `unlimited`.
-
-## Activate Subscription Connect
-
-```bash
-faces billing:subscription:activate
+```
+Connect allowances (tokens):
+  reasoning, rolling 5 hours  3018 of 640k (0%)  rolls
+  reasoning, this week        3018 of 2.5M (0%)  resets 2026-10-26 09:44 UTC
+  reasoning, this month       32.5k of 10M (0%)  resets 2026-10-28 09:44 UTC
+  compile, this month         4072 of 250k (2%)  resets 2026-10-28 09:44 UTC
 ```
 
-Prints a Stripe Checkout URL to activate the Subscription Connect plan ($17/mo). If the user previously canceled and is still within the billing period, this reactivates instead of creating a new checkout.
+In `--json`, `allowances` holds `cause_5h`, `cause_week`, `cause_month` and `compile_month`,
+each `{limit, used, remaining, resets_at}`. It is `null` on Free. On Team every `limit` is
+`-1`, meaning **unlimited, never used up**, and `remaining` is `null`. `cause_5h` rolls, so its
+`resets_at` is `null`. The `absorbed_*` fields are deprecated: do not read them.
 
-## Cancel subscription
+The same negative-means-unlimited rule applies to `compile:stats`' `compile_this_month.limit`.
+
+## Subscribe
+
+```bash
+faces billing:subscribe --plan connect      # alias of billing:subscription:activate
+faces billing:subscribe --plan pro
+```
+
+From the Free plan, prints a Stripe Checkout URL. The human must open it in a browser to pay; the
+page takes a **promo code**, which can make a plan free for a while or add credits. If the
+subscription is set to cancel and is still in its period, this reactivates it instead.
+
+Checkout is for a **first** subscription only. Already on Connect, Pro or Team, a second checkout
+would bill twice, so it is refused (`409`); the CLI says so before asking. Switch instead.
+
+## Switch between Connect and Pro
+
+```bash
+faces billing:subscription:plan pro         # asks to confirm; --yes skips that
+faces billing:subscription:plan connect
+```
+
+Switches in place. Stripe prorates the difference on the default card, and the new allowances
+apply at once. Confirm with the user before running it: it charges. A `409` means there is no
+subscription to switch (subscribe instead) or the plan is Team, which cannot switch.
+
+## Cancel
 
 ```bash
 faces billing:subscription:cancel
 ```
 
-Soft cancel — keeps Connect access until the current period ends, then reverts to pay-per-token. To reactivate before the period ends, run `billing:subscription:activate`.
+Soft cancel: keeps the plan until the current period ends, then reverts to Free. To keep it,
+run `billing:subscription:activate` before then.
+
+## Credits
+
+```bash
+faces billing:balance --json                 # balance_usd, has_payment_method (= a default card exists)
+faces billing:topup --amount 5               # charges the default card; minimum $1
+faces billing:topup --amount 5 --card pm_…   # charges another saved card (faces-cli 1.17.0+)
+```
+
+Credits are applied at once. A `402` anywhere means there is no credit for that request,
+including `faces decide` on Connect and Pro, whose decision model is always paid. Top up and
+retry; the CLI names the command.
+
+## Cards
+
+An account can save several cards. One is the **default**: the subscription renews on it, and a
+top-up charges it unless `--card` names another. The card used at checkout becomes the default.
+(faces-cli 1.17.0+)
+
+```bash
+faces billing:cards                          # newest first: brand, last 4, expiry, id, (default)
+faces billing:card-setup                     # alias billing:card:add: prints a Stripe link to save a card
+faces billing:card-setup --no-default        # save it without making it the default
+faces billing:card:default pm_…              # the next renewal charges this one
+faces billing:card:remove pm_…  [--yes]
+```
+
+- Saving a card charges nothing. The new card becomes the default unless `--no-default`; the
+  first card always does. It is listed **a few seconds after** the user finishes, because it
+  arrives through Stripe's webhook: if `billing:cards` does not show it yet, wait and look again.
+- Removing the default makes the newest other card the default. The **last** card cannot be
+  removed while a paid subscription renews on it (`409`): add another first, or cancel.
+- `404` on any of these means the card is not on this account: list them with `billing:cards`.
 
 ## Check compilation stats
 
@@ -76,7 +150,18 @@ Soft cancel — keeps Connect access until the current period ends, then reverts
 faces compile:stats --json
 ```
 
-Shows per-face compilation stats. Key fields per face: `alias`, `tokens_compiled_current` (current size of cognitive primitives), `tokens_compiled_alltime` (cumulative tokens across all compilation runs), `profile_token_count`, `last_synced_at`.
+Shows the plan, the source tokens compiled this month against the plan's compile allowance, and
+the pay-as-you-go compile rate (faces-cli 1.18.0+):
+
+```
+Plan: connect
+Compiled this month: 4,072 of 250,000 source tokens (2%), resets 2026-10-28
+Pay-as-you-go compile rate: $28 per million source tokens (past the allowance, with api_fallback on)
+```
+
+`--json` is `{plan, compile_this_month: {limit, used, remaining, resets_at}, pay_as_you_go:
+{usd_per_million_source_tokens}}`; `compile_this_month` is `null` on Free. Older versions read a
+retired endpoint and fail. Per-face compile and chat numbers are in `faces face:stats`.
 
 ## View LLM pricing
 
@@ -89,8 +174,7 @@ faces billing:llm-costs --provider anthropic
 Lists available LLMs, their per-token costs and the user's spend on each. Each model appears
 once, under the id its lab gives it, and `--provider` filters by that **lab** (openai,
 anthropic, xai, qwen, z-ai, moonshot, …), never by the service that runs it. A model's price is
-fixed whichever service runs it, so read it here rather than quoting one from memory. From
-faces-cli 1.13.0, old host-prefixed ids that have no spend on them are left out.
+fixed whichever service runs it, so read it here rather than quoting one from memory.
 
 ## Usage analytics
 
@@ -106,20 +190,26 @@ Aggregated usage analytics. Group by `api_key`, `model`, `llm`, or `date`.
 | Operation | Approximate cost |
 |-----------|-----------------|
 | Audio/video transcription | ~$0.37/hour |
-| Text document compilation | Minimal (pennies for typical documents) |
-| Chat message | Varies by model — see `faces billing:llm-costs` for per-token pricing |
+| Compile, past an allowance or on Free | $28 per million source tokens |
+| A face's reasoning, past an allowance or on Free | $0.75 per million tokens, each turn's input tokens plus 1,500 |
+| The answering model | Varies by model; see `faces billing:llm-costs` |
 
 ## Common scenarios
 
-**402 during compilation:** Balance is empty. Run `faces billing:balance --json`
-to confirm, then `faces billing:topup --amount <USD>` to add credits and retry.
+**402:** No credit for the request. Run `faces billing:balance --json` to confirm, then
+`faces billing:topup --amount <USD>` (with no card saved, `faces billing:card-setup` first)
+and retry.
+
+**429 naming an allowance:** A plan's allowance is used and `api_fallback` is off. Wait for the
+reset the message names, or, if the user agrees to pay from credits,
+`faces account:preferences api_fallback true`. An ordinary rate-limit `429` names no allowance
+and just needs a delay.
 
 **422 oauth_rejected:** OAuth request failed and fallback is disabled. Enable
 fallback: `faces account:preferences api_fallback true`. If no credits, run
 `faces billing:topup` first. See [OAUTH.md](OAUTH.md) for details.
 
-**Subscription Connect users:** Link your ChatGPT account (`faces auth:connect openai`)
-to use select OpenAI models at no extra cost for both compilation and chat. If OAuth
-is not linked, those models fall back to paid credits (5% markup). If `api_fallback`
-is `false` (default), requests that fail OAuth return 422 instead — enable fallback
-with `faces account:preferences api_fallback true`.
+**Connect and Pro users:** Link a ChatGPT account (`faces auth:connect openai`) so gpt-5.x
+models run free on it at `/v1/responses` (which `chat:chat` routes them to). Other models are
+paid from credits at the provider's price plus 5%. If the ChatGPT route fails and `api_fallback`
+is `false` (the default), the request is refused instead of billed.

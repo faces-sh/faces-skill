@@ -127,19 +127,22 @@ faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature
 faces chat:thread       --list                                                                                                                    # list saved threads
 faces chat:thread       --id THREAD_ID  (--show | --delete)                                                                                        # show transcript / delete
 
-faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--perspective first-person|third-person]  [--face-speaker LABEL]  [--no-wait]
+faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--medium KIND]  [--perspective first-person|third-person]  [--face-speaker LABEL]  [--no-wait]
+                                                       # --medium is required with --type document and refused with thread (1.16.0+).
 faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--medium KIND]  [--perspective first-person|third-person]  [--face-speaker NAME]  [--no-wait]
+                                                       # --medium is required with --kind document and refused with thread (1.16.0+).
                                                        # Accepts text, PDF, Word (.docx), audio and video. Text is extracted server-side.
                                                        # Legacy .doc is refused (400) — save it as .docx first. A .docx with no text 422s:
                                                        # images and text boxes are not read, only document text.
 
-faces compile:doc          <alias>  (--content TEXT | --file PATH...)  [--medium KIND]  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--no-wait]
+faces compile:doc          <alias>  (--content TEXT | --file PATH...)  --medium KIND  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--no-wait]
                                                        # --file is repeatable: each file becomes its OWN document (not concatenated).
                                                        # Returns {"documents":[{file, document_id}...]} in input order; a bad file is
                                                        # reported in place and the rest still compile. --label is single-document only.
                                                        # Text only — for PDF, Word (.docx), audio or video use compile:upload.
                                                        # --medium on compile:upload applies to --kind document only.
-faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  [--medium KIND]  [--perspective first-person|third-person]
+faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  --medium KIND  [--perspective first-person|third-person]
+                                                       # --medium is required: the server will not save a document without one (1.16.0+).
 faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
 faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
 faces compile:doc:reset    <doc_id>  [--yes]
@@ -148,6 +151,7 @@ faces compile:doc:list     <alias>  [--verbose]
 faces compile:doc:get      <doc_id>  [--status-only]   # --status-only leaves out the text: a few hundred bytes rather than the
                                                        # whole document, which was 21KB in one measurement and grows with it. Poll with it.
 faces compile:doc:edit     <doc_id>  [--label]  [--content TEXT | --file PATH]  [--medium KIND]  [--perspective first-person|third-person]
+                                                       # A document's medium can be changed, never cleared.
 faces compile:doc:delete   <doc_id>
 
 faces compile:thread:create   <alias>  [--label]  [--oauth-only]
@@ -233,7 +237,7 @@ faces compile:status      [--watch]  [--interval SECONDS]
                                                        # Branch on sources_active. An EMPTY answer means nothing is RUNNING,
                                                        # not nothing outstanding: a paused source is absent, a stalled one is
                                                        # present because it is retried. Not the same as compile:stats, which
-                                                       # is quota and per-face counts.
+                                                       # is this month's compile usage against the allowance.
 
 faces keys:create   --name  [--expires-days N]  [--budget F]  [--face ALIAS]...  [--model NAME]...  [--no-save]
 faces keys:list
@@ -241,14 +245,20 @@ faces keys:revoke   <key_id>  [--yes]
 faces keys:update   <key_id>  [--name]  [--budget F]  [--reset-spent]
 
 faces billing:balance
-faces billing:subscription                             # on Connect, also the monthly allowance: used, limit, reset.
-                                                       # absorbed_limit_usd < 0 in --json means UNLIMITED, never "used up".
-faces billing:subscription:activate  [--plan connect]
+faces billing:subscription                             # plan (free|connect|pro|team), and on a paid plan a meter of each allowance.
+                                                       # allowances.*.limit < 0 in --json means UNLIMITED (Team), never "used up".
+faces billing:subscription:activate  [--plan connect|pro]    # alias billing:subscribe. First subscription, or reactivate.
+faces billing:subscription:plan      <connect|pro>  [--yes]  # already subscribed: switch in place, prorated (1.17.0+)
 faces billing:subscription:cancel    [--yes]
-faces compile:stats
+faces compile:stats                                    # plan, compile source tokens this month against the allowance, and the
+                                                       # pay-as-you-go rate (1.18.0+; older versions call a retired endpoint).
+                                                       # Per-face numbers: face:stats.
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
-faces billing:topup      --amount F  [--payment-ref REF]
-faces billing:card-setup
+faces billing:topup      --amount F  [--card PM_ID]  [--payment-ref REF]
+faces billing:cards                                    # saved cards, newest first; one is the default (1.17.0+)
+faces billing:card-setup [--no-default]                # alias billing:card:add: a Stripe link to save a card
+faces billing:card:default  <PM_ID>
+faces billing:card:remove   <PM_ID>  [--yes]
 faces billing:llm-costs  [--provider openai|anthropic|qwen|...]
                                                        # one row per model, under its lab's id. --provider is the LAB that
                                                        # made it, never the service that runs it.
@@ -283,7 +293,7 @@ faces account:preferences [KEY] [VALUE]  [--allow-paid]
 faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
                       [--question TEXT [--type noul|choice|score] [--option NAME[=DESCRIPTION]... | --level DESCRIPTION...] [--id KEY] | --questions-file PATH]
                       [--model jev-latest|clef|clef-flash|faces-latest]  [--reasoning]  [--no-retry]
-                                                       # faces-cli 1.13.0+. Jev's typed answers, as this face, or with no
+                                                       # faces-cli 1.18.0+. Jev's typed answers, as this face, or with no
                                                        # face for --baseline. A face with no questions gives its reasoning
                                                        # alone. A .json --state-file is sent as JSON. See Decisions.
 
@@ -340,6 +350,12 @@ plan that does not answers `422 model_not_supported`; pick another model, or all
 `--responses` forces the Responses endpoint as an escape hatch; routing is automatic otherwise. In `--json` mode the response includes a `_meta` block with `provider` (the model's lab), `billing` (`oauth` or `credits`, 1.13.0+), `cost_usd`, and `endpoint`. **`billing` is how to tell free from paid.** `provider` used to read `openai-codex` on a free call and no longer does.
 
 `chat:messages` (always `/v1/messages`) and `chat:responses` (always `/v1/responses`) remain available for direct, single-endpoint access.
+
+**Only chat models route a chat.** Each `GET /v1/models` entry has a `kind`: `chat`, `decision`,
+`image` or `transcription`, and the default list holds chat models (`?kind=decision` or
+`?kind=all` for the rest). faces-cli 1.18.0+ routes chats only to `kind: chat` models, and a chat
+that names a decision model (`alias@jev-latest`, `clef`, `clef-flash`, `faces-latest`) is
+refused before sending: use `faces decide`.
 
 ## System & published faces
 
@@ -516,7 +532,13 @@ pay-per-token every automatic capture bills; the CLI refuses `auto_style on` the
 Chat gives you what a face would **say**. `faces decide` gives you what it would **decide**:
 describe a situation, ask typed questions about it, and get back numbers, as this face. It is
 TypeSafe's Jev API exactly (same `state`, `questions` and answers, same confidence formulas),
-with a face in it.
+with a face in it. It needs faces-cli 1.18.0.
+
+On the API this format is `POST /v1/systemone`. `POST /v1/decisions` takes OpenAI's Decisions
+format instead (`input`, and `questions` as an array of `{type: predicate|choice|score, name,
+instructions, choices|levels}`, answered with `answers` as an array). Each path refuses the
+other's format with a `422` naming the right one, and a face alone (`"model": "alice"`, no
+questions) works on both.
 
 ```bash
 faces decide alice --state "A colleague asks you to put your name on a grant proposal you have not read, due in an hour. They say it is a formality." \
@@ -536,7 +558,7 @@ Three question types. With `--question`, the type follows from the flags, or say
 | `choice` | `--option name="description"` (2 or more; a bare name sends no description) | `{type, choice, probabilities, confidence}` |
 | `score` | `--level "description"` (2 to 10, lowest first) | `{type, score, legend, probabilities, confidence}`: the expected level, 0 to n-1 |
 
-With `--json` the result is the API's own: `{"model", "answers", "usage", "reasoning"}`,
+With `--json` the result is the API's own: `{"model", "answers", "usage", "cause", "causes"}`,
 `answers` keyed by question id (`--id` renames the default `answer`). `model` comes back with
 the decision model's versioned id (`alice@jev-1.13.0`).
 
@@ -567,10 +589,13 @@ string, an object or an array. The old `{instructions, options}` shape is a `422
 - **`--baseline`** asks the decision model alone (no-face baseline): exactly what Jev would say,
   in about a second, costing only the decision model. It is the number to compare a face's
   answer against (`no` at 0.99 from a face means more next to 0.63 from the baseline).
-- **The face's reasoning** comes back in `reasoning` whenever a face is named: how it reads the
+- **The face's reasoning** comes back in `cause` whenever a face is named: how it reads the
   situation, in its own voice, which is what the decision model reads beside the state.
-  `--reasoning` prints it to stderr in human output. Name a face and ask **no questions** for
-  the reasoning alone (`{model, reasoning, usage}`).
+  `causes` holds one per question, keyed by question id, each read from the situation with
+  that question in mind, so with several questions they differ (`cause` is the first
+  question's). `--reasoning` prints them to stderr in human output, under each question when
+  they differ. Name a face and ask **no questions** for the reasoning alone (`{model, cause,
+  usage}`). The field used to be `reasoning`; it is gone, and faces-cli 1.16.0+ reads `cause`.
 
 **Timing.** A face's answer takes about 10 to 20 seconds; a baseline about one. After an idle
 spell the models behind decisions start cold, and warming takes about two minutes. During the
@@ -580,9 +605,10 @@ stderr. `--no-retry` returns the 503 instead. Do not wrap it in your own retry l
 with **no** `Retry-After` is a step or the decision model failing: retry, and if the message
 names the decision model, another `--model` may answer.
 
-**Cost.** Pay-per-token: billed per token from credits. Subscription Connect: included,
-within the monthly allowance; past it, `api_fallback` decides between billing credits and a
-`429`. Nothing is charged for a request refused before work starts (`400`, `402`, `403`,
+**Cost.** The face's reasoning counts against a Connect or Pro allowance (past it,
+`api_fallback` decides between billing credits and a `429`), or bills on Free. The decision
+model is charged at the provider's cost plus 5% **on every plan**, so a decision needs credit
+even on Connect and Pro: with none it is a `402`. Nothing is charged for a request refused before work starts (`400`, `402`, `403`,
 `409`, `422`, `429`).
 
 | Code | Meaning | What to do |
@@ -591,7 +617,8 @@ within the monthly allowance; past it, `api_fallback` decides between billing cr
 | `404` | No such face, or not yours to use | Check the alias |
 | `409` | The face needs recompiling (not compiled since decisions launched) | Compile one of its sources again; not retryable as it is |
 | `422` | Wrong shape: missing `type`, criteria that do not fit the type, more than 10 options for `faces-latest`, questions with a bare face | Read the message |
-| `429` | Connect allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
+| `402` | No credit for the decision model (on every plan) | `faces billing:topup` |
+| `429` | A reasoning allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
 | `503` + `Retry-After` | Warming up from a cold start | The CLI waits it out; with `--no-retry`, retry after that many seconds |
 | `503`, no `Retry-After` | A step or the decision model failed | Retry; another `--model` if the message names the decision model |
 
@@ -732,8 +759,8 @@ Teams also have a local TEAM.md representation at `~/.faces/teams/<name>/TEAM.md
 faces compile:doc alice --file essay.txt --medium essay
 ```
 
-`--medium` is required: a document that has not said what it is gets refused at the
-compile step with `error_code: "no_medium"`, having already been created. Eleven
+`--medium` is required: the server will not save a document that has not said what it is
+(a `422` naming the eleven), and faces-cli 1.16.0+ refuses before creating anything. Eleven
 values, spelled exactly — `academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,
 `legal document`, `other`, `social post`, `text message`, `thread reply`. Never guess one — a wrong medium teaches the wrong voice and nothing
 afterwards says it happened.
@@ -754,7 +781,7 @@ under `essay`.
 
 | | |
 |---|---|
-| no `--medium` | nobody has declared anything. `compilable: false`, `no_medium`, and the document can never teach the face. |
+| no `--medium` | refused: a document cannot be saved without one. Only a document saved before that was required has none: `compilable: false`, `no_medium`, and it can never teach the face until `compile:doc:edit <id> --medium <medium>` declares one. |
 | `--medium other` | the author says it is not one of the forms. Compiles. |
 
 **The same flag name does different work on each surface**, which is worth holding
@@ -763,7 +790,7 @@ separately:
 | surface | no `--medium` | what it does |
 |---|---|---|
 | `chat:*` | fine — one is classified from the request text | picks which captured style answers. Only does anything on a `+` alias; with one, a medium the face has no style for is refused naming the ones it has. So `other` on chat needs an `other` style captured, and is not a form-neutral fallback. |
-| `compile:doc`, `compile:upload --kind document` | the document cannot be compiled until one is set | decides how the writing is read, and the spelling is held to exactly |
+| `compile:doc`, `compile:doc:create`, `compile:upload --kind document`, `compile:import --type document` | refused: the document cannot be saved without one | decides how the writing is read, and the spelling is held to exactly. It can be changed later, never cleared |
 
 Output:
 ```
@@ -1222,8 +1249,8 @@ The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file p
 - `faces catalog:doctor` — diagnose missing, stale, or orphaned catalog entries
 - `faces catalog:doctor --fix` — rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files)
 - `faces catalog:doctor --generate` — fix + generate descriptions via LLM (syncs back to server)
-- `faces catalog:backup` — snapshot all faces (with descriptions, tags), teams, documents, and threads to `~/.faces/backups/<timestamp>.json`
-- `faces catalog:restore [FILE]` — restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload.
+- `faces catalog:backup` — snapshot all faces (with descriptions, tags), teams, documents (with each one's medium, from 1.16.0), and threads to `~/.faces/backups/<timestamp>.json`
+- `faces catalog:restore [FILE]` — restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload. A document the backup records no medium for (an older backup, or a document saved before a medium was required) is refused by the server; restore names it, and it needs creating again with `compile:doc:create --medium`. Never guess the medium.
 - `faces catalog:list` — print catalog contents
 - `faces compile:all` — compile all uncompiled documents and threads across all faces (one at a time with progress)
 - `faces config:set catalog false` — disable catalog management
@@ -1318,12 +1345,22 @@ refusals, and the ones that arrive inside a stream, are under
 Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_messages`,
 `corpus_room`); see the `compilable` section above. The CLI prints the repair for each.
 
+**`may be out of date`** (1.16.0+): the CLI ends a refusal with `Your faces-cli (X) may be out
+of date. Update with npm install -g faces-cli and try again.` when it looks like the API moved
+under it: a route that is gone, a `405` or `410`, a `422` about a top-level field the CLI sent
+or left out, or a response missing a field the CLI relies on. Update and retry. A missing face,
+a bad medium or a mistake in a questions file never carries it, since those are about what was
+asked.
+
 Two refusals can come from almost any route, and the CLI adds what to do to both (1.13.0+):
 
-- **`429` naming the Connect allowance.** Subscription Connect's monthly allowance (compiling,
-  decisions, and the part of chat not run on the user's ChatGPT subscription) is used up and
-  `api_fallback` is off. Starting a compile is refused this way too. Wait for the reset, or turn
-  on `api_fallback` to bill credits. An ordinary rate-limit `429` names no allowance.
+- **`429` naming an allowance.** A Connect or Pro allowance (a face's reasoning over 5 hours,
+  the week or the month, or compiling over the month) is used up and `api_fallback` is off.
+  Starting a compile is refused this way too. The message says which, and when it resets: show
+  it as it is. Wait, or turn on `api_fallback` to pay from credits. An ordinary rate-limit `429`
+  names no allowance.
+- **`402`.** No credit for the request. On Connect and Pro the answering model and `decide`'s
+  decision model are still paid from credits, so this can happen on any plan. Top up.
 - **`502 oauth_incomplete`.** ChatGPT stopped its reply partway on two attempts. Nothing was
   charged; retry. With `api_fallback` on it would have finished on the paid route and billed.
 
