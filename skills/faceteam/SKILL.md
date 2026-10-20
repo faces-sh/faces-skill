@@ -373,7 +373,7 @@ has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
    or `faces compile:status --watch` to block until the account is quiet. This is the
    case it exists for: several sources in flight at once, answered in 136 bytes instead
    of one request per id. Needs faces-cli 1.12.0; below that, poll each id with
-   `faces compile:doc:get ID --status-only --json | jq '{prepare_status}'`.
+   `faces compile:doc:get ID --status-only --json | jq '{status, progress}'` (1.20.0+).
    An empty answer means nothing is *running* — a paused source is absent from it.
 5. Update each FACE.md: check boxes in Queued, add entries to Sources
 
