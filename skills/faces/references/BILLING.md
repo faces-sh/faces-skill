@@ -202,8 +202,16 @@ and retry.
 
 **429 naming an allowance:** A plan's allowance is used and `api_fallback` is off. Wait for the
 reset the message names, or, if the user agrees to pay from credits,
-`faces account:preferences api_fallback true`. An ordinary rate-limit `429` names no allowance
-and just needs a delay.
+`faces account:preferences api_fallback true`. An ordinary rate-limit `429` names no allowance.
+
+**429 Rate limit:** Every route that runs a model or a compile counts against a per-account,
+per-minute limit set by plan, published by `GET /v1/rates` under `limits.requests_per_minute`.
+Nothing is charged for the refused request. faces-cli 1.19.0+ waits the `Retry-After` once and
+asks again; after a second refusal, wait the seconds the message names. Never retry in a loop.
+
+**422 oauth_only_unavailable:** Pay-per-token (Free) always runs on credits, so `--oauth-only`
+is refused there, and so is turning `api_fallback` off. Nothing is charged. Drop the flag, or
+subscribe to Connect to use a linked ChatGPT account.
 
 **422 oauth_rejected:** OAuth request failed and fallback is disabled. Enable
 fallback: `faces account:preferences api_fallback true`. If no credits, run
