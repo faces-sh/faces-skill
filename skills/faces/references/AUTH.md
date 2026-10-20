@@ -26,7 +26,7 @@ faces auth:register \
   --json
 ```
 
-`--plan` is `free` (the default), `connect` or `pro` (`pro` from faces-cli 1.16.0). Team is by
+`--plan` is `free` (the default), `connect` or `pro` (`pro` from faces-cli 1.17.0). Team is by
 promo code only, and Standard is retired.
 
 The response includes:
@@ -135,12 +135,12 @@ Some agent environments run a terminal security scanner that redacts `sk-`-prefi
 ### Free
 
 - **Activation:** $5 minimum initial spend (added as API credits).
-- **Pricing:** everything pays as it goes from credits: a face's reasoning at $1 per million input tokens, compiling at $28 per million source tokens, the answering model at the provider's price plus 5%.
+- **Pricing:** everything pays as it goes from credits: a face's reasoning at $0.75 per million reasoning tokens (each turn's input tokens plus 1,500), compiling at $28 per million source tokens, the answering model at the provider's price plus 5%.
 - **No monthly fee.**
 
 ### Connect ($17/month) and Pro ($49/month)
 
-- **Allowances** for compiling and a face's reasoning: Connect 250k source tokens and 6.3M reasoning tokens a month, Pro 1M and 16M (with weekly and 5-hour limits too). See [BILLING.md](BILLING.md#plans).
+- **Allowances** for compiling and a face's reasoning: Connect 250k source tokens and 10M reasoning tokens a month, Pro 1M and 25M (with weekly and 5-hour limits too). See [BILLING.md](BILLING.md#plans).
 - **The answering model** is still paid at the provider's price plus 5%, except:
 - **ChatGPT passthrough:** Link your ChatGPT Plus or Pro account via `faces auth:connect openai` and gpt-5.x models run free on it. See [OAUTH.md](OAUTH.md) for supported models.
 - **Fallback:** By default, OAuth failures and a used-up allowance are refused, never silently billed. Enable fallback with `faces account:preferences api_fallback true`.
@@ -154,7 +154,7 @@ Comped: no limits, never charged. By promo code only.
 ```bash
 faces billing:subscription --json   # plan, status, period end
 faces billing:balance --json        # credit balance, is_active
-faces compile:stats --json          # per-face compilation stats
+faces compile:stats --json          # this month's compile usage against the allowance (1.18.0+)
 ```
 
 ### Subscribing, and switching plans

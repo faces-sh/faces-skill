@@ -24,12 +24,13 @@ or Pro user still needs credit for most chats, and always for `faces decide`.
 | allowance | Connect | Pro |
 |---|---|---|
 | compile, per month | 250k source tokens | 1M |
-| reasoning, per month | 6.3M input tokens | 16M |
-| reasoning, per week | 1.6M | 4M |
-| reasoning, per 5 hours (rolling) | 400k | 1M |
+| reasoning, per month | 10M tokens | 25M |
+| reasoning, per week | 2.5M | 6.25M |
+| reasoning, per 5 hours (rolling) | 640k | 1.6M |
 
 - **Compile** counts a source's tokens **each time** it is compiled; a recompile counts again.
-- **Reasoning** counts the input tokens the face's reasoning read for a turn, at least 500. In a
+- **Reasoning** counts the input tokens the face's reasoning read for a turn **plus 1,500**, with
+  no minimum. In a
   chat with `alias@model` that is at most 10k a turn however long the conversation; the
   reasoning alone (`--reasoning-only`) and `decide` read up to 30k.
 - The month is the subscription's 30-day window, weeks are 7-day blocks of it, and the 5-hour
@@ -41,14 +42,16 @@ or Pro user still needs credit for most chats, and always for `faces decide`.
   is a `402`.
 - **off** (the default): refused with a `429`, and nothing is charged. The message names the
   allowance and when it resets, for example: "Your Connect plan has used its weekly allowance
-  (1,600,000 of 1,600,000 tokens). It resets at 2026-10-22 14:00 UTC. Turn on API fallback to
+  (2,500,000 of 2,500,000 tokens). It resets at 2026-10-22 14:00 UTC. Turn on API fallback to
   continue on credits in the meantime. Nothing was charged." Show it as it is, and offer
   `faces account:preferences api_fallback true` only if the user agrees to pay from credits.
 
 **Pay-as-you-go rates** (the Free plan, and past an allowance with fallback on): a face's
-reasoning $1.00 per million input tokens (at least 500 a turn), compile $28 per million source
-tokens, any model you name the provider's price + 5%. `billing:subscription --json` carries them
-as `rates`.
+reasoning $0.75 per million tokens (each turn's input tokens plus 1,500), compile $28 per
+million source tokens, any model you name the provider's price + 5%. `billing:subscription
+--json` carries them as `rates` (`cause_usd_per_million_input_tokens`, `cause_added_tokens`,
+`compile_usd_per_million_source_tokens`, `model_markup`), and the public `GET /v1/rates` has
+them with each plan's allowances. Read them there rather than quoting them from memory.
 
 ## Check the plan and its allowances
 
@@ -57,14 +60,14 @@ faces billing:subscription
 faces billing:subscription --json
 ```
 
-Shows the plan, renewal date and, on a paid plan, a meter of each allowance (faces-cli 1.16.0+):
+Shows the plan, renewal date and, on a paid plan, a meter of each allowance (faces-cli 1.17.0+):
 
 ```
 Connect allowances (tokens):
-  reasoning, rolling 5 hours  14.5k of 400k (4%)  rolls
-  reasoning, this week        14.5k of 1.6M (1%)  resets 2026-10-19 09:44 UTC
-  reasoning, this month       14.5k of 6.3M (0%)  resets 2026-10-28 09:44 UTC
-  compile, this month         0 of 250k (0%)      resets 2026-10-28 09:44 UTC
+  reasoning, rolling 5 hours  3018 of 640k (0%)  rolls
+  reasoning, this week        3018 of 2.5M (0%)  resets 2026-10-26 09:44 UTC
+  reasoning, this month       32.5k of 10M (0%)  resets 2026-10-28 09:44 UTC
+  compile, this month         4072 of 250k (2%)  resets 2026-10-28 09:44 UTC
 ```
 
 In `--json`, `allowances` holds `cause_5h`, `cause_week`, `cause_month` and `compile_month`,
@@ -72,8 +75,7 @@ each `{limit, used, remaining, resets_at}`. It is `null` on Free. On Team every 
 `-1`, meaning **unlimited, never used up**, and `remaining` is `null`. `cause_5h` rolls, so its
 `resets_at` is `null`. The `absorbed_*` fields are deprecated: do not read them.
 
-The same negative-means-unlimited rule applies to `compile:stats`' `tokens_limit` and
-`tokens_remaining`.
+The same negative-means-unlimited rule applies to `compile:stats`' `compile_this_month.limit`.
 
 ## Subscribe
 
@@ -114,7 +116,7 @@ run `billing:subscription:activate` before then.
 ```bash
 faces billing:balance --json                 # balance_usd, has_payment_method (= a default card exists)
 faces billing:topup --amount 5               # charges the default card; minimum $1
-faces billing:topup --amount 5 --card pm_…   # charges another saved card (faces-cli 1.16.0+)
+faces billing:topup --amount 5 --card pm_…   # charges another saved card (faces-cli 1.17.0+)
 ```
 
 Credits are applied at once. A `402` anywhere means there is no credit for that request,
@@ -125,7 +127,7 @@ retry; the CLI names the command.
 
 An account can save several cards. One is the **default**: the subscription renews on it, and a
 top-up charges it unless `--card` names another. The card used at checkout becomes the default.
-(faces-cli 1.16.0+)
+(faces-cli 1.17.0+)
 
 ```bash
 faces billing:cards                          # newest first: brand, last 4, expiry, id, (default)
@@ -148,7 +150,18 @@ faces billing:card:remove pm_…  [--yes]
 faces compile:stats --json
 ```
 
-Shows per-face compilation stats. Key fields per face: `alias`, `tokens_compiled_current` (current size of cognitive primitives), `tokens_compiled_alltime` (cumulative tokens across all compilation runs), `profile_token_count`, `last_synced_at`.
+Shows the plan, the source tokens compiled this month against the plan's compile allowance, and
+the pay-as-you-go compile rate (faces-cli 1.18.0+):
+
+```
+Plan: connect
+Compiled this month: 4,072 of 250,000 source tokens (2%), resets 2026-10-28
+Pay-as-you-go compile rate: $28 per million source tokens (past the allowance, with api_fallback on)
+```
+
+`--json` is `{plan, compile_this_month: {limit, used, remaining, resets_at}, pay_as_you_go:
+{usd_per_million_source_tokens}}`; `compile_this_month` is `null` on Free. Older versions read a
+retired endpoint and fail. Per-face compile and chat numbers are in `faces face:stats`.
 
 ## View LLM pricing
 
@@ -178,7 +191,7 @@ Aggregated usage analytics. Group by `api_key`, `model`, `llm`, or `date`.
 |-----------|-----------------|
 | Audio/video transcription | ~$0.37/hour |
 | Compile, past an allowance or on Free | $28 per million source tokens |
-| A face's reasoning, past an allowance or on Free | $1 per million input tokens, at least 500 a turn |
+| A face's reasoning, past an allowance or on Free | $0.75 per million tokens, each turn's input tokens plus 1,500 |
 | The answering model | Varies by model; see `faces billing:llm-costs` |
 
 ## Common scenarios

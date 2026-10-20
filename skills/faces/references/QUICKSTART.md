@@ -116,16 +116,17 @@ Pick one or more methods depending on what the human has:
 **Local file — single-voice document (text, PDF):**
 ```bash
 # By the subject — first-person is the default
-DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --no-wait --json | jq -r '.document_id // .id')
+# --medium is required: say what the writing is (essay, email, ...), and ask if you do not know
+DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --medium essay --no-wait --json | jq -r '.document_id // .id')
 # About the subject (biography, Wikipedia, news profile) — add --perspective third-person
-DOC_ID=$(faces compile:upload alice --file /path/to/profile.pdf --kind document --perspective third-person --no-wait --json | jq -r '.document_id // .id')
+DOC_ID=$(faces compile:upload alice --file /path/to/profile.pdf --kind document --medium essay --perspective third-person --no-wait --json | jq -r '.document_id // .id')
 ```
 
 **YouTube video (solo speaker):**
 ```bash
 IMPORT=$(faces compile:import alice \
   --url "https://www.youtube.com/watch?v=VIDEO_ID" \
-  --type document --perspective first-person --no-wait --json)
+  --type document --medium lecture --perspective first-person --no-wait --json)
 DOC_ID=$(echo "$IMPORT" | jq -r '.document_id // .doc_id // .id')
 ```
 

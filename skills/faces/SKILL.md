@@ -42,8 +42,16 @@ promises that synonyms fold; neither is true. Trust the eleven below over the `-
 help text on an older install.
 
 Later additions have their own floors: `face:list --sort/--order/--search` needs
-**1.11.0**, `compile:status` needs **1.12.0**, and `faces decide` and the `auto_style`
-preferences need **1.13.0**. Each is marked where it appears.
+**1.11.0**, `compile:status` needs **1.12.0**, the `auto_style` preferences need **1.13.0**,
+the billing commands for Pro, plan switching and saved cards need **1.17.0**, and
+`faces decide` needs **1.18.0**: the API moved it, so an older CLI's `decide` is refused. From
+**1.16.0** every document save requires `--medium`, which the server now enforces at every
+version. Each is marked where it appears.
+
+**When the CLI says it may be out of date, update it.** From 1.16.0 the CLI ends a refusal
+that looks like the API has moved (a route that is gone, a field it relies on missing from a
+response) with `Your faces-cli (X) may be out of date. Update with npm install -g faces-cli
+and try again.` Do that, then retry; do not work around it.
 
 ## Current config
 !`faces config:show 2>/dev/null || echo "(no config saved)"`
@@ -184,10 +192,13 @@ real forms with their own rules, and filing those under `other` is the same mist
 filing them under `essay`. Reaching for `other` because nothing fits is right; reaching
 for it to avoid asking is exactly what "do not guess" is about.
 
-`faces compile:doc` refuses before creating anything, so there is nothing to clean up.
-`faces compile:doc:create` without one succeeds, and the later `compile:doc:make` is
-what gets refused, leaving a document that needs `compile:doc:edit <id> --medium
-<medium>` before it can compile:
+**No document can be saved without one.** The server answers a create, an upload or a
+YouTube import of a document with no medium with a `422` naming the eleven, and faces-cli
+1.16.0+ refuses before sending anything (`compile:doc`, `compile:doc:create`,
+`compile:upload --kind document`, `compile:import --type document`), so there is nothing to
+clean up. A medium can be changed, never cleared. Only a document saved before this was
+required can be without one: it is refused at compile, and needs `compile:doc:edit <id>
+--medium <medium>` first:
 
 ```
 400 {"error_code": "no_medium", "message": "this document has not said what it is..."}
@@ -211,7 +222,8 @@ Treat an unknown code as "cannot be compiled". The set is not closed.
 
 **YouTube solo talk → document:**
 ```bash
-faces compile:import alias --url "URL" --type document --perspective first-person --no-wait --json
+faces compile:import alias --url "URL" --type document --medium lecture --perspective first-person --no-wait --json
+# A talk nobody interrupts is a lecture; ask if it is something else. --medium is required here.
 # Returns doc_id immediately. Poll for transcription then compilation.
 ```
 
@@ -226,7 +238,7 @@ faces compile:thread:make THREAD_ID --no-wait --json
 **Upload a local file (text, PDF, Word .docx, audio, video):**
 ```bash
 # Document (text, PDF, or Word .docx — text is extracted server-side)
-DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --no-wait --json | jq -r '.document_id // .id')
+DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --medium <medium> --no-wait --json | jq -r '.document_id // .id')
 faces compile:doc:make "$DOC_ID" --no-wait --json
 
 # Thread from text transcript (you know the speakers — pass --face-speaker)
@@ -529,7 +541,7 @@ and Anthropic SDKs do both already. The shapes are in
 
 **System & published faces:** every account can chat a curated set of faces served under the `head` account, using an `owner:alias@model` handle (the `@model` is **required**) — e.g. `faces chat:chat head:socrates@gpt-5.4 -m "…"`. List them with `faces face:list --system` (or `--public` for all published faces). A bare alias only ever resolves your own faces; you pay inference at normal rates, the owner is never charged. From faces-cli 1.10.0 the same `owner:alias` handle works on `faces face:get` and `faces face:neighbors`, so a published face can be read before it is used. See [references/REFERENCE.md](references/REFERENCE.md#system--published-faces).
 
-**What it would decide, not what it would say** (*faces-cli 1.13.0+*): `faces decide` asks a
+**What it would decide, not what it would say** (*faces-cli 1.18.0+*): `faces decide` asks a
 face typed questions about a situation and returns numbers: a yes-or-no (`noul`), a pick
 between options (`choice`), or a place on a graded scale (`score`). Use it when you need a
 number to branch on, for routing, simulations or a panel of faces voting:
@@ -539,7 +551,7 @@ faces decide alias --state "A colleague asks you to sign a grant proposal you ha
   --question "Does the speaker sign?" \
   --option yes="signs it as asked" --option no="declines to sign" --option later="asks for time to read it first" --json
 # {"model": "alias@jev-1.13.0", "answers": {"answer": {"type": "choice", "choice": "no", "confidence": 0.98,
-#   "probabilities": {"yes": 0.0, "no": 0.99, "later": 0.01}}}, "usage": {...}, "reasoning": "..."}
+#   "probabilities": {"yes": 0.0, "no": 0.99, "later": 0.01}}}, "usage": {...}, "cause": "...", "causes": {"answer": "..."}}
 faces decide alias --state-file situation.txt --question "Is the speaker irritated?"            # noul
 faces decide alias --state-file situation.txt --question "How firm is the reply?" --level yields --level hedges --level firm   # score
 faces decide alias --state-file situation.txt --questions-file questions.json --json   # up to 32 questions
@@ -551,8 +563,13 @@ The type follows from the flags: `--option` makes a choice, `--level` a score, n
 Criteria do the work, so make option descriptions specific and mutually exclusive. The answers
 come from a **decision model** (`--model`; `jev-latest`, `clef`, `clef-flash` or
 `faces-latest`), which reads the situation plus the face's own reasoning about it. `--json`
-returns the API's shape exactly (`model`, `answers`, `usage`, `reasoning`); it is TypeSafe's Jev
-API, so code written for Jev reads it. A face's answer takes 10 to 20 seconds. `--baseline`
+returns the API's shape exactly (`model`, `answers`, `usage`, `cause`, `causes`); it is
+TypeSafe's Jev API, so code written for Jev reads it. `cause` is the face's reasoning, and
+`causes` holds one per question, keyed by id, each read with that question in mind; with
+`--reasoning` the CLI prints each under its question when they differ. The API serves this at
+`POST /v1/systemone`; `POST /v1/decisions` now takes OpenAI's Decisions format and refuses this
+one with a `422`, which is why a CLI older than 1.18.0 cannot decide. A decision model is not a chat model: a chat naming one
+(`alias@jev-latest`) is refused before sending. A face's answer takes 10 to 20 seconds. `--baseline`
 asks the decision model alone (no-face baseline), in about a second: the number to compare a
 face's answer against. After an idle spell the models start cold for about two minutes; the
 server answers `503` with a `Retry-After`, and the CLI waits exactly that and asks again by
@@ -680,6 +697,7 @@ one bills.
 | Error | Fix |
 |---|---|
 | `faces: command not found` | `npm install -g faces-cli` |
+| `may be out of date` | The API has moved under this version: `npm install -g faces-cli@latest`, then retry |
 | `401 Unauthorized` | `faces auth:login` or check `FACES_API_KEY` via `faces config:show` |
 | status "transcribing" | Audio/video transcription in progress — poll with `compile:thread:get ID --status-only --json` |
 | status "preparing" | Compilation in progress — poll with `compile:doc:get ID --status-only --json` or `compile:thread:get ID --status-only --json` |

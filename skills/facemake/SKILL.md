@@ -431,7 +431,7 @@ starting the next.
 ```bash
 # YouTube video — solo talk (single voice). For an interview/podcast, use
 # --type thread instead (see the multi-speaker path below).
-faces compile:import <alias> --url "<youtube-url>" --type document \
+faces compile:import <alias> --url "<youtube-url>" --type document --medium lecture \
   --perspective first-person --no-wait --json
 
 # If YouTube blocks: download locally, extract + compress audio (<100MB), upload
@@ -458,7 +458,7 @@ faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --medium essay 
 # Local text file — about the subject (biography, Wikipedia, news profile)
 faces compile:doc <alias> --file <path> --medium <medium> --perspective third-person --no-wait --json
 # PDF, Word (.docx), audio or video: use compile:upload — compile:doc takes text only
-faces compile:upload <alias> --file <path> --kind document --no-wait --json
+faces compile:upload <alias> --file <path> --kind document --medium <medium> --no-wait --json
 
 # Interview (agent-as-interviewer)
 # See ../faces/references/INTERVIEWS.md for the full workflow
