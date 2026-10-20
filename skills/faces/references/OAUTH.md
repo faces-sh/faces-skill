@@ -59,7 +59,7 @@ Once connected, OAuth routing is transparent — no flag needed on inference com
 
 ## Fallback behavior (Subscription Connect only)
 
-All OAuth and fallback settings (`api_fallback`, `--oauth-only`) apply only to Subscription Connect users with a linked ChatGPT account. Pay-per-token users do not route through OAuth and are unaffected.
+All OAuth and fallback settings (`api_fallback`, `--oauth-only`) apply only to Subscription Connect users with a linked ChatGPT account. Pay-per-token users do not route through OAuth. On pay-per-token (Free), `--oauth-only` is refused with a `422` (`error_code: "oauth_only_unavailable"`, nothing charged), setting `api_fallback` to `false` is refused with a `422`, and `api_fallback` reads `true`.
 
 By default, `api_fallback` is `false` — if OAuth fails (token revoked, model unsupported, rate limit), the request returns a **422** error instead of silently falling back to paid system keys.
 

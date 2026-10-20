@@ -44,7 +44,9 @@ help text on an older install.
 Later additions have their own floors: `face:list --sort/--order/--search` needs
 **1.11.0**, `compile:status` needs **1.12.0**, the `auto_style` preferences need **1.13.0**,
 the billing commands for Pro, plan switching and saved cards need **1.17.0**, and
-`faces decide` needs **1.18.0**: the API moved it, so an older CLI's `decide` is refused. From
+`faces decide` needs **1.18.0**: the API moved it, so an older CLI's `decide` is refused, and
+**1.19.0** waits out a rate-limit `429` once, explains the pay-per-token OAuth-only refusal, and
+reads a held decision that failed as the error it is. From
 **1.16.0** every document save requires `--medium`, which the server now enforces at every
 version. Each is marked where it appears.
 
@@ -569,7 +571,11 @@ TypeSafe's Jev API, so code written for Jev reads it. `cause` is the face's reas
 `--reasoning` the CLI prints each under its question when they differ. The API serves this at
 `POST /v1/systemone`; `POST /v1/decisions` now takes OpenAI's Decisions format and refuses this
 one with a `422`, which is why a CLI older than 1.18.0 cannot decide. A decision model is not a chat model: a chat naming one
-(`alias@jev-latest`) is refused before sending. A face's answer takes 10 to 20 seconds. `--baseline`
+(`alias@jev-latest`) is refused before sending. A face's answer takes 10 to 20 seconds. A slow
+one is held open: past about 40 seconds the server answers `200` with `X-Faces-Held: 1`, sends
+spaces to keep the connection alive, then the JSON. Give `faces decide` with a face at least 60
+seconds before treating it as hung. A held call that fails still answers `200`, with
+`{detail, error: {status}}` and no `answers`; faces-cli 1.19.0+ reports it as that status. `--baseline`
 asks the decision model alone (no-face baseline), in about a second: the number to compare a
 face's answer against. After an idle spell the models start cold for about two minutes; the
 server answers `503` with a `Retry-After`, and the CLI waits exactly that and asks again by
@@ -705,7 +711,9 @@ one bills.
 | status "failed" | Out of attempts. `stall_reason` says why; do not re-run without fixing it |
 | `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1; `--card pm_…` for a card other than the default). If no card on file: `faces billing:card-setup` first. Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
 | `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
-| `429` naming an allowance | A Connect or Pro allowance (reasoning over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is: it names the allowance and the reset. Wait, or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter. An ordinary `429` rate limit just needs a delay |
+| `429` naming an allowance | A Connect or Pro allowance (reasoning over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is: it names the allowance and the reset. Wait, or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
+| `429 Rate limit: N requests per minute` | The account's per-minute limit on routes that run a model or a compile (per plan; `GET /v1/rates` lists them under `limits.requests_per_minute`). Nothing was charged. faces-cli 1.19.0+ waits the `Retry-After` once and asks again, printing the wait. Refused again: wait the seconds the message names. Never retry in a loop, and remember that parallel agents share one account's limit |
+| `422 oauth_only_unavailable` | Pay-per-token (Free) runs on credits, so it cannot be OAuth-only. Nothing was charged. Drop `--oauth-only`, or subscribe to Connect to use a linked ChatGPT account |
 | `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry. With `api_fallback` on it would have finished on the paid route instead |
 | `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
 | `422` on thread import | Retry with `--type document` |

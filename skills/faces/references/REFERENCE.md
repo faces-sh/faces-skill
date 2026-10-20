@@ -494,7 +494,7 @@ once.
 
 ## OAuth-only mode (`--oauth-only`) — Subscription Connect only
 
-The `--oauth-only` flag and `api_fallback` preference only apply to **Subscription Connect** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth and these settings have no effect for them.
+The `--oauth-only` flag and `api_fallback` preference only apply to **Subscription Connect** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth, and cannot be OAuth-only: on pay-per-token (Free), `--oauth-only` on `chat:chat`, `chat:responses` or `chat:messages` is refused with `422` `error_code: "oauth_only_unavailable"` and nothing is charged; `account:preferences api_fallback false` is refused with a `422`; and reading the preferences reports `api_fallback: true` while the account is on Free.
 
 The `--oauth-only` flag prevents fallback to paid system keys. When set, requests that fail OAuth return a 422 error instead of silently falling back to credits. Available on `chat:chat`, `chat:messages`, `chat:responses`, `chat:thread`, `compile:thread:create`, and `compile:thread:message`.
 
@@ -597,7 +597,13 @@ string, an object or an array. The old `{instructions, options}` shape is a `422
   they differ. Name a face and ask **no questions** for the reasoning alone (`{model, cause,
   usage}`). The field used to be `reasoning`; it is gone, and faces-cli 1.16.0+ reads `cause`.
 
-**Timing.** A face's answer takes about 10 to 20 seconds; a baseline about one. After an idle
+**Timing.** A face's answer takes about 10 to 20 seconds; a baseline about one. A slow answer
+is held open: past about 40 seconds the server answers `200` with the header `X-Faces-Held: 1`,
+sends spaces to keep the connection alive, and then the JSON, which any JSON parser reads past
+the spaces. Allow `faces decide` with a face at least 60 seconds. If the call fails after the
+hold, the `200` carries `{"detail": ..., "error": {..., "status": <real status>}}` and no
+`answers`: check for `error` before reading `answers` (faces-cli 1.19.0+ does, and reports the
+real status). This applies to `/v1/decisions`, `/v1/systemone` and `/v1/causes`. After an idle
 spell the models behind decisions start cold, and warming takes about two minutes. During the
 warm-up every request is answered `503` at once with a `Retry-After` header (seconds); the CLI
 waits **exactly** that and asks again, for up to five minutes in all, printing the wait to
@@ -618,7 +624,8 @@ even on Connect and Pro: with none it is a `402`. Nothing is charged for a reque
 | `409` | The face needs recompiling (not compiled since decisions launched) | Compile one of its sources again; not retryable as it is |
 | `422` | Wrong shape: missing `type`, criteria that do not fit the type, more than 10 options for `faces-latest`, questions with a bare face | Read the message |
 | `402` | No credit for the decision model (on every plan) | `faces billing:topup` |
-| `429` | A reasoning allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
+| `429` naming an allowance | A reasoning allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
+| `429 Rate limit` | The account's per-minute limit | faces-cli 1.19.0+ waits `Retry-After` once; after that, wait the seconds named |
 | `503` + `Retry-After` | Warming up from a cold start | The CLI waits it out; with `--no-retry`, retry after that many seconds |
 | `503`, no `Retry-After` | A step or the decision model failed | Retry; another `--model` if the message names the decision model |
 
@@ -1359,6 +1366,13 @@ Two refusals can come from almost any route, and the CLI adds what to do to both
   Starting a compile is refused this way too. The message says which, and when it resets: show
   it as it is. Wait, or turn on `api_fallback` to pay from credits. An ordinary rate-limit `429`
   names no allowance.
+- **`429 Rate limit`.** Every route that runs a model or a compile counts against a
+  per-account, per-minute limit set by plan; `GET /v1/rates` publishes it under
+  `limits.requests_per_minute`. Over it, the route answers `429` with `Retry-After` and
+  `{"detail": "Rate limit: 60 requests per minute on the connect plan. Retry in 15s."}`, before
+  any work and with nothing charged. faces-cli 1.19.0+ prints the wait, waits it once and asks
+  again; a second refusal is final. Do not retry in a tight loop: agents running in parallel
+  share the account's limit, and asking early is refused too.
 - **`402`.** No credit for the request. On Connect and Pro the answering model and `decide`'s
   decision model are still paid from credits, so this can happen on any plan. Top up.
 - **`502 oauth_incomplete`.** ChatGPT stopped its reply partway on two attempts. Nothing was
