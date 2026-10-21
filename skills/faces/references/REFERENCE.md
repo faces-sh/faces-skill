@@ -231,11 +231,11 @@ faces catalog:manyfaced   [--skill NAME]  [--install NAME --skills-dir PATH]  [-
 faces compile:all         [--timeout N]
 faces compile:status      [--watch]  [--interval SECONDS]
                                                        # faces-cli 1.12.0+. What is compiling on the ACCOUNT, grouped by face,
-                                                       # in one small call: 136 bytes idle against 2.1MB for the document list.
+                                                       # in one small call: 123 bytes idle against 2.1MB for the document list.
                                                        # --watch polls until nothing is in flight, then exits.
-                                                       # Branch on sources_active. An EMPTY answer means nothing is RUNNING,
-                                                       # not nothing outstanding: a paused source is absent, one the server is
-                                                       # retrying is present. Not the same as compile:stats, which
+                                                       # Branch on sources_active. 0 means nothing is RUNNING, not nothing
+                                                       # outstanding: paused sources are listed apart in `paused` (printed
+                                                       # from 1.20.0), one the server is retrying is counted. Not compile:stats, which
                                                        # is this month's compile usage against the allowance.
 
 faces keys:create   --name  [--expires-days N]  [--budget F]  [--face ALIAS]...  [--model NAME]...  [--no-save]
@@ -809,9 +809,9 @@ Compiling:
 Done.
 ```
 
-A source waiting behind the face's other sources prints `queued` until its turn
-(`compile:doc:make` and `compile:thread:make` say so up front: `Compiling (queued behind this
-face's other sources):`). Output as of faces-cli 1.20.0.
+A source waiting behind the face's other sources, or interrupted and about to resume,
+prints `queued` until its turn (`compile:doc:make` and `compile:thread:make` say so up
+front: `Compiling (queued, and it starts on its own):`). Output as of faces-cli 1.20.0.
 
 For an already-created document, use `compile:doc:make <doc_id>` to compile it.
 
@@ -1084,7 +1084,7 @@ faces-cli 1.20.0 is the first CLI that reads the new ones.
 | `transcribing` | an audio or video source is being transcribed |
 | `queued` | waiting behind the face's other sources (one face compiles one source at a time), or interrupted and about to resume by itself |
 | `compiling` | running |
-| `compiled` | done |
+| `compiled` | done. The face's style update for it can land up to about a minute later in the background; treat `compiled` as finished |
 | `paused` | paused by the caller; nothing moves until it is resumed |
 | `failed` | finished without success; `error_code` and `stall_reason` say why |
 
@@ -1103,7 +1103,7 @@ the same result.
 ## Is anything compiling? (`compile:status`)
 
 `finishing` above answers it for one source. For the account, `faces compile:status`
-answers for everything at once — 136 bytes idle, against 2.1MB to walk the document
+answers for everything at once — 123 bytes idle, against 2.1MB to walk the document
 list. Needs faces-cli 1.12.0, and 1.20.0 for the current fields.
 
 ```bash
@@ -1116,22 +1116,40 @@ Idle it is exactly:
 
 ```json
 {"object":"compile_activity","faces":[],"faces_active":0,"sources_active":0,
- "progress":null,"measurable":false}
+ "progress":null,"measurable":false,"paused":[]}
 ```
 
 With work in hand each entry in `faces` carries `alias`, `sources_active`, `progress`,
 `measurable`, and a `sources` list of `{id, kind, label, status, progress, stall_reason}`.
+Paused sources are not in `faces`. Each one is an entry in the top-level `paused` list,
+`{alias, id, kind, label, status, progress, stall_reason}`, for example:
+
+```json
+"paused": [{"alias": "alice", "id": "549e…", "kind": "document", "label": "Letters",
+            "status": "paused", "progress": 0.14, "stall_reason": null}]
+```
+
+faces-cli 1.20.0 prints them after the running work:
+
+```
+Nothing is compiling.
+
+1 paused source(s), waiting for you to resume:
+  alice  document Letters
+         paused, 14%
+         resume: faces compile:doc:make 549e…
+```
 
 **This is the question a resumed session cannot answer from memory.** A compile started
 in an earlier turn, or by someone on another machine, is otherwise invisible, and the
 failure is reporting work finished while it is still running.
 
-**An empty answer means nothing is RUNNING, not nothing is outstanding.** Membership is
-the same `finishing` predicate as above: a pause waits on you, so a paused source is
-**absent**; a retry is the server's, so a source being retried is **present**, and so is
-a queued one. Having
-paused a compile and then seeing nothing here is not evidence it completed. Find a
-paused source through `faces face:sources <alias>`.
+**`sources_active: 0` means nothing is RUNNING, not nothing is outstanding.** Membership
+in `faces` is the same `finishing` predicate as above: a retry is the server's, so a
+source being retried is **counted**, and so is a queued one; a pause waits on you, so a
+paused source is **not counted** and sits in `paused` instead. `--watch` exits without
+waiting for paused sources. Having paused a compile, read `paused` before reporting that
+the work completed.
 
 **Branch on `measurable` before reporting a percentage.** On a face and on the account,
 `progress` is `null` while it cannot be measured, during a transcription for one, and

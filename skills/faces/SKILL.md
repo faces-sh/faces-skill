@@ -296,11 +296,11 @@ This is the question a resumed session cannot answer from its own memory. A comp
 started in an earlier turn, or by the user on another machine, is otherwise invisible,
 and the failure mode is reporting work finished when it is still running.
 
-**An empty answer means nothing is RUNNING, not nothing is outstanding.** A paused
-source does not appear here; one the server is retrying does, and so does a queued one. That is
-the same `finishing` distinction as below. So if you paused a compile and then check
-here, seeing nothing does not mean the work completed — find a paused source through
-`faces face:sources <alias>`.
+**`sources_active: 0` means nothing is RUNNING, not nothing is outstanding.** Running,
+queued and retried sources are counted. Paused ones are not: they are listed apart in
+`paused`, since they wait on you, and `--watch` does not wait for them. So if you paused a
+compile, look in `paused` before reporting that the work completed. faces-cli 1.20.0
+prints that list, with the command that resumes each one.
 
 **Branch on `measurable` before reporting a percentage.** Every source, every face and the
 account carry `progress`, from 0 to 1. On a face and on the account it is `null` while it
@@ -323,7 +323,7 @@ compiling.
 | `"transcribing"` | Audio/video being transcribed | Keep polling |
 | `"queued"` | Waiting behind the face's other sources (a face compiles one source at a time), or interrupted and about to resume by itself | Keep polling; say "queued", never "0%" |
 | `"compiling"` | Running; `progress` says how far | Keep polling |
-| `"compiled"` | Done; `progress` is 1 | Compilation complete |
+| `"compiled"` | Done; `progress` is 1 | Compilation complete. The face's style update for it can finish up to about a minute later in the background; do not wait for it |
 | `"paused"` | Paused by you or the user; nothing moves until it is resumed | Resume with `compile:*:make` or reset with `compile:*:reset` |
 | `"failed"` | Finished without success | Read `finishing` first: `true` means the server is still retrying, so wait. Otherwise `stall_reason` and `error_code` say why |
 

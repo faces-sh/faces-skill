@@ -489,14 +489,15 @@ faces compile:status --json | jq '{sources_active, measurable, progress}'
 faces compile:status --watch      # blocks until the account is quiet, then exits
 ```
 
-136 bytes idle, against one request per id. Needs faces-cli 1.12.0, and 1.20.0 to read the
+123 bytes idle, against one request per id. Needs faces-cli 1.12.0, and 1.20.0 to read the
 `status` and `progress` fields the API now sends.
 
 Two things to get right when reporting it back to the user:
 
-- **An empty answer means nothing is running, not nothing is outstanding.** A paused
-  source is absent; one the server is retrying is present. If you paused something,
-  seeing nothing here is not evidence it finished.
+- **`sources_active: 0` means nothing is running, not nothing is outstanding.** Paused
+  sources are not counted. They are listed apart in `paused`, each with its `alias`, so
+  read that list before telling the user everything finished. One the server is
+  retrying is counted as active.
 - **Do not report a percentage when `measurable` is false.** While a face or the account
   cannot be measured, during a transcription for one, its `progress` is `null`: say
   "working" and leave it there.
