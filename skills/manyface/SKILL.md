@@ -444,7 +444,7 @@ architecture without reading the prose.
 
 <instructions for this step>
 
-Use `faces chat:chat <alias> -m "<prompt>"` or reference via `${<alias>}`.
+Use `faces chat:chat <alias> -m "<prompt>"`. To give this face another's view, quote that face's answer from an earlier step in the prompt.
 ```
 
 **For team steps:**
@@ -537,8 +537,8 @@ checklist. Fix any issues before proceeding.
       created during this session
 - [ ] **Every team referenced exists:** either in `~/.faces/teams/` or
       created during this session
-- [ ] **Step instructions use correct CLI:** `faces chat:chat <alias>` or
-      `${<alias>}` templates, not made-up commands
+- [ ] **Step instructions use correct CLI:** `faces chat:chat <alias>`, not
+      made-up commands or `${<alias>}` templates (no longer expanded)
 - [ ] **Faceless steps have no face/team assignment**
 - [ ] **No cognitive depth in the SKILL.md itself:** the skill routes, it
       doesn't describe how a face should speak (that's FACE.md's job)

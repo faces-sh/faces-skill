@@ -521,8 +521,10 @@ faces chat:chat alias -m "message"
 
 Auto-routes off the model catalog: `gpt-5.x`/codex → `/v1/responses` (free when a ChatGPT account is linked, else paid), `claude-*` → `/v1/messages`, everything else → `/v1/chat/completions`. Override the model with `--llm MODEL`. Each model is listed **once, under its lab's id** (`gpt-5.2`, `glm-5-3-flash`), and `faces billing:llm-costs` lists them; old host-prefixed ids such as `openai-gpt-52` still resolve, but do not offer them. See [references/REFERENCE.md](references/REFERENCE.md#chat-auto-routing).
 Connect and Pro users: add `--oauth-only` to prevent paid fallback.
-In `--json` mode, response includes `_meta` with `provider` (the model's **lab**, not who ran it), `billing` (`oauth` = the linked ChatGPT subscription paid, so it cost nothing; `credits` = billed; faces-cli 1.13.0+), `cost_usd`, and `endpoint`. Branch on `billing`, never on `provider`.
-Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](references/TEMPLATES.md).
+In `--json` mode, response includes `_meta` with `provider` (the model's **lab**, not who ran it), `billing` (`oauth` = the linked ChatGPT subscription paid, so it cost nothing; `credits` = billed; faces-cli 1.13.0+), `cost_usd`, and `endpoint`. Branch on `billing`, never on `provider`. Branch on a refusal's status and `error_code`, never on its message text, which is written for people and changes.
+**No `${alias}` templates.** A `${...}` token in a prompt is plain text: the API stopped expanding
+it. To bring another face's view into a prompt, ask that face first and quote its answer in the
+prompt, or chat a composite of both (`"(alice | bob)@model"`).
 
 **The face's reasoning** (*faces-cli 1.13.0+*): before it answers, a face reasons about the
 conversation in its own voice: its **cause**. `--reasoning` prints that to stderr ahead of the
@@ -558,7 +560,7 @@ Refusals of a face chat end "Nothing was charged." and tell you what to do:
 
 | code | meaning | do |
 |---|---|---|
-| `409` | Compiled before reasoning launched, or reasoning alone asked of a face with nothing compiled | Recompile (or give it a first source); do not retry |
+| `409` | Compiled before reasoning launched, or reasoning alone asked of a face with nothing compiled | Recompile (or give it a first source; for a composite, give each face in it one); do not retry |
 | `422` | No message in the conversation for the face to answer | Fix the request; do not retry |
 | `503` + `Retry-After` | Warming up (requests that are not streamed only) | Wait that long, retry once |
 | `503` | A step of the reasoning failed | Retry |
@@ -598,8 +600,8 @@ faces decide alias --state-file situation.txt          # no questions: the face'
 
 The type follows from the flags: `--option` makes a choice, `--level` a score, neither a noul.
 Criteria do the work, so make option descriptions specific and mutually exclusive. The answers
-come from a **decision model** (`--model`; `jev-latest`, `clef`, `clef-flash` or
-`faces-latest`), which reads the situation plus the face's own reasoning about it. `--json`
+come from a **decision model** (`--model`; `jev-latest`, `clef` or `clef-flash`; list them
+with `GET /v1/models?kind=decision`), which reads the situation plus the face's own reasoning about it. `--json`
 returns the API's shape exactly (`model`, `answers`, `usage`, `cause`, `causes`); it is
 TypeSafe's Jev API, so code written for Jev reads it. `cause` is the face's reasoning, and
 `causes` holds one per question, keyed by id, each read with that question in mind; with
@@ -615,7 +617,8 @@ asks the decision model alone (no-face baseline), in about a second: the number 
 face's answer against. After an idle spell the models start cold for about two minutes; the
 server answers `503` with a `Retry-After`, and the CLI waits exactly that and asks again by
 itself. Do not add your own retry loop. A `503` with no wait: retry, or try another `--model`.
-`faces-latest` takes at most 10 options or levels per question. A `409` means the face needs
+`faces-latest` is gone: the API answers it with a `400`. The face can be a saved composite or a
+formula (`faces decide "(alice | bob)" ...`), priced like one face. A `409` means the face needs
 recompiling: compile one of its sources again. The face's reasoning counts against a Connect or
 Pro allowance (or bills on Free), and the decision model is **always paid from credits**, on
 every plan: with no credit it is a `402`. See
@@ -626,15 +629,21 @@ every plan: with no credit it is a `402`. See
 ### 5. Compare & compose
 
 ```bash
-faces face:diff --face alice --face bob
+faces face:diff --face alice --face bob               # one overall similarity score per pair
 faces face:neighbors alias --k 3                       # the 3 most SIMILAR faces (nearest, the default)
 faces face:neighbors alias --k 3 --direction furthest # the 3 most DIFFERENT / unlike / opposite faces
 faces face:create --alias new --formula "alice | bob"   # persist a composite
 ```
 
 For "who is most **different / unlike / opposite**," add `--direction furthest`; the default (`nearest`) returns the most similar.
+Similarity is one overall score per face: the API no longer returns per-component scores, and
+`--component` takes only `face`. Both commands refuse a face with nothing compiled yet.
 
 Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
+
+**A formula on a compiled face is refused.** Setting `--formula` on a face that has compiled
+sources of its own, or that another composite uses, is a `409`: make a new composite with
+`face:create --formula` instead.
 
 **Compose on the fly — no need to persist.** You can chat with a composite of your own faces built per-request, by putting the formula in the face position. An explicit `@model` is **required** (a run-time composite has no `default_model`):
 
@@ -749,7 +758,11 @@ one bills.
 | `422 oauth_rejected` | Connect and Pro only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
 | `429` naming an allowance | A Connect or Pro allowance (reasoning over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is: it names the allowance and the reset. Wait, or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
 | `429 Rate limit: N requests per minute` | The account's per-minute limit on routes that run a model or a compile (per plan; `GET /v1/rates` lists them under `limits.requests_per_minute`). Nothing was charged. faces-cli 1.19.0+ waits the `Retry-After` once and asks again, printing the wait. Refused again: wait the seconds the message names. Never retry in a loop, and remember that parallel agents share one account's limit |
-| `422 oauth_only_unavailable` | Pay-per-token (Free) runs on credits, so it cannot be OAuth-only. Nothing was charged. Drop `--oauth-only`, or subscribe to Connect to use a linked ChatGPT account |
+| `422 oauth_only_unavailable` | The ChatGPT route cannot serve this request: always on pay-per-token (Free), and on Connect or Pro when the model or the link cannot. Nothing was charged. Drop `--oauth-only` to pay from credits, or, on Free, subscribe to Connect to use a linked ChatGPT account |
+| `409 duplicate_topup` | The same top-up went through moments ago; nothing was charged this time. Check `faces billing:balance` before trying again |
+| `409 cancellation_pending` | A plan change while the plan is set to cancel; nothing was charged. Keep the plan first: `faces billing:subscription:activate`, then switch |
+| `409 chatgpt_not_linked` | A style build that can only run through ChatGPT, with none linked. Nothing was started. `faces auth:connect openai`, or `--allow-paid` if the user agrees to pay |
+| `422 empty_composite` | The formula's result is empty (an intersection with nothing in common, say). Show the message as it is and use a formula whose result is not empty |
 | `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry. With `api_fallback` on it would have finished on the paid route instead |
 | `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
 | `422` on thread import | Retry with `--type document` |
@@ -840,7 +853,6 @@ The body after the frontmatter is the protocol (typically a mermaid diagram). Wr
 - [INTERVIEWS.md](references/INTERVIEWS.md) — Interview & conversation workflows
 - [CONCEPTS.md](references/CONCEPTS.md) — What Faces is, cognitive primitives
 - [USE_CASES.md](references/USE_CASES.md) — 14 example applications
-- [TEMPLATES.md](references/TEMPLATES.md) — Face template syntax
 - Accepted `--attr` keys → run `faces face:attributes`
 - [OAUTH.md](references/OAUTH.md) — ChatGPT account linking
 - [SCOPE.md](references/SCOPE.md) — Security boundaries

@@ -216,6 +216,6 @@ attributes and nothing compiled returns something like `[0, 0, 0, 4, 0, 0]`.
 - **Create more Faces** — repeat steps 3–5 for each persona.
 - **Compare Faces** — `faces face:diff --face alice --face bob`
 - **Compose Faces** — `faces face:create --alias alice-and-bob --formula "alice | bob"`
-- **Use templates**: reference multiple faces in a single prompt: `faces chat:messages claude-sonnet-4-6 -m 'Compare ${alice} and ${bob}.'` (a bare model works with `chat:messages` and `chat:responses`, not `chat:chat`; see [TEMPLATES.md](TEMPLATES.md))
+- **Compare answers**: ask each face the same question with `faces chat:chat`, then give both answers to a bare model: `faces chat:messages claude-sonnet-4-6 -m 'Alice says: <answer>. Bob says: <answer>. Compare them.'` (a bare model works with `chat:messages` and `chat:responses`, not `chat:chat`)
 - **Connect ChatGPT** (Connect or Pro plan): `faces auth:connect openai` to use select OpenAI models at no extra cost. See [OAUTH.md](OAUTH.md).
 - **Create an API key** — `faces keys:create --name "my-key"` for programmatic access. The key is saved to `~/.faces/config.json` automatically; pass `--no-save` to skip. See [AUTH.md](AUTH.md).
