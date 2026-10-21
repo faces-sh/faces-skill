@@ -45,10 +45,10 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
   > You're not logged into Faces, and I don't see any prior config on this
   > machine. Do you already have an account?
   >
-  > A) I have an account -- I'll log in now
-  > B) I have an API key -- let me paste it
-  > C) No account -- help me set one up here
-  > D) No account -- I'll register at faces.sh myself and come back
+  > A) I have an account, and I'll log in now
+  > B) I have an API key, and I'll paste it
+  > C) No account: help me set one up here
+  > D) No account: I'll register at faces.sh myself and come back
 
   If A: have the user run `faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
   If B: have the user run `faces config:set api_key <key>`, verify with `faces auth:whoami`

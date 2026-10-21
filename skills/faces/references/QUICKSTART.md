@@ -2,7 +2,7 @@
 
 End-to-end guide for getting a human from zero to chatting with a Face. Follow these steps in order.
 
-**Important:** If you just installed the faces-skill bundle, the slash commands (`/facemake`, `/facechat`, etc.) won't be available until the user exits and restarts Claude Code. You cannot restart the session yourself — tell the user: *"Type `/exit` and relaunch Claude Code so the new skills load."*
+**Important (Claude Code only):** If you just installed the faces-skill bundle in Claude Code, the slash commands (`/facemake`, `/facechat`, etc.) won't be available until the session restarts. You cannot restart it yourself, so tell the user: *"Type `/exit`, then run `claude --continue` so the new skills load and we pick up where we left off."* Other agents load new skills without a restart.
 
 **Website:** https://faces.sh — **Docs:** https://docs.faces.sh — **API:** api.faces.sh
 
@@ -21,9 +21,9 @@ Ask the user where they're starting from:
 
 > To use Faces, you need an account. Where are you starting from?
 >
-> A) I have an account — I'll log in now
-> B) I have an API key — let me paste it
-> C) I need to create an account — help me here
+> A) I have an account, and I'll log in now
+> B) I have an API key, and I'll paste it
+> C) I need to create an account: help me here
 > D) I'll register at faces.sh myself and come back
 
 **If A (log in):**
@@ -44,12 +44,12 @@ Ask the user which plan they want:
 
 > Faces has three plans. Which fits you better?
 >
-> A) **Free** — $5 initial spend (added as API credits), then everything pays
+> A) **Free**: $5 initial spend (added as API credits), then everything pays
 >    as it goes. No monthly fee. Good for trying it out.
-> B) **Connect ($17/month)** — monthly allowances for compiling and for the
+> B) **Connect ($17/month)**: monthly allowances for compiling and for the
 >    face's reasoning, and gpt-5.x chat free on your linked ChatGPT Plus or Pro
 >    account. Other models pay as they go.
-> C) **Pro ($49/month)** — Connect with larger allowances.
+> C) **Pro ($49/month)**: Connect with larger allowances.
 
 Then register with the chosen plan:
 

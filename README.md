@@ -26,10 +26,10 @@ The result is a face that specializes an LLM with perspective, coherence, and nu
 ### Option 1: One-liner
 
 ```bash
-npx skills add faces-sh/faces-skill
+npx skills add faces-sh/faces-skill -a claude-code
 ```
 
-This auto-detects your coding agent and installs the skills. To install for a specific agent — or several at once — pass `-a` / `--agent`:
+**Always pass `-a` / `--agent`.** Without it, `npx skills` can install into every agent it supports rather than the one you use: from inside Claude Code it reports "Agent detected", then writes dozens of dot-folders into your home directory, and can report failures while still exiting 0. Name your agent, or several:
 
 ```bash
 npx skills add faces-sh/faces-skill -a claude-code
@@ -37,7 +37,7 @@ npx skills add faces-sh/faces-skill -a hermes-agent
 npx skills add faces-sh/faces-skill -a codex -a cursor
 ```
 
-`npx skills` supports 55+ agents (Claude Code, Hermes, Codex, Cursor, Gemini CLI, OpenClaw, …) — see the [full list](https://github.com/vercel-labs/skills#supported-agents). In Claude Code, restart the session (`/exit` then relaunch) so the slash commands load; most other agents pick up skills automatically.
+`npx skills` supports 55+ agents (Claude Code, Hermes, Codex, Cursor, Gemini CLI, OpenClaw, …) — see the [full list](https://github.com/vercel-labs/skills#supported-agents). In Claude Code, restart the session so the slash commands load: type `/exit`, then run `claude --continue` to resume the same conversation. Most other agents pick up skills automatically.
 
 ### Option 2: Paste into your agent
 
@@ -45,9 +45,9 @@ Paste this into any agent (Claude Code, Hermes, Codex, Cursor, …):
 
 ```
 Please install and setup Faces:
-1. run: npx skills add faces-sh/faces-skill   (if my agent isn't auto-detected, add `-a <agent>`, e.g. `-a hermes-agent`)
+1. run: npx skills add faces-sh/faces-skill -a <agent>   (always pass -a with the agent you are, e.g. `-a claude-code` or `-a hermes-agent`; without it the skills install into every supported agent)
 2. ask if I already have a Faces account, and if so walk me through getting you access, else tell me about account options and help me get one
-3. tell me about the main Faces skills - /facemake, /facechat, /faceteam, /manyface, /faces. If I'm in Claude Code, tell me to type /exit and relaunch so the new slash commands take effect (you cannot restart yourself); other agents load skills automatically.
+3. tell me about the main Faces skills - /facemake, /facechat, /faceteam, /manyface, /faces. If I'm in Claude Code, tell me to type /exit and then run `claude --continue`, so the new slash commands take effect and this conversation resumes (you cannot restart yourself); other agents load skills automatically.
 ```
 
 For **OpenClaw**:
@@ -99,8 +99,8 @@ faces billing:balance --json | jq '.is_active'
 
 **Recommended:**
 ```bash
-npx skills add faces-sh/faces-skill                  # auto-detects your agent
-npx skills add faces-sh/faces-skill -a hermes-agent  # or target one explicitly
+npx skills add faces-sh/faces-skill -a claude-code   # always name your agent
+npx skills add faces-sh/faces-skill -a hermes-agent  # e.g. for Hermes
 ```
 
 **Or manual clone:**
@@ -109,7 +109,7 @@ git clone --depth 1 https://github.com/faces-sh/faces-skill.git ~/.claude/skills
 cd ~/.claude/skills/faces-skill && ./setup
 ```
 
-Restart Claude Code (`/exit` then relaunch) so the new slash commands load.
+Restart Claude Code so the new slash commands load: type `/exit`, then run `claude --continue` to resume where you were.
 
 You now have `/facemake`, `/facechat`, `/faceteam`, `/manyface`, and `/faces` available as slash commands.
 
