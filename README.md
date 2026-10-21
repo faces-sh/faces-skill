@@ -37,7 +37,7 @@ npx skills add faces-sh/faces-skill -a hermes-agent
 npx skills add faces-sh/faces-skill -a codex -a cursor
 ```
 
-`npx skills` supports 55+ agents (Claude Code, Hermes, Codex, Cursor, Gemini CLI, OpenClaw, …) — see the [full list](https://github.com/vercel-labs/skills#supported-agents). In Claude Code, restart the session so the slash commands load: type `/exit`, then run `claude --continue` to resume the same conversation. Most other agents pick up skills automatically.
+`npx skills` supports 55+ agents (Claude Code, Hermes, Codex, Cursor, Gemini CLI, OpenClaw, …); see the [full list](https://github.com/vercel-labs/skills#supported-agents). In Claude Code, restart the session so the slash commands load: type `/exit`, then run `claude --continue` to resume the same conversation. Most other agents pick up skills automatically.
 
 ### Option 2: Paste into your agent
 
@@ -334,7 +334,7 @@ The FACE.md grows with the face. Queued tracks what to compile next. Sources rec
 
 ## Troubleshooting
 
-**`faces: command not found`** — Run `npm install -g faces-cli@latest`
+**`faces: command not found`**: run `npm install -g faces-cli@latest`
 
 **Skills not showing up?** — Make sure you cloned to `~/.claude/skills/faces-skill` (not `~/.claude/skills/faces-skill/faces-skill`)
 

@@ -185,7 +185,7 @@ Soft cancel — keeps access until the current billing period ends.
 |---|---|
 | `faces auth:login`, `faces auth:register` | neither: they create the JWT |
 | `faces auth:whoami`, `faces auth:connections` | JWT **or** API key |
-| `faces auth:connect`, `faces auth:disconnect`, `faces auth:refresh`, `faces keys:*` | JWT — run `faces auth:login` first |
+| `faces auth:connect`, `faces auth:disconnect`, `faces auth:refresh`, `faces keys:*` | JWT: run `faces auth:login` first |
 | Everything else | JWT **or** API key |
 
 ## Credential storage

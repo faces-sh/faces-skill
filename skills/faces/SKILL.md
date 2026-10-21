@@ -249,7 +249,7 @@ faces compile:thread:make THREAD_ID --no-wait --json
 
 **Upload a local file (text, PDF, Word .docx, audio, video):**
 ```bash
-# Document (text, PDF, or Word .docx — text is extracted server-side).
+# Document (text, PDF, or Word .docx; text is extracted server-side).
 # compile:upload defaults to third-person: pass first-person for the subject's own writing.
 DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --medium <medium> --perspective first-person --no-wait --json | jq -r '.document_id // .id')
 faces compile:doc:make "$DOC_ID" --no-wait --json
@@ -753,7 +753,7 @@ one bills.
 | `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry. With `api_fallback` on it would have finished on the paid route instead |
 | `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
 | `422` on thread import | Retry with `--type document` |
-| `409` read-only on edit | The document/thread content is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it, and a corpus room still takes `compile:thread:edit --label/--medium/--clear-medium`. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
+| `409` read-only on edit | The document/thread content is frozen (`This document/corpus is read-only…`). Don't retry; surface that it's read-only. You can still read or delete it, and a corpus room still takes `compile:thread:edit --label/--medium/--clear-medium`. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
 | Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID` — pause is a request, so wait for `status: "paused"` before reading results (the CLI waits for you unless you pass `--no-wait`). Then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 
 ## Related skills

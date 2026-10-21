@@ -498,13 +498,13 @@ A face with **nothing compiled** still chats: it answers from its name, `profile
 attributes, with no cause and no reasoning charge. A caller with no credit gets the `402` at
 once.
 
-## OAuth-only mode (`--oauth-only`) — Connect and Pro
+## OAuth-only mode (`--oauth-only`): Connect and Pro
 
 The `--oauth-only` flag and `api_fallback` preference only apply to **Connect and Pro** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth, and cannot be OAuth-only: on pay-per-token (Free), `--oauth-only` on `chat:chat`, `chat:responses` or `chat:messages` is refused with `422` `error_code: "oauth_only_unavailable"` and nothing is charged; `account:preferences api_fallback false` is refused with a `422`; and reading the preferences reports `api_fallback: true` while the account is on Free.
 
 The `--oauth-only` flag prevents fallback to paid system keys. When set, requests that fail OAuth return a 422 error instead of silently falling back to credits. Available on `chat:chat`, `chat:messages`, `chat:responses`, `chat:thread`, `compile:thread:create`, and `compile:thread:message`.
 
-The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Connect and Pro), all requests behave as if `--oauth-only` is set — OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
+The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Connect and Pro), all requests behave as if `--oauth-only` is set: OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
 
 ```bash
 faces account:preferences api_fallback false    # default: no fallback (Connect and Pro)
@@ -824,9 +824,9 @@ For an already-created document, use `compile:doc:make <doc_id>` to compile it.
 
 `--timeout` sets the polling timeout in seconds (default: 600 / 10 minutes).
 
-**`--perspective` — by them or about them?** Use `first-person` for the person's own
+**`--perspective`: by them or about them?** Use `first-person` for the person's own
 words (essays, letters, interview answers, talks) and `third-person` for material
-*about* the person — a biography, an encyclopedia/Wikipedia article, a news profile,
+*about* the person: a biography, an encyclopedia/Wikipedia article, a news profile,
 anyone else's writing about them. **The default differs by command, so always pass it:**
 
 | command | default |
@@ -1252,8 +1252,8 @@ Every source row and detail response carries:
 { "compilable": false, "compile_blocked_reason": "no_medium" }
 ```
 
-`compile_blocked_reason` is a short stable code — `empty`, `no_medium`,
-`no_user_messages`, `corpus_room`, `too_short` — and you write the sentence.
+`compile_blocked_reason` is a short stable code (`empty`, `no_medium`,
+`no_user_messages`, `corpus_room`, `too_short`), and you write the sentence.
 
 `too_short` is a document under the minimum length: it carries `word_count` and
 `compile_min_words` (50 today), and a compile of it is a `400`. Add text or merge it into
@@ -1335,7 +1335,7 @@ shows a bare `read only` line and `face:list` shows a `[read only]` marker
 The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file per face (YAML frontmatter + markdown notes) and a consolidated `~/.faces/catalog.json` index. The catalog is managed automatically on `face:create`, `face:edit`, and `face:delete`.
 
 - `faces catalog:doctor` — diagnose missing, stale, or orphaned catalog entries
-- `faces catalog:doctor --fix` — rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files). It rewrites the frontmatter of **every** FACE.md and the whole of every TEAM.md from the server, but `Fixed N` counts only entries that were missing or renamed, so `Fixed 0` does not mean nothing changed. It does not add a missing description; that is `--generate`. A FACE.md body is kept; frontmatter keys the CLI does not write are dropped (see the FACE.md schema in SKILL.md)
+- `faces catalog:doctor --fix`: rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files). It rewrites the frontmatter of **every** FACE.md and the whole of every TEAM.md from the server, but `Fixed N` counts only entries that were missing or renamed, so `Fixed 0` does not mean nothing changed. It does not add a missing description; that is `--generate`. A FACE.md body is kept; frontmatter keys the CLI does not write are dropped (see the FACE.md schema in SKILL.md)
 - `faces catalog:doctor --generate` — fix + generate descriptions via LLM (syncs back to server)
 - `faces catalog:backup` — snapshot all faces (with descriptions, tags), teams, documents (with each one's medium, from 1.16.0), and threads to `~/.faces/backups/<timestamp>.json`
 - `faces catalog:restore [FILE]` — restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload. A document the backup records no medium for (an older backup, or a document saved before a medium was required) is refused by the server; restore names it, and it needs creating again with `compile:doc:create --medium`. Never guess the medium.

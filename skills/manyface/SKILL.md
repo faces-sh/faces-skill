@@ -377,7 +377,7 @@ Ask the user:
 > **Installed manyfaced-<name>.** [N] faces need compilation before you can
 > use this skill.
 >
-> A) Compile them now — I'll walk you through each one with /facemake
+> A) Compile them now: I'll walk you through each one with /facemake
 > B) I'll compile them later
 >
 > RECOMMENDATION: Choose A — the skill won't work until its faces are compiled.

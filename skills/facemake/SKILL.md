@@ -457,7 +457,7 @@ faces compile:thread:make "$THREAD_ID" --no-wait --json
 # Text you already have — a transcript in hand, a draft, anything not on disk.
 # Pass it verbatim; do NOT retype or summarise it, or the face learns your paraphrase.
 faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --perspective first-person --no-wait --json
-# Local text file — by the subject
+# Local text file, by the subject
 faces compile:doc <alias> --file <path> --medium <medium> --perspective first-person --no-wait --json
 # Several sources at once — --file is repeatable, each becomes its own document.
 # Returns {"documents":[{file, document_id}...]} in input order. One call, not one per file.
@@ -465,7 +465,7 @@ faces compile:doc <alias> --file <path> --medium <medium> --perspective first-pe
 faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --medium essay --perspective first-person --no-wait --json
 # Local text file — about the subject (biography, Wikipedia, news profile)
 faces compile:doc <alias> --file <path> --medium <medium> --perspective third-person --no-wait --json
-# PDF, Word (.docx), audio or video: use compile:upload — compile:doc takes text only.
+# PDF, Word (.docx), audio or video: use compile:upload; compile:doc takes text only.
 # compile:upload defaults to third-person; use --perspective third-person for writing about them.
 faces compile:upload <alias> --file <path> --kind document --medium <medium> --perspective first-person --no-wait --json
 

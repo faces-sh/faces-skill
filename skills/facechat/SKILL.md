@@ -184,7 +184,7 @@ cat ~/.faces/teams/$SLUG/TEAM.md
 ```
 
 Parse the YAML frontmatter for the `members:` list (the faces on the team).
-Then parse the mermaid flowchart — this is the entire execution spec, round
+Then parse the mermaid flowchart: this is the entire execution spec, round
 limits included.
 
 If `members:` holds ids rather than aliases (faces-cli 1.20.0 writes ids after a
