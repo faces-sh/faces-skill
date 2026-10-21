@@ -73,11 +73,16 @@ it (1.21.0+):
 
 ```
 Connect allowances (tokens):
-  reasoning, rolling 5 hours  3018 of 640k (0%)  rolls
-  reasoning, this week        3018 of 2.5M (0%)  resets 2026-10-26 09:44 UTC
-  reasoning, this month       32.5k of 10M (0%)  resets 2026-10-28 09:44 UTC
-  compile, this month         4072 of 250k (2%)  resets 2026-10-28 09:44 UTC
+  reasoning, rolling 5 hours  3018 of 640k (<1%)  rolls
+  reasoning, this week        3018 of 2.5M (<1%)  resets 2026-10-26 09:44 UTC
+  reasoning, this month       32.5k of 10M (<1%)  resets 2026-10-28 09:44 UTC
+  compile, this month         4072 of 250k (1%)  resets 2026-10-28 09:44 UTC
 ```
+
+From faces-cli 1.21.0 amounts and percentages **round down**, and a little use reads `<1%`, so
+a meter never reads `100%` or `2.5M of 2.5M` while some is left. Before 1.21.0 they rounded to
+nearest: 2,496,000 of 2.5M printed as `2.5M of 2.5M (100%)` with 4k still left. For an exact
+answer read `remaining` in `--json`.
 
 In `--json`, `allowances` holds `cause_5h`, `cause_week`, `cause_month` and `compile_month`,
 each `{limit, used, remaining, resets_at}`. It is `null` on Free. On Team every `limit` is
@@ -199,7 +204,11 @@ faces billing:usage --json
 faces billing:usage --group-by model --from 2026-03-01 --to 2026-03-31
 ```
 
-Aggregated usage analytics. Group by `api_key`, `model`, `llm`, or `date`.
+Aggregated usage analytics. Group by `api_key`, `model`, `llm`, or `date`. From faces-cli 1.21.0
+it prints a table of requests, tokens and cost with a total, and refuses a date that is not a real
+`YYYY-MM-DD` or a `--from` after `--to`; before, those gave an empty report and exit 0, which is
+not "no usage". `billing:llm-costs` prints one line per model from 1.21.0, and `billing:balance`
+shows dollars.
 
 ## Rough cost reference
 

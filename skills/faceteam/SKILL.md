@@ -375,7 +375,7 @@ Ask the user:
 > [Summary: who's on the team, what each face brings, where the productive
 > tension is]
 >
-> Faces needing compilation: [list any with no `synced` source in `faces face:sources <alias>`]
+> Faces needing compilation: [list any with no `compiled` source in `faces face:sources <alias>` (`synced` before faces-cli 1.21.0)]
 >
 > A) Looks good — compile all the faces for me now
 > B) I want to change the roster or protocol

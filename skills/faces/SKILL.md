@@ -251,7 +251,8 @@ that does not. Do not infer it from the filename or the text.
 
 Every compile refusal names itself in `error_code`, which is what to branch on. These
 used to be a `202` followed by silence; the CLI prints the repair for the first four
-(faces-cli 1.20.0 shows `too_short` by its code alone):
+(faces-cli 1.20.0 shows `too_short` by its code alone; 1.21.0's `face:sources` reads it as
+"under 50 words"):
 
 | `error_code` | what happened | what to tell the user |
 |---|---|---|
@@ -876,7 +877,8 @@ profile.
 `compiled_tokens` is the source tokens compiled into the face. From faces-cli 1.21.0 it is
 written for every synced face, `0` when nothing has compiled, so `compiled_tokens: 0` finds faces still
 to compile. Before 1.21.0 it was usually absent and said nothing. For the current state of each
-source, ask the server: `faces face:sources <alias>` (a source reading `synced` has compiled).
+source, ask the server: `faces face:sources <alias>` (a source reading `compiled` in STATUS has
+compiled; before faces-cli 1.21.0 it read `synced`; `"synced": true` in `--json` either way).
 
 All fields in FACE.md reflect the server state. The API returns `basic_facts` but the CLI renames it to `attributes` everywhere.
 

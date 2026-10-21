@@ -541,8 +541,8 @@ are the only thing that distinguishes a clean import from a broken one. Read the
 
 After each successful compile, update the FACE.md body: check the box in Queued,
 add an entry to Sources with token count and notes. Whether a face is compiled is the
-server's answer, not the file's: `faces face:sources <alias>` (a source reading `synced`
-has compiled).
+server's answer, not the file's: `faces face:sources <alias>` (a source reading `compiled`
+in STATUS has compiled; before faces-cli 1.21.0 it read `synced`).
 
 ### Step 6: Done
 

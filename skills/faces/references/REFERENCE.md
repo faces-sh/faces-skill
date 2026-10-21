@@ -10,10 +10,13 @@ faces auth:register     --email  --password  --username  [--plan free|connect|pr
 faces auth:whoami
 faces auth:refresh
 faces auth:connect      openai   # device-code flow: prints a code + URL, polls until approved
-faces auth:disconnect   <provider>
+faces auth:disconnect   <provider>                     # nothing connected is an error, not a success (1.21.0+)
 faces auth:connections
 
 faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--specialty TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH]
+                                                       # --name: at most 200 characters, no control or text-direction characters
+                                                       # (refused before sending, 1.21.0+, also on face:edit). Tags that fail after
+                                                       # the face saved exit 1 (1.21.0+): the face exists, re-run face:tag:set.
 faces face:list         [--has-style]  [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile,sharing,avatar,usage,owner_follow]  [--public]  [--shared]  [--system]  [--from-users USER...]  [--not-from-users USER...]
                         [--search TEXT]  [--sort created|alias|relevance|usage]  [--order asc|desc]
                                                        # faces-cli 1.11.0+. --search matches alias, name and description.
@@ -34,7 +37,10 @@ faces face:get          <alias | owner:alias>  [--include tags,teams,profile,sha
                                                        # a published or shared face resolves under owner:alias, the same address chat
                                                        # uses, and prints an `access:` line saying you do not own it: it can be
                                                        # chatted with or added to a team, but only its owner can edit it.
-                                                       # Plain output shows the description too (1.21.0+; before, only --json had it).
+                                                       # A BARE alias can be answered by another account's published face of that
+                                                       # name; 1.21.0+ compares the owner with you and shows it as not yours,
+                                                       # with its owner:alias address. face:share --list does the same.
+                                                       # Plain output shows the description and tags too (1.21.0+; before, only --json).
                                                        # A 404 on `me` is never "no such face": every account has its own `me`,
                                                        # made with the account, so a missing one is a server-side fault to report.
 faces face:attributes
@@ -58,6 +64,9 @@ faces face:sources      <alias>  [--type doc|thread]
                                                        # STATUS reads `finishing` first: a source the server is still working on,
                                                        # including an automatic retry, shows `finishing` and needs NO action.
                                                        # GAVE is how much it contributed; 0 means it had nothing usable in it.
+                                                       # A compiled source reads `compiled` (1.21.0+; before, `synced`), and an
+                                                       # ID column gives the id every action on a row takes. In --json the
+                                                       # `synced` boolean is unchanged.
                                                        # every source in the face, docs and threads in one table: label, tokens, status,
                                                        # medium, updated. Exits 4 for a face that does not exist, which is a DIFFERENT
                                                        # answer from a face with no sources (exit 0). Never prints content and never
@@ -73,7 +82,8 @@ faces face:neighbors    <alias | owner:alias>  [--k N]  [--component face|POSITI
                                                        # reports "no data" and exits 0, matching the null at the same index in face:diff.
                                                        # --direction nearest (default) = most SIMILAR; furthest = most DIFFERENT / unlike / opposite
 
-faces face:avatar:list    <alias | owner:alias>          # versions, which one is served, which no longer match the face
+faces face:avatar:list    <alias | owner:alias>          # versions, which one is served, which no longer match the face.
+                                                       # On a face you do not own it says so, and suggests no regeneration (1.21.0+).
 faces face:avatar:get     <alias | owner:alias>  [--size sm|md|lg]  [--format png|svg]  [--width PX]  [--version N]  [--prefer organic|uploaded]  [--out PATH]
                                              # FREE. Writes the image and reports which version arrived, generated or
                                              # uploaded, and whether it still matches what the face knows.
@@ -92,7 +102,8 @@ faces user:following     <username>
 faces face:tag:list     <alias>
 faces face:tag:add      <alias>  --tag TAG  [--tag TAG...]
 faces face:tag:set      <alias>  --tag TAG  [--tag TAG...]
-faces face:tag:remove   <alias>  <tag>
+faces face:tag:remove   <alias>  (<tag> | --tag TAG)   # --tag like add and set (1.21.0+). A tag change
+                                                       # that fails after the face saved exits 1 (1.21.0+).
 faces face:tag:all
 faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 
@@ -111,6 +122,7 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # --best-of N (1-5) writes N replies and serves the closest to the style.
                                                        # It multiplies the cost by N, needs a + alias, and is never streamed.
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
+                                                       # --max-tokens is at least 1 (1.21.0+; before, 0 went out as no cap).
                                                        # --temperature is 0 to 2, checked before sending (1.21.0+; before, a
                                                        # value that was not a number was silently dropped).
                                                        # A streamed reply the model refused is reported as an error, not
@@ -157,9 +169,17 @@ faces compile:doc          <alias>  (--content TEXT | --file PATH...)  --medium 
                                                        # --file is repeatable: each file becomes its OWN document (not concatenated).
                                                        # Returns {"documents":[{file, document_id}...]} in input order; a bad file is
                                                        # reported in place and the rest still compile. --label is single-document only.
+                                                       # A document SAVED but then refused at compile keeps its document_id, with
+                                                       # `saved: true` and an error starting "saved, but not compiled" (1.21.0+;
+                                                       # before, it read as never accepted although face:sources listed it).
+                                                       # Fix and compile:doc:make it rather than uploading it again.
                                                        # Text only — for PDF, Word (.docx), audio or video use compile:upload.
                                                        # --medium on compile:upload applies to --kind document only.
 faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  --medium KIND  [--perspective first-person|third-person]
+                                                       # 1.21.0+ (and compile:doc:edit): --content and --file are exclusive, and a
+                                                       # file that is empty, whitespace only, binary, a known non-text format or
+                                                       # not UTF-8 is refused before sending. Before, Latin-1 text was saved with
+                                                       # characters replaced: convert it to UTF-8 on an older CLI.
                                                        # --medium is required: the server will not save a document without one (1.16.0+).
 faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
 faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
@@ -192,7 +212,9 @@ faces compile:thread:replace  <thread_id>  --file PATH  [--face-speaker NAME]
                                                        # outright, so faces-cli BELOW 1.10.0 cannot run this command at all:
                                                        # every call is a 422. Check with `npm list -g faces-cli`.
                                                        # Writes content only — nothing generated, nothing
-                                                       # billed. Refuses an empty file rather than emptying the thread.
+                                                       # billed. Refuses an empty file rather than emptying the thread, and (1.21.0+)
+                                                       # a --face-speaker that names nobody in the transcript; before, that was
+                                                       # saved with no lines from the face, so check compile:thread:get after.
 faces compile:thread:message  <thread_id>  -m MSG  [--oauth-only]
                                                        # NOT the same thing: this INTERVIEWS the face — it appends your message AND
                                                        # generates a reply, and it bills. Use :replace to update content.
@@ -227,7 +249,8 @@ faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--time
                                                        # first poll. A build started for several shows them all; one started before
                                                        # this was recorded shows `-`. A build can be started from anywhere, so this
                                                        # is the only way to name one this client did not start.
-faces style:versions    <alias>                        # what has been captured, per medium, and which is in use. SOURCES is how
+faces style:versions    <alias>                        # (1.21.0+ says when the face is another account's: only its owner captures.)
+                                                       # what has been captured, per medium, and which is in use. SOURCES is how
                                                        # many the build behind each version read, so a Revert confirmation can say
                                                        # what it goes back to. SEVERAL can be in
                                                        # use at once — one per medium — and version numbers restart per medium.
@@ -247,7 +270,8 @@ faces style:delete      <alias>  [--medium KIND | --all]  [--yes]
 faces catalog:doctor      [--fix]  [--generate]
 faces catalog:list
 faces catalog:backup                                   # uploaded threads and style corpus rooms included (1.21.0+)
-faces catalog:restore     [FILE]  [--compile]          # exits non-zero listing anything it could not restore (1.21.0+)
+faces catalog:restore     [FILE]  [--compile]          # exits non-zero listing anything it could not restore, and says
+                                                       # when FILE is not a backup (1.21.0+)
 faces catalog:manyfaced   [--skill NAME]  [--install NAME --skills-dir PATH]  [--refresh]
 
 faces compile:all         [--timeout N]
@@ -282,6 +306,9 @@ faces compile:stats                                    # plan, compile source to
                                                        # pay-as-you-go rate (1.18.0+; older versions call a retired endpoint).
                                                        # Per-face numbers: face:stats.
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
+                                                       # 1.21.0+ prints a table (requests, tokens, cost, total) and refuses a
+                                                       # date that is not a real YYYY-MM-DD or a --from after --to. Before, a bad
+                                                       # date gave an empty report and exit 0.
 faces billing:topup      --amount F  [--card PM_ID]  [--payment-ref REF]  [--yes]
                                                        # charges a card: from an agent it needs --yes (1.21.0+). --amount must be a
                                                        # plain dollar amount (5 or 0.50); anything else is refused (1.21.0+).
@@ -290,6 +317,7 @@ faces billing:card-setup [--no-default]                # alias billing:card:add:
 faces billing:card:default  <PM_ID>
 faces billing:card:remove   <PM_ID>  [--yes]
 faces billing:llm-costs  [--provider openai|anthropic|qwen|...]
+                                                       # 1.21.0+: one line per model by lab, prices per million tokens, your spend.
                                                        # one row per model, under its lab's id. --provider is the LAB that
                                                        # made it, never the service that runs it.
 
@@ -1165,7 +1193,7 @@ Treat an unknown value as `compiling`. `progress` runs from 0 to 1: it is 1 only
 compiled source answers `409` with `error_code: "already_compiled"` and charges nothing:
 edit the source or reset it to compile again.
 
-**A synced source with `GAVE 0`** had nothing the compiler could use, such as a PDF that
+**A compiled source with `GAVE 0`** had nothing the compiler could use, such as a PDF that
 is only images. A compile that extracts nothing from real text no longer reports success,
 so this no longer hides a provider failure. Recompiling costs again and will usually give
 the same result.
@@ -1272,7 +1300,7 @@ cannot see it; the revision pair can. If the pair says stale and no message look
 the order changed.
 
 The CLI reads all of this from 1.10.0 on. `face:sources` folds it into the STATUS cell,
-so a row reads `stale (2 behind)` rather than `synced`; `compile:doc:get`,
+so a row reads `stale (2 behind)` rather than `compiled` (`synced` before 1.21.0); `compile:doc:get`,
 `compile:doc:list`, `compile:thread:get` and `compile:thread:list` say what moved and
 what a compile would be refused for. Below 1.10.0 none of it is read and every compiled
 source reads as current.
@@ -1290,7 +1318,8 @@ Every source row and detail response carries:
 
 `too_short` is a document under the minimum length: it carries `word_count` and
 `compile_min_words` (50 today), and a compile of it is a `400`. Add text or merge it into
-a longer source. faces-cli 1.20.0 prints the code as it is, with no repair line.
+a longer source. faces-cli 1.20.0 prints the code as it is, with no repair line; 1.21.0's
+`face:sources` reads it as "under 50 words".
 
 **The two booleans compose.** Branch on `finishing` to decide between showing progress
 and offering an action, and on `compilable` to decide whether the action exists:

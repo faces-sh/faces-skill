@@ -205,10 +205,10 @@ faces face:sources alice
 faces face:sources alice --json | jq '[.documents[], .threads[]] | map({label, status, synced})'
 ```
 
-Every source should read `synced` in the STATUS column (`"synced": true` in `--json`). A
-source still `queued` or `compiling` is not done yet; `not compiled` means its compile was
-never started; `cannot compile: ...` says why it never will. The face is ready once a source
-reads `synced`.
+Every source should read `compiled` in the STATUS column (`"synced": true` in `--json`;
+before faces-cli 1.21.0 the column read `synced`). A source still `queued` or `compiling` is
+not done yet; `not compiled` means its compile was never started; `cannot compile: ...` says
+why it never will. The face is ready once a source reads `compiled`.
 
 Do not use `component_counts` from `face:get` for this. It is a list of numbers, one per
 component, and the attributes you set at `face:create` already count, so a face with four

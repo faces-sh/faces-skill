@@ -489,7 +489,7 @@ compile using the `/faces` skill.
 |------|------|----------|-------|
 | <role> | `<team-name>` | `~/.faces/teams/<team-name>/TEAM.md` | alias-1, alias-2, alias-3 |
 
-Faces with no `synced` source in `faces face:sources <alias>` need compilation
+Faces with no `compiled` source in `faces face:sources <alias>` (`synced` before faces-cli 1.21.0) need compilation
 before use. See each FACE.md's Queued section for source material.
 
 ## Circuit
@@ -556,7 +556,7 @@ After QA, present the manyfaced skill to the user:
 > **The cast:**
 > [Table: step → face/team → why, with new vs. reused noted]
 >
-> **Needs compilation:** [list faces with no `synced` source in `faces face:sources <alias>`]
+> **Needs compilation:** [list faces with no `compiled` source in `faces face:sources <alias>`]
 >
 > A) Looks good — I'll compile the faces and start using it
 > B) I want to change the cast (tell me which roles)
