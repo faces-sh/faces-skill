@@ -129,8 +129,12 @@ faces chat:thread       --id THREAD_ID  (--show | --delete)                     
 
 faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--medium KIND]  [--perspective first-person|third-person]  [--face-speaker LABEL]  [--no-wait]
                                                        # --medium is required with --type document and refused with thread (1.16.0+).
+                                                       # --perspective defaults to third-person here: pass first-person when the
+                                                       # subject is the speaker.
 faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--medium KIND]  [--perspective first-person|third-person]  [--face-speaker NAME]  [--no-wait]
                                                        # --medium is required with --kind document and refused with thread (1.16.0+).
+                                                       # --perspective defaults to third-person here: pass first-person for the
+                                                       # subject's own writing.
                                                        # Accepts text, PDF, Word (.docx), audio and video. Text is extracted server-side.
                                                        # Legacy .doc is refused (400) — save it as .docx first. A .docx with no text 422s:
                                                        # images and text boxes are not read, only document text.
@@ -765,7 +769,7 @@ Teams also have a local TEAM.md representation at `~/.faces/teams/<name>/TEAM.md
 `compile:doc` is the recommended one-step command for compiling a document into a face. Pass the face alias as the first argument. It handles create → compile (prepare + sync) automatically with real-time progress:
 
 ```bash
-faces compile:doc alice --file essay.txt --medium essay
+faces compile:doc alice --file essay.txt --medium essay --perspective first-person
 ```
 
 `--medium` is required: the server will not save a document that has not said what it is
@@ -820,15 +824,21 @@ For an already-created document, use `compile:doc:make <doc_id>` to compile it.
 
 `--timeout` sets the polling timeout in seconds (default: 600 / 10 minutes).
 
-**`--perspective` — by them or about them?** Defaults to `first-person`, which
-treats the source as the subject's *own voice*. Use `first-person` for the
-person's own words (essays, letters, interview answers, talks). Set
-`--perspective third-person` for material *about* the person — a biography, an
-encyclopedia/Wikipedia article, a news profile, anyone else's writing about them.
-Omitting the flag on about-them material silently compiles it as if the subject
-wrote it and corrupts the face. Applies to every compile path that accepts it
-(`compile:doc`, `compile:doc:create`, `compile:import`, `compile:upload`,
-`compile:doc:edit`).
+**`--perspective` — by them or about them?** Use `first-person` for the person's own
+words (essays, letters, interview answers, talks) and `third-person` for material
+*about* the person — a biography, an encyclopedia/Wikipedia article, a news profile,
+anyone else's writing about them. **The default differs by command, so always pass it:**
+
+| command | default |
+|---|---|
+| `compile:doc`, `compile:doc:create` | `first-person` (text pasted in is usually theirs) |
+| `compile:upload --kind document`, `compile:import --type document` | `third-person` (an uploaded file is as often someone else's) |
+| `compile:doc:edit` | none: changes it only when passed |
+
+Omitting the flag on about-them text silently compiles it as if the subject wrote it, and
+omitting it on the subject's own PDF or video compiles it as writing about them, which
+teaches no style and which `style:make` refuses. Fix either afterwards with
+`compile:doc:edit ID --perspective ...`.
 
 ## Style: how a face writes (`style:*`)
 

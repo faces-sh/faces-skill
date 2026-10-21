@@ -141,15 +141,19 @@ fix the key and send it all again. `faces face:attributes` lists them with what 
 > check bakes the wrong person into the face. See **Verify speaker attribution**
 > below.
 
-> **By them or about them? Set `--perspective` accordingly.** `--perspective`
-> defaults to `first-person`, which treats the source as the subject's *own
-> voice*. That is a trap for material *about* a person.
-> - **First-person** (the default) — the person's own words: their essays,
->   letters, interview answers, talks, notes.
-> - **Third-person** — material *about* the person: a biography, an
+> **By them or about them? Always pass `--perspective`.** The default is not the
+> same everywhere: `compile:doc` and `compile:doc:create` default to
+> `first-person`, while `compile:upload` and `compile:import` default to
+> `third-person` (an uploaded file is as often someone else's writing). So say it
+> on every call.
+> - **First-person**: the person's own words: their essays, letters, interview
+>   answers, talks, notes. Pass `--perspective first-person`, above all on
+>   `compile:upload` and `compile:import`, or their own PDF is compiled as writing
+>   *about* them and style capture refuses it.
+> - **Third-person**: material *about* the person: a biography, an
 >   encyclopedia/Wikipedia article, a news profile, anyone else's writing about
->   them. You **must** pass `--perspective third-person` for these; otherwise the
->   default compiles them as if the subject wrote them and corrupts the face.
+>   them. Pass `--perspective third-person`, above all on `compile:doc`, or it is
+>   compiled as if the subject wrote it and corrupts the face.
 
 **Interview** (no documents needed — best way to build a face from scratch):
 Run a Q&A interview with the user, save the transcript, upload and compile.
@@ -159,13 +163,13 @@ See [references/INTERVIEWS.md](references/INTERVIEWS.md) for both modes (agent-a
 ```bash
 # Text you already have — a transcript in hand, a draft, anything not on disk.
 # Pass it verbatim; do NOT retype or summarise it, or the face learns your paraphrase.
-faces compile:doc alias --content "<text>" --label "Interview" --medium conversation --no-wait --json
-# By the subject (their own essay/notes) — first-person is the default
-faces compile:doc alias --file document.txt --medium essay --no-wait --json
+faces compile:doc alias --content "<text>" --label "Interview" --medium conversation --perspective first-person --no-wait --json
+# By the subject (their own essay/notes)
+faces compile:doc alias --file document.txt --medium essay --perspective first-person --no-wait --json
 # Several at once: --file is repeatable and each file becomes its own document.
 # Returns {"documents":[{file, document_id}...]} in input order — one call, not one per file.
 # One --medium applies to all of them, so group files of the same kind in one call.
-faces compile:doc alias --file a.txt --file b.txt --file c.txt --medium essay --no-wait --json
+faces compile:doc alias --file a.txt --file b.txt --file c.txt --medium essay --perspective first-person --no-wait --json
 # About the subject (biography, Wikipedia, news profile) — you MUST set third-person
 faces compile:doc alias --file biography.txt --medium essay --perspective third-person --no-wait --json
 # compile:doc takes TEXT only. For PDF, Word (.docx), audio or video use compile:upload instead.
@@ -243,8 +247,9 @@ faces compile:thread:make THREAD_ID --no-wait --json
 
 **Upload a local file (text, PDF, Word .docx, audio, video):**
 ```bash
-# Document (text, PDF, or Word .docx — text is extracted server-side)
-DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --medium <medium> --no-wait --json | jq -r '.document_id // .id')
+# Document (text, PDF, or Word .docx — text is extracted server-side).
+# compile:upload defaults to third-person: pass first-person for the subject's own writing.
+DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --medium <medium> --perspective first-person --no-wait --json | jq -r '.document_id // .id')
 faces compile:doc:make "$DOC_ID" --no-wait --json
 
 # Thread from text transcript (you know the speakers — pass --face-speaker)

@@ -384,9 +384,9 @@ has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
 
 1. Read the face's FACE.md from `~/.faces/catalog/<alias>/FACE.md`
 2. Walk through each Queued item using `--no-wait`:
-   - YouTube: `faces compile:import <alias> --url "<url>" --type document --medium lecture --no-wait --json` (a solo talk; ask if it is something else)
-   - Local file: `faces compile:doc <alias> --file <path> --medium <medium> --no-wait --json`
-   - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --no-wait --json`
+   - YouTube: `faces compile:import <alias> --url "<url>" --type document --medium lecture --perspective first-person --no-wait --json` (a solo talk by the subject; ask if it is something else)
+   - Local file: `faces compile:doc <alias> --file <path> --medium <medium> --perspective first-person --no-wait --json`
+   - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --perspective first-person --no-wait --json`
      — pass it verbatim; retyping or summarising teaches the face your paraphrase
    - `--medium` is required and must not be guessed: a compile reads writing differently
      per medium and the server refuses to infer one. Eleven values, spelled exactly:
@@ -395,9 +395,11 @@ has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
      no synonyms, so `transcript` and `keynote` are each a 422. `other` is for writing in
      none of those forms and it compiles; it is not a way to avoid choosing.
      **Ask the user** where the FACE.md does not say.
-   - For material *about* the person (biography, Wikipedia, news profile), add
-     `--perspective third-person` — the default (`first-person`) compiles it as
-     the subject's own voice and corrupts the face. See `/facemake` Step 5.
+   - Always pass `--perspective`: `third-person` for material *about* the person
+     (biography, Wikipedia, news profile), `first-person` for their own words. The
+     default differs by command (`compile:doc` is first-person, `compile:upload` and
+     `compile:import` are third-person), and either mistake corrupts the face. See
+     `/facemake` Step 5.
 3. Fire all compiles in parallel — don't wait for one to finish before starting the next
 4. Poll all at the end with ONE call: `faces compile:status --json | jq '{sources_active}'`,
    or `faces compile:status --watch` to block until the account is quiet. This is the

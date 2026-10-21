@@ -107,21 +107,25 @@ Keep the **alias** (`alias` in the `--json` output, `alice` here): every command
 > as a document flattens the dialogue into one voice and corrupts the face, so
 > when in doubt, if two or more people are talking, it is a thread.
 
-> **By them or about them? Set `--perspective` accordingly.** `--perspective`
-> defaults to `first-person` (the subject's own voice) — right for their own
-> essays, letters, interview answers, talks. For material *about* the person (a
-> biography, an encyclopedia/Wikipedia article, a news profile), you **must** pass
-> `--perspective third-person`, or it is compiled as if the subject wrote it and
-> corrupts the face.
+> **By them or about them? Always pass `--perspective`.** The default depends on
+> the command: `compile:doc` and `compile:doc:create` (text) default to
+> `first-person`, while `compile:upload` and `compile:import` (PDF, Word, audio,
+> video, YouTube) default to `third-person`. Say it every time. `first-person` is
+> the subject's own words: their essays, letters, interview answers, talks.
+> `third-person` is material *about* them: a biography, an encyclopedia/Wikipedia
+> article, a news profile. Either mistake corrupts the face: writing about them
+> compiled as first-person reads as if they wrote it, and their own PDF uploaded
+> without `--perspective first-person` is compiled as writing about them, which
+> style capture then refuses.
 
 Pick one or more methods depending on what the human has:
 
 **Local file — single-voice document (text, PDF):**
 ```bash
-# By the subject — first-person is the default
+# By the subject: pass --perspective first-person (compile:upload defaults to third-person)
 # --medium is required: say what the writing is (essay, email, ...), and ask if you do not know
-DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --medium essay --no-wait --json | jq -r '.document_id // .id')
-# About the subject (biography, Wikipedia, news profile) — add --perspective third-person
+DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --medium essay --perspective first-person --no-wait --json | jq -r '.document_id // .id')
+# About the subject (biography, Wikipedia, news profile): --perspective third-person
 DOC_ID=$(faces compile:upload alice --file /path/to/profile.pdf --kind document --medium essay --perspective third-person --no-wait --json | jq -r '.document_id // .id')
 ```
 
@@ -147,7 +151,7 @@ If `--type thread` fails with 422, retry with `--type document`.
 
 **Raw text:**
 ```bash
-DOC_ID=$(faces compile:doc:create alice --label "Notes" --medium essay --content "Text here..." --json | jq -r '.document_id')
+DOC_ID=$(faces compile:doc:create alice --label "Notes" --medium essay --perspective first-person --content "Text here..." --json | jq -r '.document_id')
 ```
 
 ## 5. Compile
@@ -162,7 +166,7 @@ faces compile:doc:make "$DOC_ID" --no-wait --json
 Or, if you created the document inline (step 4, "Raw text"), you can create and compile in one step:
 
 ```bash
-faces compile:doc alice --file essay.txt --medium essay --no-wait --json
+faces compile:doc alice --file essay.txt --medium essay --perspective first-person --no-wait --json
 # Poll: faces compile:doc:get DOC_ID --status-only --json | jq '{status, progress}'
 ```
 
