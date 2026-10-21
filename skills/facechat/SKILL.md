@@ -167,10 +167,11 @@ thread to change it):
 faces chat:thread ALIAS -m "MESSAGE" --llm MODEL
 ```
 
-### Template references
+### Bringing in another face
 
-Users can reference other faces inline with `${other-alias}` syntax. Pass the
-message as-is -- the platform handles template expansion.
+`${other-alias}` in a message is plain text: the platform no longer expands it.
+To bring another face's view in, ask that face first and quote its answer in
+the message.
 
 ## Team Chat
 

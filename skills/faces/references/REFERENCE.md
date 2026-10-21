@@ -45,9 +45,9 @@ faces face:get          <alias | owner:alias>  [--include tags,teams,profile,sha
                                                        # made with the account, so a missing one is a server-side fault to report.
 faces face:attributes
 faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--specialty TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
-                                                       # --formula only changes a face that is ALREADY a composite (1.21.0+). On a
-                                                       # compiled face it would throw away what it learned, with no way back, so it
-                                                       # is refused: make a new composite with face:create --formula instead.
+                                                       # --formula on a face with compiled sources of its own, or one another
+                                                       # composite uses, is a 409: make a new composite with face:create --formula
+                                                       # instead. --formula "" turns a composite back into an ordinary face.
 faces face:delete       <alias>  [--yes]
 faces face:lock         <alias>              # freeze the face (read-only)
 faces face:unlock       <alias>              # unfreeze the face (writable)
@@ -73,13 +73,13 @@ faces face:sources      <alias>  [--type doc|thread]
                                                        # truncates. --json carries a stable id per row for later delete/recompile.
 faces face:stats
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
-faces face:neighbors    <alias | owner:alias>  [--k N]  [--component face|POSITION]  [--direction nearest|furthest]
+                                                       # one overall similarity score (`face`) per pair. The API no longer returns
+                                                       # per-component scores. Every face named needs something compiled.
+faces face:neighbors    <alias | owner:alias>  [--k N]  [--component face]  [--direction nearest|furthest]
                                              # owner:alias works on the face routes from 1.10.0. The face being compared may
                                              # belong to another account; the faces it is ranked against are always your own.
-                                                       # --component: `face` (default) ranks on overall similarity; a position (e.g. 1)
-                                                       # ranks on one component. Which positions are comparable varies per face — pick a
-                                                       # wrong one and the error names the valid ones. A face with nothing at that position
-                                                       # reports "no data" and exits 0, matching the null at the same index in face:diff.
+                                                       # ranks on overall similarity; --component takes only `face` (a number is a 422).
+                                                       # A face with nothing compiled is refused.
                                                        # --direction nearest (default) = most SIMILAR; furthest = most DIFFERENT / unlike / opposite
 
 faces face:avatar:list    <alias | owner:alias>          # versions, which one is served, which no longer match the face.
@@ -308,18 +308,23 @@ faces compile:stats                                    # plan, compile source to
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
                                                        # 1.21.0+ prints a table (requests, tokens, cost, total) and refuses a
                                                        # date that is not a real YYYY-MM-DD or a --from after --to. Before, a bad
-                                                       # date gave an empty report and exit 0.
-faces billing:topup      --amount F  [--card PM_ID]  [--payment-ref REF]  [--yes]
+                                                       # date gave an empty report and exit 0. COST is what you were charged; a
+                                                       # COVERED column (absorbed_cost_usd) is what Faces paid on your behalf.
+faces billing:topup      --amount F  [--card PM_ID]  [--payment-ref REF]  [--yes]  [--allow-duplicate]
                                                        # charges a card: from an agent it needs --yes (1.21.0+). --amount must be a
                                                        # plain dollar amount (5 or 0.50); anything else is refused (1.21.0+).
+                                                       # A repeat of a recent top-up is a 409 duplicate_topup and nothing is
+                                                       # charged. Check billing:balance; only if the user confirms, repeat it with
+                                                       # --allow-duplicate (1.21.0+). --yes does not imply it.
 faces billing:cards                                    # saved cards, newest first; one is the default (1.17.0+)
 faces billing:card-setup [--no-default]                # alias billing:card:add: a Stripe link to save a card
 faces billing:card:default  <PM_ID>
 faces billing:card:remove   <PM_ID>  [--yes]
 faces billing:llm-costs  [--provider openai|anthropic|qwen|...]
-                                                       # 1.21.0+: one line per model by lab, prices per million tokens, your spend.
-                                                       # one row per model, under its lab's id. --provider is the LAB that
-                                                       # made it, never the service that runs it.
+                                                       # 1.21.0+: one line per model by lab, prices per million tokens, your spend,
+                                                       # the markup from each row's markup_rate, then compile and reasoning prices.
+                                                       # one row per model, under its lab's id. --provider is the LAB (the row's
+                                                       # `lab`) that made it, never the service that runs it.
 
 faces team:create       --name  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]  [--tag TAG...]
                                                        # --protocol-file drops a leading frontmatter block, so a TEAM.md can be
@@ -352,7 +357,7 @@ faces account:preferences [KEY] [VALUE]  [--allow-paid]
 
 faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
                       [--question TEXT [--type noul|choice|score] [--option NAME[=DESCRIPTION]... | --level DESCRIPTION...] [--id KEY] | --questions-file PATH]
-                      [--model jev-latest|clef|clef-flash|faces-latest]  [--reasoning]  [--no-retry]
+                      [--model jev-latest|clef|clef-flash]  [--reasoning]  [--no-retry]
                                                        # faces-cli 1.18.0+. Jev's typed answers, as this face, or with no
                                                        # face for --baseline. A face with no questions gives its reasoning
                                                        # alone. A .json --state-file is sent as JSON. See Decisions.
@@ -413,10 +418,12 @@ plan that does not answers `422 model_not_supported`; pick another model, or all
 
 `chat:messages` (always `/v1/messages`) and `chat:responses` (always `/v1/responses`) remain available for direct, single-endpoint access.
 
-**Only chat models route a chat.** Each `GET /v1/models` entry has a `kind`: `chat`, `decision`,
-`image` or `transcription`, and the default list holds chat models (`?kind=decision` or
-`?kind=all` for the rest). faces-cli 1.18.0+ routes chats only to `kind: chat` models, and a chat
-that names a decision model (`alias@jev-latest`, `clef`, `clef-flash`, `faces-latest`) is
+**Only chat models route a chat.** Each `GET /v1/models` entry has a `kind`: `chat`, `image`,
+`transcription`, `decision`, `cause` or `compile`. With no `?kind=` the list is chat models only;
+pass one kind or a comma list (`?kind=chat,image`), or `?kind=all`. An unknown kind is a `422`.
+`faces-compile-latest` (`?kind=compile`) prices compiling: $28 per million source tokens, with
+`included_tokens_per_month` per plan. faces-cli 1.18.0+ routes chats only to `kind: chat`
+models, and a chat that names a decision model (`alias@jev-latest`, `clef`, `clef-flash`) is
 refused before sending: use `faces decide`.
 
 ## System & published faces
@@ -457,7 +464,7 @@ faces chat:chat "(socrates | nietzsche)@claude-sonnet-4-6" -m "What is virtue?"
 faces chat:chat --formula "socrates | nietzsche" --llm claude-sonnet-4-6 -m "What is virtue?"
 ```
 
-The backend merges the operand faces' knowledge per request — the same merge a persisted composite does, so latency is effectively identical. Works on `chat:chat`, `chat:messages`, and `chat:responses`. Purely additive: single faces (`alias@model`), published faces (`owner:alias@model`), and bare models all behave as before.
+The backend merges the operand faces' knowledge per request, the same merge a persisted composite does, so latency is effectively identical. Works on `chat:chat`, `chat:messages`, and `chat:responses`, on a face's reasoning alone (`chat:chat "(a | b)" --reasoning-only`, or `--formula` with no `--llm`; faces-cli 1.21.0+), and on `faces decide "(a | b)"`. A saved composite works the same way on all of them. Pricing is the same as one face. Purely additive: single faces (`alias@model`), published faces (`owner:alias@model`), and bare models all behave as before.
 
 Operators (same as persisted composites): `|` union, `&` intersection, `-` difference, `^` symmetric diff. Parentheses group and nest, e.g. `((a | b) & c)@gpt-5.4`.
 
@@ -465,7 +472,8 @@ Operators (same as persisted composites): `|` union, `&` intersection, `-` diffe
 
 Rules the CLI surfaces:
 
-- **An explicit `@model` is required** — a run-time composite has no `default_model`. A bare `(a | b)` is rejected locally with a "specify a model" message before any round-trip; pass `@model` or `--llm`.
+- **A reply needs an explicit `@model`**: a run-time composite has no `default_model`. A bare `(a | b)` asking for a reply is rejected locally with a "specify a model" message before any round-trip; pass `@model` or `--llm`. Its reasoning alone (`--reasoning-only`) needs no model.
+- **An empty result is a `422 empty_composite`**: `{"detail": {"error_code": "empty_composite", "message": "the intersection between these two faces is null"}}`. Match on `error_code` and show `message` as it is. A composite with nothing compiled is a `409`: each face in it needs a source.
 - **Operands must be your own, concrete faces.** Unknown/unowned → `404 Composite references unknown or unowned face`. A synthetic/composite operand → `422 Composite operands must be concrete faces, not synthetic` (compose from concrete faces only; no nesting persisted composites). Bad syntax → `422 Composite formula syntax error`.
 - **Difference needs spaces:** `a - b` (a dash between alphanumerics, `news-bot`, stays one alias).
 - **Aliases starting with a digit can't appear in a formula** (`2pac`) — single-face `2pac@model` still works, only the formula path is limited.
@@ -645,9 +653,9 @@ string, an object or an array. The old `{instructions, options}` shape is a `422
 - **`--model`** picks the **decision model** (default `jev-latest`): the model that answers
   your questions over the situation and the face's reasoning, as opposed to a generative model
   that writes text. On the wire this is `face@decision-model`, e.g. `alice@clef-flash`. Call
-  these "decision models" when talking to a user. A decision is made as one face, never a
-  composite and never a `+` alias. `faces-latest` takes at most **10 options or levels** per
-  question (a noul counts as 2); the CLI refuses more before sending.
+  these "decision models" when talking to a user. The face can be a saved composite or a
+  formula (`"(a | b)"`, sent as `(a | b)@jev-latest`), priced like one face; never a `+` alias.
+  `faces-latest` is no longer a decision model: the API answers it with a `400`.
 - **`--baseline`** asks the decision model alone (no-face baseline): exactly what Jev would say,
   in about a second, costing only the decision model. It is the number to compare a face's
   answer against (`no` at 0.99 from a face means more next to 0.63 from the baseline).
@@ -681,10 +689,11 @@ even on Connect and Pro: with none it is a `402`. Nothing is charged for a reque
 
 | Code | Meaning | What to do |
 |---|---|---|
-| `400` | `model` is not `face@decision-model`, a bare decision model or a bare face, or names a composite | Fix the request |
+| `400` | `model` is not `face@decision-model`, a bare decision model or a bare face | Fix the request |
+| `422 empty_composite` | The formula's result is empty, e.g. an intersection of faces with nothing in common | Show `message` as it is; use a formula whose result is not empty |
 | `404` | No such face, or not yours to use | Check the alias |
 | `409` | The face needs recompiling (not compiled since decisions launched) | Compile one of its sources again; not retryable as it is |
-| `422` | Wrong shape: missing `type`, criteria that do not fit the type, more than 10 options for `faces-latest`, questions with a bare face | Read the message |
+| `422` | Wrong shape: missing `type`, criteria that do not fit the type, questions with a bare face | Read the message |
 | `402` | No credit for the decision model (on every plan) | `faces billing:topup --amount <USD> --yes`, once the user agrees |
 | `429` naming an allowance | A reasoning allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
 | `429 Rate limit` | The account's per-minute limit | faces-cli 1.19.0+ waits `Retry-After` once; after that, wait the seconds named |
@@ -1121,8 +1130,11 @@ JOB_ID --wait` to follow it. Nothing was started or charged. Do not retry in a l
 - `thin_corpus`: `{medium: {words, threshold}}` for each medium captured from less writing
   than the automatic threshold. It installed anyway; a manual capture has no minimum.
 
-**When the free route refuses** (the default, with no `--allow-paid`), the job's error
-starts with a code, and each has its own fix:
+**When the free route refuses** (the default, with no `--allow-paid`), a failed job names its
+code in `error_code` (older jobs only start `error` with it), and each has its own fix. A build
+that can only run through ChatGPT, started with none linked, is refused up front instead: a
+`409 chatgpt_not_linked`, with nothing started. Link one with `faces auth:connect openai`, or
+pass `--allow-paid`.
 
 | Code | Meaning | Fix |
 |---|---|---|
@@ -1503,7 +1515,10 @@ not tell a user a listing is complete unless 1.10.0 or newer is installed.
 ## Errors
 
 A client's mistake is a `422`, not a `500`. Every error body uses one `detail` shape and
-carries a reference code. `503` is the status worth retrying. A `409` means the thing is
+carries a reference code. **Branch on the status and `error_code`, never on the message text**:
+messages are written for people, say what to do, and change. A refusal on a streamed request
+(chat, Messages, Responses) comes back as an ordinary error response, or as the endpoint's SSE
+error event on a held face turn, never as a `200` with a JSON body. `503` is the status worth retrying. A `409` means the thing is
 busy or frozen, a `402` means no credits, and neither is fixed by retrying. A face chat's
 refusals, and the ones that arrive inside a stream, are under
 [Streaming face chats](#streaming-face-chats).
@@ -1549,7 +1564,8 @@ Two refusals can come from almost any route, and the CLI adds what to do to both
   again; a second refusal is final. Do not retry in a tight loop: agents running in parallel
   share the account's limit, and asking early is refused too.
 - **`402`.** No credit for the request. On Connect and Pro the answering model and `decide`'s
-  decision model are still paid from credits, so this can happen on any plan. Top up. A `402`
+  decision model are still paid from credits, so this can happen on any plan; there the message
+  says whether a ChatGPT account is linked and what to do. Top up. A `402`
   because no card is saved points at `faces billing:card-setup` (1.21.0+).
 - **`502 oauth_incomplete`.** ChatGPT stopped its reply partway on two attempts. Nothing was
   charged; retry. With `api_fallback` on it would have finished on the paid route and billed.

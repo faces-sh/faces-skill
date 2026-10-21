@@ -6,7 +6,7 @@ Feed it source material — documents, essays, interviews, conversations — and
 
 The output is a **Face**: a compressed cognitive instruction set stored as embedded semantic vectors. A Face has several principal components, each capturing a different resolution of cognition; `face` is their equal-weight composite. A Face reshapes any LLM into a new next-token predictor — not a model wearing a costume, but one whose probability distributions are fundamentally altered by the persona. This overcomes model collapse: instead of regression to the mean, you get a sharply individuated mind.
 
-Because the primitives are embedded, they are semantic objects. You can measure the distance between two Faces. You can find which Faces are nearest or furthest on any component. This is the mathematics of the mind.
+Because the primitives are embedded, they are semantic objects. You can measure the distance between two Faces. You can find which Faces are nearest to or furthest from any other. This is the mathematics of the mind.
 
 You can also do boolean algebra on Faces. A **composite Face** is defined by a formula over concrete Faces using four operators:
 

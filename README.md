@@ -262,7 +262,7 @@ Claude: [reads the skill, decomposes into 5 steps]
 | Skill | What it does |
 |-------|-------------|
 | `/facemake` | **Guided face creation.** Six steps: interview → research (real URLs via web search) → sketch FACE.md → iterate with user → compile. Quick mode: `/facemake "Person Name"` skips the interview. |
-| `/facechat` | **Chat with any face or team.** `/facechat einstein` to chat with a face, `/facechat review-panel` to run a team's protocol, or `/facechat` to browse your catalog and pick. Supports model override and template references. |
+| `/facechat` | **Chat with any face or team.** `/facechat einstein` to chat with a face, `/facechat review-panel` to run a team's protocol, or `/facechat` to browse your catalog and pick. Supports model override. |
 | `/faceteam` | **Team composition.** Composes faces into a team with a self-sufficient mermaid protocol diagram. Three shapes: `(face)` rounded rects get called, `[instruction]` sharp rects the agent executes, `{condition}` diamonds the agent branches on. Produces a TEAM.md in `~/.faces/teams/`. |
 | `/manyface` | **Skill orchestrator.** Takes an existing skill (or designs one from scratch), decomposes it into steps, determines which need a solo face vs. a team vs. no face, and outputs a `manyfaced-` skill directory. |
 | `/faces` | **Core CLI.** Direct access to the faces platform: create faces, compile documents, import YouTube videos, chat, compare faces, compose with Face Math, manage API keys, billing, account preferences, and backup/restore. |
