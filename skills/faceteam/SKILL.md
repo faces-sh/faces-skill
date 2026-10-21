@@ -215,8 +215,9 @@ graph TD
 ```
 
 Put any round limit in the diamond's own text, as above ("or this is round 3"). There
-is no `max_rounds` key: the CLI rewrites TEAM.md frontmatter and only keeps `id`, `name`,
-`description`, `tags` and `members`.
+is no `max_rounds` key: nothing reads one, and before faces-cli 1.21.0 the CLI rewrote TEAM.md
+frontmatter keeping only `id`, `name`, `description`, `tags` and `members` (1.21.0 keeps other
+keys, but still nothing acts on them).
 
 **Pipeline** — sequential chain, each face adds a layer. Output of one becomes
 input to the next. Good for review processes, quality gates, progressive
@@ -314,21 +315,28 @@ the CLI never reads. Compute it with:
 SLUG=$(echo "<team-name>" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
 ```
 
-**Never pass TEAM.md itself to `--protocol-file`.** In faces-cli 1.20.0 the file is
-uploaded as written, so the frontmatter would become part of the team's protocol. To push a
-protocol you edited in TEAM.md, strip the frontmatter first:
+**Pushing a protocol you edited in TEAM.md.** From faces-cli 1.21.0 `--protocol-file`
+drops the file's frontmatter, so pass TEAM.md itself:
+
+```bash
+faces team:edit $TEAM_ID --protocol-file ~/.faces/teams/$SLUG/TEAM.md
+```
+
+Before 1.21.0 the file is uploaded as written, so the frontmatter would become part of the
+team's protocol: strip it first.
 
 ```bash
 sed '1,/^---$/d' ~/.faces/teams/$SLUG/TEAM.md > /tmp/$SLUG-protocol.md
 faces team:edit $TEAM_ID --protocol-file /tmp/$SLUG-protocol.md
 ```
 
-`team:edit` rewrites the local TEAM.md and, in 1.20.0, lists `members:` as member ids
-rather than aliases. `faces catalog:doctor --fix` puts the aliases back for your own faces,
-or read them with `faces team:members $TEAM_ID`.
+`team:edit` rewrites the local TEAM.md with `members:` as aliases. In 1.20.0 it wrote member
+ids instead: `faces catalog:doctor --fix` puts the aliases back for your own faces, or read
+them with `faces team:members $TEAM_ID`. `team:delete` removes the local TEAM.md from 1.21.0;
+before, the folder stayed behind and the deleted team still resolved locally.
 
 **TEAM.md format.** Deterministic: YAML frontmatter + mermaid body, written by the CLI.
-The frontmatter holds structured metadata. Everything after the closing `---` is the protocol (mermaid diagram), as stored on the server. These are the only frontmatter keys; the CLI drops any other.
+The frontmatter holds structured metadata. Everything after the closing `---` is the protocol (mermaid diagram), as stored on the server. These are the only keys the CLI manages. From faces-cli 1.21.0 it keeps any other key as written (before, it dropped them), but nothing reads them, so put what matters in the diagram.
 
 ```markdown
 ---

@@ -188,7 +188,7 @@ Then parse the mermaid flowchart: this is the entire execution spec, round
 limits included.
 
 If `members:` holds ids rather than aliases (faces-cli 1.20.0 writes ids after a
-`team:edit`), read the aliases with `faces team:members TEAM_ID`, or run
+`team:edit`; 1.21.0 writes aliases), read the aliases with `faces team:members TEAM_ID`, or run
 `faces catalog:doctor --fix` to rewrite the file.
 
 ### Walk the graph

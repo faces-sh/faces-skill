@@ -335,8 +335,9 @@ Then ask the user:
 > [If pay-per-token: — best quality for the price.]
 
 Create the face on the platform, then write the recipe into the body of the FACE.md the CLI
-created. The CLI owns the frontmatter and rewrites it on every face command and on
-`catalog:doctor --fix`, keeping only its own keys, so the recipe goes **below** it:
+created. The CLI rewrites the frontmatter on every face command and on `catalog:doctor --fix`.
+From faces-cli 1.21.0 it keeps keys it does not manage, but before that it drops them, so the
+recipe goes **below** the frontmatter, where every version keeps it:
 
 ```bash
 # 1. Create on platform (use the model the user chose)
@@ -359,8 +360,10 @@ RECIPE
 ```
 
 Set the name, description, tags and formula with `face:create` / `face:edit` (`--description`,
-`--tag`, `--formula`), not by editing the frontmatter: the next CLI write replaces it from the
-server. With the recipe in the body, `faces catalog:doctor --fix` is safe to run.
+`--tag`, `--formula`), not by editing the frontmatter: the next CLI write replaces those keys
+from the server. `face:edit --formula` only changes a face that is already a composite
+(faces-cli 1.21.0 refuses it on any other, since it would discard what the face compiled, with
+no way back); a new composite is `face:create --formula`. With the recipe in the body, `faces catalog:doctor --fix` is safe to run.
 
 Recipe body format (everything below the CLI's closing `---`):
 
