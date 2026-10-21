@@ -2,14 +2,15 @@
 name: manyface
 description: >
   Use this skill when the user wants to transform an existing agent skill into
-  a version where each step is run by a specialized AI persona, design a new
-  multi-persona skill from scratch, or browse and install community manyfaced
-  skills from the catalog. Invoke as /manyface for the guided flow,
+  a version where each step that needs judgment is run by the right face (a
+  causal model of a specific person or point of view) or team of faces, design
+  a new multi-face skill from scratch, or browse and install community
+  manyfaced skills from the catalog. Invoke as /manyface for the guided flow,
   /manyface install <name> to install a skill directly, or /manyface list to
-  browse. Trigger when the user says "manyface this skill", "add personas to
-  my skill", "make this skill manyfaced", "browse manyfaced skills",
-  "install a manyfaced skill", or wants different cognitive profiles at
-  different steps of a workflow.
+  browse. Trigger when the user says "manyface this skill", "add faces to my
+  skill", "give each step of my skill its own point of view", "make this skill
+  manyfaced", "browse manyfaced skills", "install a manyfaced skill", or wants
+  different points of view at different steps of a workflow.
 allowed-tools:
   - Bash
   - Read
@@ -22,7 +23,7 @@ allowed-tools:
   - WebFetch
 ---
 
-# /manyface — Orchestrate Skills with Minds
+# /manyface: Orchestrate Skills with Faces
 
 ## Preamble
 
@@ -68,14 +69,14 @@ If a command fails after updating, file a report: see [references/CONTRIBUTING.m
 
 ---
 
-You transform flat, single-voice agent skills into multi-persona skills where
-every step that requires judgment is run by the ideal face — or team of faces —
+You transform flat, single-voice agent skills into multi-face skills where
+every step that requires judgment is run by the ideal face (or team of faces)
 for the job. A code review needs a different face than a creative brainstorm.
 A CEO review needs a panel, not a single voice. You're the conductor writing
 the score.
 
 **Naming rule:** Every manyfaced skill is named `manyfaced-<skillname>`. The
-directory and the skill name both use this prefix. No exceptions — whether
+directory and the skill name both use this prefix. No exceptions: whether
 you're transforming an existing skill or building from scratch.
 
 ## Question format
@@ -96,7 +97,7 @@ before moving on.
 ## Response posture
 
 - **Think like a casting director.** The question isn't "what face goes here?"
-  — it's "what's the dream team for this workflow?" Which steps need a solo
+  It's "what's the dream team for this workflow?" Which steps need a solo
   virtuoso, which need a panel, and which are just plumbing?
 - **Challenge the decomposition.** If the user wants a face for every step,
   push back: "Steps 3 and 4 are both mechanical data transforms. No face will
@@ -116,15 +117,15 @@ before moving on.
 - `/manyface install manyfaced-<name>` → skip to Mode 3, install directly
 - `/manyface publish` → skip to Step 7 (publish an existing manyfaced skill)
 
-**Full mode** — no argument:
+**Full mode** (no argument):
 
 Ask the user:
 
 > **Starting /manyface.** What do you want to do?
 >
-> A) **I have a skill** — transform it into a multi-persona version
-> B) **Start from scratch** — design a new manyfaced skill together
-> C) **Browse the catalog** — see what the community has built and install one
+> A) **I have a skill**: transform it into a multi-face version
+> B) **Start from scratch**: design a new manyfaced skill together
+> C) **Browse the catalog**: see what the community has built and install one
 
 ### Mode 1: "I have a skill"
 
@@ -145,18 +146,18 @@ Ask the user:
 >
 > Does this match your understanding, or am I missing something?
 >
-> A) That's right — go ahead and decompose
+> A) That's right: go ahead and decompose
 > B) You're missing something (tell me what)
 
 #### Step 2: Decompose into roles
 
 For each step, determine:
 
-- **Solo face** — one perspective is enough. Judgment calls, creative work,
+- **Solo face**: one perspective is enough. Judgment calls, creative work,
   domain expertise.
-- **Team** — multiple perspectives needed. Advisory panels, debates, review
+- **Team**: multiple perspectives needed. Advisory panels, debates, review
   pipelines, deliberation.
-- **Faceless** — mechanical step. File operations, git commands, API calls,
+- **Faceless**: mechanical step. File operations, git commands, API calls,
   data transforms. No face, no team.
 
 Focus on steps involving judgment, creativity, adversarial thinking, domain
@@ -170,19 +171,19 @@ Present the decomposition to the user:
 > |------|-----------|-----|
 > | 1. [name] | Faceless | [reason] |
 > | 2. [name] | Solo: [description] | [reason] |
-> | 3. [name] | Team: [protocol] | [reason — name the tension] |
+> | 3. [name] | Team: [protocol] | [reason: name the tension] |
 > | ... | ... | ... |
 >
-> A) This looks right — start casting
+> A) This looks right: start casting
 > B) I want to change some assignments (tell me which)
-> C) Too many faces — simplify
-> D) Not enough faces — I want more depth here: [they'll say where]
+> C) Too many faces: simplify
+> D) Not enough faces: I want more depth here: [they'll say where]
 >
 > RECOMMENDATION: Choose A because [reason].
 
-Push: if they want a face on every step, challenge — "Which of these steps
-actually requires judgment? Mechanical steps don't get better with a persona.
-Save the cognitive depth for where it matters."
+Push: if they want a face on every step, challenge: "Which of these steps
+actually requires judgment? Mechanical steps don't get better with a face.
+Save the faces for where judgment matters."
 
 #### Step 3: Cast
 
@@ -198,12 +199,12 @@ For each role in the decomposition, ask the user:
 > **Casting: [step name].**
 > This step needs [description of what this face brings].
 >
-> A) **Reuse:** `[alias]` from catalog — [description, N compiled sources]
-> B) **Create new face** — I'll run /facemake for this role
-> C) **Create team** — I'll run /faceteam for this step
+> A) **Reuse:** `[alias]` from catalog: [description, N compiled sources]
+> B) **Create new face**: I'll run /facemake for this role
+> C) **Create team**: I'll run /faceteam for this step
 > D) **I have someone specific in mind** (tell me who)
 >
-> RECOMMENDATION: Choose A if the existing face fits — compiled faces with
+> RECOMMENDATION: Choose A if the existing face fits: compiled faces with
 > real sources beat fresh recipes.
 
 For solo roles, use `/facemake` (the full guided flow or quick mode). For team
@@ -220,13 +221,13 @@ faces face:list --public --from-users <username>    # one account's
 faces face:list --public --include owner_follow     # marks the accounts you follow
 faces face:list --public --search "<role or topic>" # matches alias, name and description
 faces face:list --public --search "<text>" --sort relevance   # best match first
-faces face:list --public --sort usage               # most used first — what others actually reach for
+faces face:list --public --sort usage               # most used first: what others actually reach for
 ```
 
 A published face is chatted as `owner:alias` and **requires an explicit
 `@model`**. It can join a team by that same address (`faces team:add TEAM_ID
 --face owner:alias`), but it cannot be edited or compiled, so a role that needs
-its own sources or prompt has to be its own face. From faces-cli 1.10.0 `faces face:get owner:alias`
+its own sources or prompt has to be its own face. `faces face:get owner:alias`
 and `faces face:neighbors owner:alias` work too, so you can read one before
 casting it.
 
@@ -235,18 +236,17 @@ The accounts behind those faces can be read and followed:
 ```bash
 faces user:get <username>          # name, follower counts, whether you follow them
 faces user:follow <username>
-faces user:following <username>    # who they follow — how you find more
+faces user:following <username>    # who they follow: how you find more
 faces user:followers <username>
 ```
 
 `--search` with `--sort relevance` is the fastest way to find a face for a role
 somebody has already built, and `--sort usage` surfaces the ones other people
-actually reach for. Both need faces-cli 1.11.0; below that a listing is always
-newest-first and there is no way to ask for anything else.
+actually reach for.
 
 `faces user:following <username>` is the useful one when casting: the accounts
 a person you trust follows are where the next good face usually is. Following
-is a plain preference and costs nothing, but it is still the user's call —
+is a plain preference and costs nothing, but it is still the user's call:
 offer it, do not do it unasked.
 
 #### Step 4: Write the manyfaced skill
@@ -265,7 +265,7 @@ Ask the user each question. ONE AT A TIME. Push on vague answers.
 
 #### Q1: Purpose
 
-> **Designing a new multi-persona skill.** What should this skill help you do?
+> **Designing a new multi-face skill.** What should this skill help you do?
 > Describe the workflow, task, or decision process.
 
 Push: "You said 'review code.' What kind of review? Security audit is a
@@ -276,24 +276,24 @@ needs different faces."
 
 > **Who uses this skill?** Describe the person who types the slash command.
 >
-> A) Me — I'm building this for my own workflow
-> B) My team — shared workflow for a group
-> C) Public — anyone can install and use it
+> A) Me: I'm building this for my own workflow
+> B) My team: shared workflow for a group
+> C) Public: anyone can install and use it
 
 #### Q3: Steps
 
 > **Walk me through the workflow.** What are the main steps or phases, in
-> order? Don't worry about which ones need faces — just describe what happens
+> order? Don't worry about which ones need faces: just describe what happens
 > from start to finish.
 
-Push: if they give 2-3 vague steps, push for detail — "Step 2 says 'analyze.'
+Push: if they give 2-3 vague steps, push for detail: "Step 2 says 'analyze.'
 Analyze what, looking for what, producing what? The decomposition depends on
 understanding what judgment each step requires."
 
 #### Q4: Where depth matters
 
 > **Where would a generic AI voice fall short?** Which steps need a specific
-> perspective — a face that speaks differently from a standard faceless
+> perspective: a face that speaks differently from a standard faceless
 > assistant?
 >
 > That's where the faces go. The rest stays faceless.
@@ -314,7 +314,7 @@ Parse the catalog table and present it to the user:
 
 > **Community manyfaced skills:**
 >
-> [numbered list from the catalog table — skill name, what it does]
+> [numbered list from the catalog table: skill name, what it does]
 >
 > Pick a number to see details, or tell me which one to install.
 
@@ -380,37 +380,37 @@ Ask the user:
 > A) Compile them now: I'll walk you through each one with /facemake
 > B) I'll compile them later
 >
-> RECOMMENDATION: Choose A — the skill won't work until its faces are compiled.
+> RECOMMENDATION: Choose A: the skill won't work until its faces are compiled.
 
 ## How to write the manyfaced SKILL.md
 
 The manyfaced SKILL.md is a conductor's score. It wires faces and teams to
-steps but never contains cognitive depth itself (that's FACE.md) or
+steps but never holds a face's point of view itself (that's FACE.md) or
 collaboration logic (that's TEAM.md).
 
 ### Circuit diagram (mandatory)
 
 Every manyfaced SKILL.md must include a mermaid flowchart right after the
-Setup section. This is the skill's logic diagram — it shows how input flows
+Setup section. This is the skill's logic diagram: it shows how input flows
 through the steps and which face or team handles each one.
 
-Faces and teams are **opaque modules** — black boxes with a label and a path
+Faces and teams are **opaque modules**: black boxes with a label and a path
 reference. The diagram shows the skill's routing logic, not the internal
 protocol of each team. Think of it as a circuit schematic where faces and
 teams are gates.
 
-**Notation — three shapes, consistent across all diagrams:**
+**Notation: three shapes, consistent across all diagrams:**
 - `[text]` **sharp rectangle** = faceless step (agent executes the instruction)
 - `(alias)` **rounded rectangle** = solo face step (calls
   `faces chat:chat alias`)
 - `{{team-name}}` **hexagon** = team step (runs the protocol defined in
-  `~/.faces/teams/<team-name>/TEAM.md` — the team's own mermaid diagram
+  `~/.faces/teams/<team-name>/TEAM.md`: the team's own mermaid diagram
   is walked by the orchestrating agent)
 - Edges show explicit data flow between steps
 - Dotted lines (`-.-`) point to where each module is defined on disk
 
 The face and faceless shapes are the same convention used inside TEAM.md
-protocol diagrams. Hexagons are unique to the skill level — they represent
+protocol diagrams. Hexagons are unique to the skill level: they represent
 an opaque team whose internal protocol lives in its own TEAM.md.
 
 Example for a code review skill:
@@ -432,7 +432,7 @@ graph TD
 The shape tells the story at a glance: sharp rectangles are faceless plumbing,
 rounded boxes are solo faces, hexagons are teams. Dotted lines point to
 where each module is defined. This diagram should be readable as a standalone
-artifact — someone seeing it on GitHub should understand the skill's
+artifact: someone seeing it on GitHub should understand the skill's
 architecture without reading the prose.
 
 **For solo face steps:**
@@ -440,11 +440,11 @@ architecture without reading the prose.
 ```markdown
 ### Step N: <step name>
 
-**Face:** `<alias>` — <why this face>
+**Face:** `<alias>`: <why this face>
 
 <instructions for this step>
 
-Use `faces chat:chat <alias> -m "<prompt>"`. To give this face another's view, include that face's cause (`faces chat:chat <other> -m "<question>" --reasoning-only`) or its answer from an earlier step in the prompt.
+Use `faces chat:chat <alias> -m "<prompt>"`. To give this face another's view, include that face's cause (`faces causes <other> -m "<question>"`) or its answer from an earlier step in the prompt.
 ```
 
 **For team steps:**
@@ -452,13 +452,13 @@ Use `faces chat:chat <alias> -m "<prompt>"`. To give this face another's view, i
 ```markdown
 ### Step N: <step name>
 
-**Team:** `<team-name>` — <why this team>
+**Team:** `<team-name>`: <why this team>
 
 Run this step by reading `~/.faces/teams/<team-name>/TEAM.md` and walking the
 mermaid protocol diagram: call faces for `()` nodes, execute instructions for
 `[]` nodes, evaluate conditions for `{}` nodes, pass outputs along edges.
 
-<instructions — how to feed input, what to do with output>
+<instructions: how to feed input, what to do with output>
 ```
 
 **For faceless steps:**
@@ -466,13 +466,13 @@ mermaid protocol diagram: call faces for `()` nodes, execute instructions for
 ```markdown
 ### Step N: <step name>
 
-<instructions — no face or team assignment>
+<instructions: no face or team assignment>
 ```
 
 Include a **Setup** section at the top:
 
 ```markdown
-## Setup — Compile the cast
+## Setup: compile the cast
 
 This skill requires the following faces and teams. Review each recipe, then
 compile using the `/faces` skill.
@@ -502,7 +502,7 @@ before use. See each FACE.md's Queued section for source material.
 **The circuit diagram is mandatory in every manyfaced SKILL.md you produce.**
 Use the same notation: `[faceless]`, `(solo face)`, `{{team}}`, dotted lines
 to FACE.md/TEAM.md paths. Every manyfaced skill published to GitHub should be
-visually parseable from its circuit diagram alone. This is a standard — all
+visually parseable from its circuit diagram alone. This is a standard: all
 manyfaced skills use the same diagram format so they can be rendered, compared,
 and browsed as a catalog of circuits.
 
@@ -511,7 +511,7 @@ and browsed as a catalog of circuits.
 **Solo face vs. team.** If one perspective is enough, use a solo face. If the
 value comes from tension between perspectives (a skeptic challenging an
 optimist, a tester finding what a builder missed), use a team. Don't use a team
-when a solo face will do — teams cost more tokens and time.
+when a solo face will do: teams cost more tokens and time.
 
 **Reuse over creation.** Check the catalog and existing teams before creating
 new ones. A face compiled from 6 sources is worth more than a fresh recipe.
@@ -519,10 +519,10 @@ The catalog compounds across skills.
 
 **The face does the thinking, the skill does the routing.** The manyfaced skill
 decides who handles what. The face brings depth. The team brings collaboration
-logic. The skill never describes how a persona should think.
+logic. The skill never describes how a face should think.
 
 **Mechanical steps stay faceless.** Not every step needs a face. File I/O, git
-operations, API calls, data transforms — leave them alone.
+operations, API calls, data transforms: leave them alone.
 
 ## Step 5: QA the output
 
@@ -538,9 +538,9 @@ checklist. Fix any issues before proceeding.
 - [ ] **Every team referenced exists:** either in `~/.faces/teams/` or
       created during this session
 - [ ] **Step instructions use correct CLI:** `faces chat:chat <alias>`, not
-      made-up commands or `${<alias>}` templates (no longer expanded)
+      made-up commands
 - [ ] **Faceless steps have no face/team assignment**
-- [ ] **No cognitive depth in the SKILL.md itself:** the skill routes, it
+- [ ] **No point of view in the SKILL.md itself:** the skill routes, it
       doesn't describe how a face should speak (that's FACE.md's job)
 - [ ] **Diagram matches the steps:** every face and team in the prose appears
       in the diagram, and vice versa
@@ -558,10 +558,10 @@ After QA, present the manyfaced skill to the user:
 >
 > **Needs compilation:** [list faces with no `synced` source in `faces face:sources <alias>`]
 >
-> A) Looks good — I'll compile the faces and start using it
+> A) Looks good: I'll compile the faces and start using it
 > B) I want to change the cast (tell me which roles)
 > C) Show me the full SKILL.md so I can review
-> D) The decomposition is wrong — let's revisit which steps get faces
+> D) The decomposition is wrong: let's revisit which steps get faces
 >
 > The skill doesn't work until its faces are compiled. Use `/facemake` to compile
 > each one, or `/faces` for direct CLI compilation commands.
@@ -577,8 +577,8 @@ Ask the user:
 > [github.com/faces-sh/manyfaced](https://github.com/faces-sh/manyfaced) is a
 > collection of manyfaced skills anyone can install via `/manyface install`.
 >
-> A) Yes — publish it (I'll handle the PR)
-> B) No — this one's just for me
+> A) Yes: publish it (I'll handle the PR)
+> B) No: this one's just for me
 
 If B: done.
 
@@ -592,7 +592,7 @@ a path as argument (`/manyface publish manyfaced-code-review`).
 ### Packaging
 
 **Skill vs production:** Only include faces that are structural to the skill
-itself — built-in roles that every user of this skill needs. Faces cast for a
+itself: built-in roles that every user of this skill needs. Faces cast for a
 specific use case (the user's production) do NOT go in the catalog. Most skills
 will ship with an empty `catalog/` and instructions to run `/facemake` for each role.
 
@@ -610,11 +610,11 @@ will ship with an empty `catalog/` and instructions to run `/facemake` for each 
        teams/<team-name>/TEAM.md
    ```
 3. Verify the package against the submission checklist (see the QA checklist
-   in Step 5 — same rules apply)
+   in Step 5: same rules apply)
 
 ### Submitting the PR
 
-Fork the catalog, copy the skill in, and open a PR — all automated:
+Fork the catalog, copy the skill in, and open a PR: all automated:
 
 ```bash
 # Fork and clone (gh handles the fork if needed)

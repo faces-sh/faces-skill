@@ -2,7 +2,7 @@
 name: faceteam
 description: >
   Use this skill when the user needs multiple AI faces working together on a
-  task — an advisory panel, a debate, a review pipeline, or any collaboration
+  task: an advisory panel, a debate, a review pipeline, or any collaboration
   that requires more than one perspective. Invoke as /faceteam. This skill
   composes faces into a team with a defined collaboration protocol, produces a
   TEAM.md file with a mermaid flowchart diagram showing exactly how the faces
@@ -22,7 +22,7 @@ allowed-tools:
   - WebFetch
 ---
 
-# /faceteam — Compose Minds into Teams
+# /faceteam: Compose Faces into Teams
 
 ## Preamble
 
@@ -69,10 +69,10 @@ If a command fails after updating, file a report: see [references/CONTRIBUTING.m
 ---
 
 You compose faces into teams with defined collaboration protocols. A single
-face brings depth. A team brings depth AND tension — the skeptic who challenges
+face brings depth. A team brings depth AND tension: the skeptic who challenges
 the optimist, the builder who grounds the visionary, the domain expert who
-catches what generalists miss. Three well-chosen faces with genuine cognitive
-diversity beat eight variations of "helpful expert."
+catches what generalists miss. Three well-chosen faces with genuinely different points
+of view beat eight variations of "helpful expert."
 
 ## Question format
 
@@ -99,7 +99,7 @@ before moving on.
   bring a perspective the others can't.
 - **Name the tension.** The best teams have productive disagreement built in.
   If all three faces would say the same thing, you've built a chorus, not a
-  team. Identify where the perspectives will clash — that's the signal.
+  team. Identify where the perspectives will clash: that's the signal.
 - **Recommend a protocol.** Don't ask the user to pick from five options they
   don't understand. Listen to what they need and recommend the right one. Then
   explain why.
@@ -125,15 +125,15 @@ Wait for the answer. Then follow up by asking:
 > I'm thinking:
 >
 > [Your analysis: how many faces, what roles, what protocol, and why. Name
-> where the perspectives will clash — that's where the value is.]
+> where the perspectives will clash: that's where the value is.]
 >
-> A) That sounds right — build it
+> A) That sounds right: build it
 > B) I want to adjust the roles or number of faces
 > C) I had a different collaboration style in mind
 >
 > RECOMMENDATION: Choose A because [reason based on their task].
 
-Push: if they want 5+ faces, challenge — "What does the 5th face say that the
+Push: if they want 5+ faces, challenge: "What does the 5th face say that the
 other 4 don't? Every face on the team should earn its seat."
 
 ### Step 2: Cast the team
@@ -150,12 +150,12 @@ For each role, ask the user:
 > **Casting role [N]: [role name].** This seat needs [description of what
 > this face brings].
 >
-> A) **Reuse existing face:** `[alias]` — [description from catalog]. Already
+> A) **Reuse existing face:** `[alias]`: [description from catalog]. Already
 >    has [N] compiled sources.
-> B) **Create a new face** — I'll run /facemake to build one for this role
+> B) **Create a new face**: I'll run /facemake to build one for this role
 > C) **I have someone specific in mind** (tell me who)
 >
-> RECOMMENDATION: Choose A if the existing face fits — a compiled face with
+> RECOMMENDATION: Choose A if the existing face fits: a compiled face with
 > real sources beats a fresh recipe.
 
 If creating new faces, run `/facemake` for each one (the full guided flow or quick
@@ -165,24 +165,24 @@ on.
 ### Step 3: Design the protocol
 
 Based on what you learned in Step 1, recommend a protocol. The protocol
-determines how the faces interact — and it's defined with a mermaid flowchart
+determines how the faces interact, and it is defined with a mermaid flowchart
 so a human can see the pattern at a glance.
 
-**Diagram convention — three shapes, one rule each:**
+**Diagram convention: three shapes, one rule each:**
 
 - `(alias)` **rounded rectangle** = a face gets called via
-  `faces chat:chat alias`. The alias must appear in the frontmatter `members:`
-  list.
+  `faces chat:chat alias` (`owner:alias@MODEL` for a face you do not own). The
+  alias must appear in the frontmatter `members:` list.
 - `[text]` **sharp rectangle** = the orchestrating agent executes this step
-  itself. The text inside IS the instruction — make it specific enough that
+  itself. The text inside IS the instruction: make it specific enough that
   any agent can execute it without external context.
 - `{text}` **diamond** = the orchestrating agent evaluates a condition and
-  branches. The text inside IS the condition — spell out exactly what to
+  branches. The text inside IS the condition: spell out exactly what to
   check and what counts as passing.
 
 **Edges are explicit data flow.** An edge from A to B means B receives A's
 output as input. If node C needs both the original query and node B's output,
-draw two edges: `Q --> C` and `B --> C`. Never assume implicit context — if a
+draw two edges: `Q --> C` and `B --> C`. Never assume implicit context: if a
 node doesn't have an incoming edge from somewhere, it doesn't see that data.
 
 Every diagram starts with one `[Query]` entry node and ends with one
@@ -192,12 +192,12 @@ Every diagram starts with one `[Query]` entry node and ends with one
 orchestrator needs to frame it (not just pass it raw), insert a `[Compose: ...]`
 node between them. Example: `A --> F[Frame: present face-a's critique as a
 challenge for face-b to defend against] --> B`. Without this, the orchestrator
-concatenates inputs with `[from face-a]: ...` labels — fine for simple handoffs,
+concatenates inputs with `[from face-a]: ...` labels: fine for simple handoffs,
 but not when the framing matters.
 
 **Protocol types and when to use them:**
 
-**Round robin** — faces take turns, building on each other's responses.
+**Round robin**: faces take turns, building on each other's responses.
 Each face sees all prior responses. Good for advisory panels, brainstorming,
 iterative refinement.
 ```mermaid
@@ -218,7 +218,7 @@ Put any round limit in the diamond's own text, as above ("or this is round 3"). 
 is no `max_rounds` key: the CLI rewrites TEAM.md frontmatter and only keeps `id`, `name`,
 `description`, `tags` and `members`.
 
-**Pipeline** — sequential chain, each face adds a layer. Output of one becomes
+**Pipeline**: sequential chain, each face adds a layer. Output of one becomes
 input to the next. Good for review processes, quality gates, progressive
 refinement.
 ```mermaid
@@ -229,7 +229,7 @@ graph LR
     C --> OUT[Response]
 ```
 
-**Chief of staff** — one face coordinates, delegates to specialists,
+**Chief of staff**: one face coordinates, delegates to specialists,
 synthesizes their responses. Good for complex decisions requiring multiple
 domains.
 ```mermaid
@@ -245,7 +245,7 @@ graph TD
     SYN --> OUT[Response]
 ```
 
-**Debate** — two sides argue, a judge decides. Good for evaluating
+**Debate**: two sides argue, a judge decides. Good for evaluating
 controversial decisions, stress-testing proposals.
 ```mermaid
 graph TD
@@ -257,7 +257,7 @@ graph TD
     J --> OUT[Response]
 ```
 
-**Voting** — all faces respond independently, results are tallied. No face
+**Voting**: all faces respond independently, results are tallied. No face
 sees the others' responses. Good for calibration, avoiding groupthink.
 ```mermaid
 graph TD
@@ -314,18 +314,18 @@ the CLI never reads. Compute it with:
 SLUG=$(echo "<team-name>" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
 ```
 
-**Never pass TEAM.md itself to `--protocol-file`.** In faces-cli 1.20.0 the file is
-uploaded as written, so the frontmatter would become part of the team's protocol. To push a
-protocol you edited in TEAM.md, strip the frontmatter first:
+**Never pass TEAM.md itself to `--protocol-file`.** The file is uploaded as written, so the
+frontmatter would become part of the team's protocol. To push a protocol you edited in TEAM.md,
+strip the frontmatter first:
 
 ```bash
 sed '1,/^---$/d' ~/.faces/teams/$SLUG/TEAM.md > /tmp/$SLUG-protocol.md
 faces team:edit $TEAM_ID --protocol-file /tmp/$SLUG-protocol.md
 ```
 
-`team:edit` rewrites the local TEAM.md and, in 1.20.0, lists `members:` as member ids
-rather than aliases. `faces catalog:doctor --fix` puts the aliases back for your own faces,
-or read them with `faces team:members $TEAM_ID`.
+`team:edit` rewrites the local TEAM.md. If `members:` then lists ids rather than aliases,
+`faces catalog:doctor --fix` puts the aliases back for your own faces, or read them with
+`faces team:members $TEAM_ID`.
 
 **TEAM.md format.** Deterministic: YAML frontmatter + mermaid body, written by the CLI.
 The frontmatter holds structured metadata. Everything after the closing `---` is the protocol (mermaid diagram), as stored on the server. These are the only frontmatter keys; the CLI drops any other.
@@ -340,7 +340,7 @@ members: [alias-1, alias-2, alias-3]
 ---
 
 ```mermaid
-<flowchart using actual face aliases as node labels — this IS the execution
+<flowchart using actual face aliases as node labels: this IS the execution
 spec. Any agent can walk this graph mechanically: call faces for () nodes,
 execute instructions for [] nodes, evaluate conditions for {} nodes, pass
 outputs along edges.>
@@ -348,13 +348,13 @@ outputs along edges.>
 ```
 
 **The mermaid diagram is the entire execution spec.** There is no separate
-"Rules" section — the diagram encodes everything: who sees what (edges), who
+"Rules" section: the diagram encodes everything: who sees what (edges), who
 decides what (diamonds with inline conditions), what the orchestrator does
 (sharp rectangles with inline instructions), and when the flow terminates.
 
 A human should see the collaboration pattern at a glance from the shape alone.
 An agent should be able to execute the protocol by parsing the mermaid and
-walking the graph — no protocol lookup table, no presets.
+walking the graph: no protocol lookup table, no presets.
 
 Use actual face aliases as node labels, not generic "Face A" placeholders.
 
@@ -369,12 +369,12 @@ Ask the user:
 >
 > Faces needing compilation: [list any with no `synced` source in `faces face:sources <alias>`]
 >
-> A) Looks good — compile all the faces for me now
+> A) Looks good: compile all the faces for me now
 > B) I want to change the roster or protocol
 > C) Show me the full TEAM.md so I can review the details
-> D) Don't compile yet — I want to review the FACE.md recipes first
+> D) Don't compile yet: I want to review the FACE.md recipes first
 >
-> RECOMMENDATION: Choose A — the team doesn't work until its faces are compiled.
+> RECOMMENDATION: Choose A: the team doesn't work until its faces are compiled.
 
 ### Step 6: Compile the team's faces
 
@@ -396,27 +396,25 @@ For each face it names, follow the `/facemake` skill's Step 5 (compile) flow:
    - YouTube: `faces compile:import <alias> --url "<url>" --type document --medium lecture --perspective first-person --no-wait --json` (a solo talk by the subject; ask if it is something else)
    - Local file: `faces compile:doc <alias> --file <path> --medium <medium> --perspective first-person --no-wait --json`
    - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --perspective first-person --no-wait --json`
-     — pass it verbatim; retyping or summarising teaches the face your paraphrase
-   - `--medium` is required and must not be guessed: a compile reads writing differently
-     per medium and the server refuses to infer one. Eleven values, spelled exactly:
+     (pass it verbatim: do not retype or summarise it)
+   - `--medium` is required on every document and must not be guessed: the server never
+     infers one. Eleven values, spelled exactly:
      `academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,
      `legal document`, `other`, `social post`, `text message`, `thread reply`. There are
-     no synonyms, so `transcript` and `keynote` are each a 422. `other` is for writing in
+     no synonyms: any other word is a 422. `other` is for writing in
      none of those forms and it compiles; it is not a way to avoid choosing.
      **Ask the user** where the FACE.md does not say.
    - Always pass `--perspective`: `third-person` for material *about* the person
      (biography, Wikipedia, news profile), `first-person` for their own words. The
      default differs by command (`compile:doc` is first-person, `compile:upload` and
-     `compile:import` are third-person), and either mistake corrupts the face. See
+     `compile:import` are third-person), and either mistake damages the face. See
      `/facemake` Step 5.
-3. Fire all compiles in parallel — don't wait for one to finish before starting the next
+3. Fire all compiles in parallel: don't wait for one to finish before starting the next
 4. Poll all at the end with ONE call: `faces compile:status --json | jq '{sources_active}'`,
    or `faces compile:status --watch` to block until the account is quiet. This is the
-   case it exists for: several sources in flight at once, answered in 123 bytes instead
-   of one request per id. Needs faces-cli 1.12.0; below that, poll each id with
-   `faces compile:doc:get ID --status-only --json | jq '{status, progress}'` (1.20.0+).
-   `sources_active` counts running and queued work only. Paused sources are listed apart,
-   in `paused`, and never keep `--watch` waiting (faces-cli 1.20.0 prints them).
+   case it exists for: several sources in flight at once, answered in one small call
+   instead of one request per id. `sources_active` counts running and queued work only.
+   Paused sources are listed apart, in `paused`, and never keep `--watch` waiting.
 5. Update each FACE.md: check boxes in Queued, add entries to Sources
 
 Compile all team members before telling the user the team is ready. The goal
