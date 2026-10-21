@@ -1,10 +1,14 @@
 # Quickstart
 
-End-to-end guide for getting a human from zero to chatting with a Face. Follow these steps in order.
+From zero to a face's first cause and answer. Follow these steps in order.
 
-**Important (Claude Code only):** If you just installed the faces-skill bundle in Claude Code, the slash commands (`/facemake`, `/facechat`, etc.) won't be available until the session restarts. You cannot restart it yourself, so tell the user: *"Type `/exit`, then run `claude --continue` so the new skills load and we pick up where we left off."* Other agents load new skills without a restart.
+**Claude Code only:** right after the faces-skill bundle is installed, the slash commands
+(`/facemake`, `/facechat`, and so on) are not available until the session restarts. You cannot
+restart it yourself, so tell the user: *"Type `/exit`, then run `claude --continue` so the new
+skills load and we pick up where we left off."* Other agents load new skills without a restart.
 
-**Website:** https://faces.sh · **API:** api.faces.sh (schema: https://api.faces.sh/openapi.json)
+**Website:** https://faces.sh · **API:** https://api.faces.sh (schema:
+https://api.faces.sh/openapi.json)
 
 ## 1. Install or update the CLI
 
@@ -13,78 +17,81 @@ npm install -g faces-cli@latest
 faces --version
 ```
 
-The same command installs the CLI fresh or upgrades an existing install to the latest version.
+The same command installs the CLI or updates it.
 
-## 2. Get authenticated
+## 2. Sign in
 
-Ask the user where they're starting from:
+Ask the user where they are starting from:
 
 > To use Faces, you need an account. Where are you starting from?
 >
 > A) I have an account, and I'll log in now
 > B) I have an API key, and I'll paste it
-> C) I need to create an account: help me here
+> C) I need an account: help me create one here
 > D) I'll register at faces.sh myself and come back
 
-**If A (log in):**
+**A (log in):**
 ```bash
 faces auth:login --email USER_EMAIL --password 'USER_PASSWORD'
+faces auth:whoami
 ```
-Verify: `faces auth:whoami`
 
-**If B (API key):**
+**B (API key):**
 ```bash
 faces config:set api_key <key>
+faces auth:whoami
 ```
-Verify: `faces auth:whoami`
 
-**If C (register here):**
+**C (register here):** ask which plan:
 
-Ask the user which plan they want:
-
-> Faces has three plans. Which fits you better?
+> Faces has three plans. Which fits you?
 >
-> A) **Free**: $5 initial spend (added as API credits), then everything pays
->    as it goes. No monthly fee. Good for trying it out.
-> B) **Connect ($17/month)**: monthly allowances for compiling and for the
->    face's reasoning, and chat free on your linked ChatGPT Plus or Pro account
->    for the models it serves (the gpt-5.6 and gpt-6 families today). Other
->    models pay as they go.
+> A) **Free**: add $5 of credit to start, then everything is paid as it goes. No monthly fee.
+>    Good for trying it out.
+> B) **Connect ($17/month)**: monthly allowances for compiling and for causes, and the
+>    Codex-eligible models run on your linked ChatGPT plan. Other models are paid as they go.
 > C) **Pro ($49/month)**: Connect with larger allowances.
 
-Then register with the chosen plan:
+Then register:
 
 ```bash
-# Free plan
+# Free
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --json)
 echo "$RESULT" | jq -r '.checkout_url'
 
-# Connect or Pro plan
+# Connect or Pro
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --plan connect --json)   # or --plan pro
 echo "$RESULT" | jq -r '.checkout_url'
 ```
 
-`--json` returns `status`, `user_id`, `plan`, `amount` and `checkout_url`. If the
-checkout link could not be fetched, `checkout_url` is missing and `checkout_error` says why.
+The username is 1 to 32 characters: a lowercase letter, then lowercase letters, numbers or
+underscores. The password needs 8 to 64 characters with an uppercase letter, a lowercase letter
+and a digit. If the checkout link could not be fetched, `checkout_url` is missing and
+`checkout_error` says why.
 
-Tell the human to open the checkout URL in their browser and complete payment.
-Wait for confirmation, then verify:
+Ask the human to open the checkout URL in their browser and pay. When they confirm:
 
 ```bash
 faces billing:balance --json | jq '.is_active'
 ```
 
-If `true`, proceed. If `false`, the payment may not have gone through — ask
-them to try the link again.
+`true`: carry on. `false`: the payment may not have gone through; ask them to try the link again.
 
-**If D (register themselves):**
+**D (register themselves):** ask them to register at [faces.sh](https://faces.sh) and come back
+with login details or an API key.
 
-Tell them to register at [faces.sh](https://faces.sh), then come back with
-either login credentials or an API key.
+## 3. Create a face
 
-## 3. Create a Face
+Every account already has a face of its own, aliased **`me`**. To build the user's own face,
+compile into `me` rather than creating another (see
+[REFERENCE.md → The `me` face](REFERENCE.md#the-me-face)), and use `me` wherever this guide says
+`alice`.
 
-Start by creating the Face with a few basic facts. These anchor the persona and improve compilation quality when source material is added later. `age`, `gender` and `location` take a plain value; `identity`, `education`, `occupation`, `religion`, `family`, `relationships`, `health`, `languages` and `background` take a short sentence. Those twelve are the only keys: any other is a `422` naming it, and nothing in that request is saved. `faces face:attributes` lists them.
+For anyone else, create a face with a few basic facts. `age`, `gender` and `location` take a
+plain value; `identity`, `education`, `occupation`, `religion`, `family`, `relationships`,
+`health`, `languages` and `background` take a short sentence. Those twelve are the only keys:
+any other is a `422` naming it, and nothing in that request is saved. `faces face:attributes`
+lists them.
 
 ```bash
 faces face:create --name "Alice Smith" --alias alice \
@@ -96,46 +103,38 @@ faces face:create --name "Alice Smith" --alias alice \
   --json
 ```
 
-Every account also has a face of its own already, aliased **`me`**, holding only the account's
-name. To build the user's own face, fill that one in rather than creating another (`faces
-face:edit me --description ... --attr ...`), and use `me` wherever this guide says `alice`. See
-[REFERENCE.md → The `me` face](REFERENCE.md#the-me-face).
-
-Keep the **alias** (`alias` in the `--json` output, `alice` here): every command after this takes it. The response also has a `uid`, which no command in this guide needs.
+Keep the **alias** (`alice`): every command after this takes it.
 
 ## 4. Add source material
 
-> **Thread or document? Decide this first.** Any source with more than one
-> speaker (an interview, podcast, conversation, Q&A, panel) is a **thread**: it
-> preserves who said what, and you map the target person's own lines with
-> `--face-speaker`. Only single-voice material (an essay, article, solo talk, or
-> the person's own writing) is a **document**. Compiling a multi-speaker source
-> as a document flattens the dialogue into one voice and corrupts the face, so
-> when in doubt, if two or more people are talking, it is a thread.
+> **Thread or document? Decide this first.** Any source with more than one speaker (an
+> interview, podcast, conversation, Q&A, panel) is a **thread**: it keeps who said what, and
+> `--face-speaker` names the face's own lines. Only single-voice material (an essay, article,
+> solo talk, the person's own writing) is a **document**. Compiling a multi-speaker source as a
+> document reads every speaker as the face, so if two or more people are talking, it is a
+> thread.
 
-> **By them or about them? Always pass `--perspective`.** The default depends on
-> the command: `compile:doc` and `compile:doc:create` (text) default to
-> `first-person`, while `compile:upload` and `compile:import` (PDF, Word, audio,
-> video, YouTube) default to `third-person`. Say it every time. `first-person` is
-> the subject's own words: their essays, letters, interview answers, talks.
-> `third-person` is material *about* them: a biography, an encyclopedia/Wikipedia
-> article, a news profile. Either mistake corrupts the face: writing about them
-> compiled as first-person reads as if they wrote it, and their own PDF uploaded
-> without `--perspective first-person` is compiled as writing about them, which
-> style capture then refuses.
+> **By them or about them? Always pass `--perspective`.** `compile:doc` and
+> `compile:doc:create` default to `first-person`; `compile:upload` and `compile:import` default
+> to `third-person`. Say it every time. `first-person` is the subject's own words: essays,
+> letters, interview answers, talks. `third-person` is material *about* them: a biography, an
+> encyclopedia article, a news profile.
 
-Pick one or more methods depending on what the human has:
+> **Every document needs a `--medium`**, one of `email`, `text message`, `social post`,
+> `essay`, `academic paper`, `blog post`, `legal document`, `thread reply`, `conversation`,
+> `lecture`, `other`. Ask the user if you do not know; never guess.
 
-**Local file — single-voice document (text, PDF):**
+Pick whatever the user has:
+
+**A local file (text, PDF, Word):**
 ```bash
-# By the subject: pass --perspective first-person (compile:upload defaults to third-person)
-# --medium is required: say what the writing is (essay, email, ...), and ask if you do not know
+# By the subject
 DOC_ID=$(faces compile:upload alice --file /path/to/document.pdf --kind document --medium essay --perspective first-person --no-wait --json | jq -r '.document_id // .id')
-# About the subject (biography, Wikipedia, news profile): --perspective third-person
+# About the subject
 DOC_ID=$(faces compile:upload alice --file /path/to/profile.pdf --kind document --medium essay --perspective third-person --no-wait --json | jq -r '.document_id // .id')
 ```
 
-**YouTube video (solo speaker):**
+**A YouTube video, one speaker:**
 ```bash
 IMPORT=$(faces compile:import alice \
   --url "https://www.youtube.com/watch?v=VIDEO_ID" \
@@ -143,85 +142,78 @@ IMPORT=$(faces compile:import alice \
 DOC_ID=$(echo "$IMPORT" | jq -r '.document_id // .doc_id // .id')
 ```
 
-**YouTube video (multi-speaker interview):**
+**A YouTube video, several speakers:**
 ```bash
 IMPORT=$(faces compile:import alice \
   --url "https://www.youtube.com/watch?v=VIDEO_ID" \
   --type thread --no-wait --json)
 THREAD_ID=$(echo "$IMPORT" | jq -r '.thread_id // .id')
-# After transcription completes, review and remap speaker:
+# When transcription finishes, check the speakers and map the face's:
+# faces compile:thread:get "$THREAD_ID"
 # faces compile:thread:edit "$THREAD_ID" --face-speaker "A"
 ```
 
-If `--type thread` fails with 422, retry with `--type document`.
-
-**Raw text:**
+**Text in hand:**
 ```bash
 DOC_ID=$(faces compile:doc:create alice --label "Notes" --medium essay --perspective first-person --content "Text here..." --json | jq -r '.document_id')
 ```
 
 ## 5. Compile
 
-For documents (including uploads and YouTube-as-document):
-
 ```bash
-# Compile an existing document
 faces compile:doc:make "$DOC_ID" --no-wait --json
-```
-
-Or, if you created the document inline (step 4, "Raw text"), you can create and compile in one step:
-
-```bash
-faces compile:doc alice --file essay.txt --medium essay --perspective first-person --no-wait --json
-# Poll: faces compile:doc:get DOC_ID --status-only --json | jq '{status, progress}'
-```
-
-For threads:
-
-```bash
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 
-Poll status: `faces compile:thread:get THREAD_ID --status-only --json | jq '{status, progress}'`. `status` runs `queued`, `compiling`, `compiled` (or `paused`, `failed`), and `progress` goes from 0 to 1. Compiling needs faces-cli 1.20.0 or newer.
+Or create and compile a text document in one step:
 
-`--status-only` leaves out the messages. Polling without it pulls the whole thread back
-every tick — a few hundred bytes against 120KB in one measurement — and for an agent
-that is the transcript landing in context repeatedly.
+```bash
+faces compile:doc alice --file essay.txt --medium essay --perspective first-person --no-wait --json
+```
+
+Poll: `faces compile:doc:get DOC_ID --status-only --json | jq '{status, progress, finishing}'`
+(or `compile:thread:get`). `status` runs `queued`, `compiling`, `compiled` (or `paused`,
+`failed`), and `progress` goes from 0 to 1. For everything at once: `faces compile:status`.
+Always poll with `--status-only`, which leaves the text out.
 
 ## 6. Chat
 
-`chat:chat` auto-routes to the correct API based on model provider. If a `--default-model` was set on the face, no `--llm` flag is needed.
+`chat:chat` routes each model to its endpoint. With a `--default-model` on the face, no `--llm`
+is needed.
 
 ```bash
-# Uses default model (gpt-5.4-mini set in step 3)
-faces chat:chat alice -m "What matters most to you?"
-
-# Override with a specific model
-faces chat:chat alice --llm claude-sonnet-4-6 -m "What matters most to you?"
+faces chat:chat alice -m "What matters most to you?"                          # on the face's default model
+faces chat:chat alice --llm claude-sonnet-4-6 -m "What matters most to you?"  # another model
+faces causes alice -m "What matters most to you?"                            # the cause alone
 ```
 
-## 7. Verify it worked
+Every answer comes with the face's **cause**: the principal *why* behind it (`--show-cause`
+prints it too). `faces causes` returns the cause alone, with no model answering, and is billed
+for the cause only.
+
+## 7. Check it worked
 
 ```bash
 faces face:sources alice
 faces face:sources alice --json | jq '[.documents[], .threads[]] | map({label, status, synced})'
 ```
 
-Every source should read `synced` in the STATUS column (`"synced": true` in `--json`). A
-source still `queued` or `compiling` is not done yet; `not compiled` means its compile was
-never started; `cannot compile: ...` says why it never will. The face is ready once a source
-reads `synced`.
-
-Do not use `component_counts` from `face:get` for this. It is a list of numbers, one per
-component, and the attributes you set at `face:create` already count, so a face with four
-attributes and nothing compiled returns something like `[0, 0, 0, 4, 0, 0]`.
+Every source should read `synced` (`"synced": true` in `--json`). `queued` or `compiling` is
+not done yet; `not compiled` was never started; `cannot compile: ...` says why it never will.
+The face is ready once a source reads `synced`.
 
 ## What's next
 
-- **Add more material** — repeat steps 4–5 to deepen the Face. Each compile adds to the existing knowledge.
-- **Create more Faces** — repeat steps 3–5 for each persona.
-- **Compare Faces** — `faces face:diff --face alice --face bob`
-- **Compose Faces** — `faces face:create --alias alice-and-bob --formula "alice | bob"`
-- **Compare minds**: get each face's cause on the same question with `faces chat:chat <alias> -m '<question>' --reasoning-only`, then give both to a bare model: `faces chat:messages claude-sonnet-4-6 -m 'Alice reasons: <cause>. Bob reasons: <cause>. Compare them.'` (a bare model works with `chat:messages` and `chat:responses`, not `chat:chat`)
-- **Connect ChatGPT** (Connect or Pro plan): `faces auth:connect openai` to use select OpenAI models at no extra cost. See [OAUTH.md](OAUTH.md).
-- **Create an API key** — `faces keys:create --name "my-key"` for programmatic access. The key is saved to `~/.faces/config.json` automatically; pass `--no-save` to skip. See [AUTH.md](AUTH.md).
+- **Add more material:** repeat steps 4 and 5. Each compile adds to the face.
+- **More faces:** repeat steps 3 to 5.
+- **Compare faces:** `faces face:diff --face alice --face bob`
+- **Compose faces:** `faces face:create --name "Alice and Bob" --alias alice-and-bob --formula "alice | bob"`
+- **Ask what a face would decide:** `faces decide alice --state "..." --question "..."` (see
+  [REFERENCE.md → Decisions](REFERENCE.md#decisions-decide))
+- **Compare causes:** get each face's cause on the same question with `faces causes <alias>
+  -m '<question>'`, then give both to a model with no face:
+  `faces chat:messages claude-sonnet-4-6 -m 'Alice: <cause>. Bob: <cause>. Compare them.'`
+  (a model with no face works with `chat:messages` and `chat:responses`)
+- **Connect ChatGPT** (Connect or Pro): `faces auth:connect openai`. See [OAUTH.md](OAUTH.md).
+- **An API key:** `faces keys:create --name "my-key"` for programmatic access. See
+  [AUTH.md](AUTH.md).
