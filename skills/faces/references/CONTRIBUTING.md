@@ -2,7 +2,7 @@
 
 ## Filing an issue
 
-If a command fails unexpectedly — especially after updating the CLI — file a
+If a command fails unexpectedly, especially after updating the CLI, file a
 report so the team can fix it:
 
 ```bash
