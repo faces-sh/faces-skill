@@ -68,6 +68,10 @@ The 422 response includes:
 - `fallback_available: true/false` — whether the user has credit balance to fall back on
 - `detail` — human-readable explanation
 
+Through the CLI with `--json` (faces-cli 1.21.0+), the same refusal is
+`{"error": {"status": 422, "error_code": "oauth_rejected", "fallback_available": ..., "message": ...}}`:
+branch on `.error.error_code` and `.error.fallback_available`.
+
 **To enable paid fallback:**
 ```bash
 faces account:preferences api_fallback true

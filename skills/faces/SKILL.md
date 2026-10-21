@@ -31,6 +31,25 @@ Always use `--json` when you need to extract values from command output — or *
 which carries the same fields in about 40% fewer tokens and is the better choice when the
 output goes into a model's context. Requires faces-cli 1.9.0+.
 
+**A refusal under `--json` is JSON too, and that is what to branch on** (*faces-cli 1.21.0+*):
+`{"error": {"message", "code", "status", "error_code", "fallback_available", "retry_after"}}`
+on stdout. `code` is the exit code, the same one text mode exits with. `status` is the HTTP
+status of the refused request and `error_code` the API's own code (`no_medium`,
+`already_compiled`, `oauth_rejected`, ...). `status` is missing when the CLI refused before
+sending anything, and the other three appear only when the API sent them.
+Branch on `.error.status` and `.error.error_code`, never on the wording of `.error.message`.
+Before 1.21.0 the error carried only `message` and `code`, and exited 1 whatever happened.
+
+**Anything that deletes, revokes or charges needs `--yes` from an agent** (*faces-cli
+1.21.0+*). Under `--json`, or with no terminal (which is how an agent runs the CLI), such a
+command without `--yes` is refused with "Re-run with --yes to confirm. Nothing was changed."
+and exits 2. That covers every `*:delete` (`compile:doc:delete` included), `keys:revoke`,
+`config:clear`, `chat:thread --delete`, `billing:topup`, `billing:subscription:plan`,
+`billing:subscription:cancel`, `billing:card:remove`, `face:publish`, and `face:share` or
+`face:unshare` when they take access away. Ask the user first, then pass `--yes`. Before
+1.21.0, `--json` alone skipped the prompt on a plan switch, card removal, publish or share, and
+a prompt with no terminal could hang until the CLI exited 13.
+
 **The compile instructions in this skill need faces-cli 1.10.0 or newer.** Below that,
 `--medium` is optional where the server now requires it, `compile:thread:replace` is a
 422 on every call, `--status-only` does not exist, and nothing reads whether a compiled
@@ -47,14 +66,24 @@ the billing commands for Pro, plan switching and saved cards need **1.17.0**, an
 `faces decide` needs **1.18.0**: the API moved it, so an older CLI's `decide` is refused, and
 **1.19.0** waits out a rate-limit `429` once, explains the pay-per-token OAuth-only refusal, and
 reads a held decision that failed as the error it is. Compiling needs **1.20.0**: the API
-replaced the progress fields, and an older CLI waits on fields that no longer arrive. From
+replaced the progress fields, and an older CLI waits on fields that no longer arrive.
+`keys:create` and `keys:update` limits (`--expires-days`, `--budget`, `--face`, `--model`)
+need **1.20.1**: an older CLI sends them under names the API refuses, and `compile:thread:edit
+--face-speaker` fails the same way. **1.21.0** puts `status` and `error_code` in `--json`
+errors, needs `--yes` for every destructive or charging command run without a terminal, sends
+saved credentials only to the API they were saved for, and keeps FACE.md and TEAM.md keys it
+does not manage. From
 **1.16.0** every document save requires `--medium`, which the server now enforces at every
 version. Each is marked where it appears.
 
 **When the CLI says it may be out of date, update it.** From 1.16.0 the CLI ends a refusal
 that looks like the API has moved (a route that is gone, a field it relies on missing from a
 response) with `Your faces-cli (X) may be out of date. Update with npm install -g faces-cli
-and try again.` Do that, then retry; do not work around it.
+and try again.` Do that, then retry; do not work around it. From 1.20.1 it asks npm first,
+and when the installed version is already the latest it says instead that this **looks like a
+faces-cli bug**: do not reinstall, report it (see
+[CONTRIBUTING.md](references/CONTRIBUTING.md)). From 1.21.0 a base URL that is not the Faces
+API, or a network failure, is named as that rather than as an old install.
 
 ## Current config
 !`faces config:show 2>/dev/null || echo "(no config saved)"`
@@ -81,7 +110,9 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`. Once auth triage b
 
 **Auth triage:**
 
-- `EXIT:0` → authenticated. Proceed.
+- `EXIT:0` → authenticated. Proceed. If the output carries a `warning` (faces-cli 1.21.0+),
+  the saved API key is refused and commands run on the saved login instead: tell the user, and
+  remove the key with `faces config:set api_key ""` if they agree.
 - `EXIT:127` → the CLI is not installed. Install it as above and re-run, before anything else.
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
@@ -453,8 +484,15 @@ a history modifier and silently becomes `ssay`. Use `"$DOC_ID:essay"`.
 
 **Do not switch models to fix an auth failure.** The default model runs on the user's own
 linked ChatGPT account for free; a billing model is refused rather than warned about. If a
-capture fails on authentication the link has expired: `faces auth:connect openai`. Use
-`--allow-paid` only when the user has said they want to pay.
+capture fails on authentication, no ChatGPT account is linked or the link has expired: check
+with `faces auth:connections`, then `faces auth:connect openai`. From faces-cli 1.21.0
+`style:make` refuses a free capture up front when nothing is linked ("Nothing was started"),
+and a failed job's `CHATGPT_AUTH` error says which of the two it is. Use `--allow-paid` only
+when the user has said they want to pay.
+
+**A failed capture exits 1** from `style:status`, with `--wait` or without, `--json` or not
+(1.21.0+). Before 1.21.0 `style:status --wait` exited 0 on a failed job, so read its `status`
+rather than trusting the exit code there.
 
 A face holds one style **per medium**, so several can be in use at once and version
 numbers restart per medium:
@@ -636,6 +674,11 @@ For "who is most **different / unlike / opposite**," add `--direction furthest`;
 
 Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
 
+**Never put a formula on a compiled face.** The server takes one on any face and turns it into
+a composite: what it compiled stops being used, and there is no way back. `face:edit
+--formula` only changes a face that is already a composite (faces-cli 1.21.0 refuses it on any
+other; an older CLI sends it). Make a new composite with `face:create --formula`.
+
 **Compose on the fly — no need to persist.** You can chat with a composite of your own faces built per-request, by putting the formula in the face position. An explicit `@model` is **required** (a run-time composite has no `default_model`):
 
 ```bash
@@ -685,8 +728,9 @@ TEAM_ID=$(echo "$TEAM" | jq -r '.id')
 # Add faces as members
 faces team:add $TEAM_ID --face alice --face bob
 
-# Set a protocol (mermaid workflow diagram). The file is stored as written, so
-# pass the diagram alone, never TEAM.md with its frontmatter.
+# Set a protocol (mermaid workflow diagram). faces-cli 1.21.0+ drops a leading
+# frontmatter block, so a TEAM.md can be passed as it is; before 1.21.0 the file
+# is stored as written, so pass the diagram alone.
 faces team:edit $TEAM_ID --protocol-file workflow.mmd
 
 # List teams, members
@@ -694,7 +738,7 @@ faces team:list
 faces team:members $TEAM_ID
 ```
 
-Teams have a local TEAM.md at `~/.faces/teams/<slug>/TEAM.md`, where `<slug>` is the name lowercased with each run of other characters turned into `-` ("Review Panel" is `review-panel`). It has YAML frontmatter (id, name, description, tags, members) and the protocol as the body. The CLI writes it; to push a protocol edited there, strip the frontmatter first: `sed '1,/^---$/d' TEAM.md > protocol.md`, then `team:edit --protocol-file protocol.md`.
+Teams have a local TEAM.md at `~/.faces/teams/<slug>/TEAM.md`, where `<slug>` is the name lowercased with each run of other characters turned into `-` ("Review Panel" is `review-panel`). It has YAML frontmatter (id, name, description, tags, members) and the protocol as the body. The CLI writes it. To push a protocol edited there, pass the file itself: `team:edit TEAM_ID --protocol-file ~/.faces/teams/<slug>/TEAM.md` (faces-cli 1.21.0+). Before 1.21.0, strip the frontmatter first: `sed '1,/^---$/d' TEAM.md > protocol.md`, then `team:edit --protocol-file protocol.md`. `team:delete` removes the local TEAM.md from 1.21.0.
 
 ### 8. Backup & restore
 
@@ -710,6 +754,15 @@ faces catalog:restore                    # restore faces + source material
 faces catalog:restore --compile          # restore then compile all
 faces catalog:restore /path/to/file.json # specific backup file
 ```
+
+From faces-cli 1.21.0 the backup includes uploaded threads and style corpus rooms, and restore
+recreates each thread from its saved messages without starting a paid interview, restores each
+face's specialty and `profile_addendum`, and skips a team that already exists. Corpus rooms are
+**not** restored (as threads they would be compiled as knowledge): restore lists them, to load
+again with `faces style:upload`. Anything it could not restore is listed and the command exits
+non-zero, so read that list before reporting the restore done. Before 1.21.0 restore started an
+interview per thread, which an empty balance refused while the summary still counted it, and
+exited 0 regardless.
 
 Compile all outstanding (uncompiled) docs and threads:
 ```bash
@@ -736,17 +789,23 @@ one bills.
 
 ## Common errors
 
+Under `--json`, read the status from `.error.status` and the code from `.error.error_code`
+(faces-cli 1.21.0+), not from the message text.
+
 | Error | Fix |
 |---|---|
 | `faces: command not found` | `npm install -g faces-cli@latest` |
 | `may be out of date` | The API has moved under this version: `npm install -g faces-cli@latest`, then retry |
-| `401 Unauthorized` | `faces auth:login` or check `FACES_API_KEY` via `faces config:show` |
+| `looks like a faces-cli bug` | The CLI is already the latest (1.20.1+). Do not reinstall: report it, see [CONTRIBUTING.md](references/CONTRIBUTING.md) |
+| `Re-run with --yes` | A destructive or charging command run under `--json` or without a terminal (1.21.0+). Nothing was changed. Confirm with the user, then run it again with `--yes` |
+| `401 Unauthorized` | `faces auth:login` or check `FACES_API_KEY` via `faces config:show`. From 1.21.0 a refused **saved** API key falls back to the saved login with a warning; remove the dead key with `faces config:set api_key ""` |
+| `404` on the `me` face | Every account has its own `me` face, made with the account, so a missing one is a fault on the server side, not something to fix locally. Report it (see [CONTRIBUTING.md](references/CONTRIBUTING.md)) |
 | status "transcribing" | Audio/video transcription in progress — poll with `compile:thread:get ID --status-only --json` |
 | status "queued" or "compiling" | Compilation waiting or in progress. Poll with `compile:doc:get ID --status-only --json` or `compile:thread:get ID --status-only --json`, or `compile:status` for everything at once |
 | `409 already_compiled` | The source is compiled and unchanged; nothing was charged. Edit it or `compile:*:reset` it to compile again |
 | status "failed" | If `finishing` is `true` the server is still retrying: wait and offer nothing. Otherwise it is out of attempts; `stall_reason` says why, so do not re-run without fixing it |
-| `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1; `--card pm_…` for a card other than the default). If no card on file: `faces billing:card-setup` first. Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
-| `422 oauth_rejected` | Connect and Pro only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
+| `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up, once the user agrees to the charge: `faces billing:topup --amount <USD> --yes` (min $1; `--card pm_…` for a card other than the default). If no card on file (faces-cli 1.21.0+ says so and names it): `faces billing:card-setup` first. Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
+| `422 oauth_rejected` | Connect and Pro only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup --amount <USD> --yes` first. See [OAUTH.md](references/OAUTH.md) |
 | `429` naming an allowance | A Connect or Pro allowance (reasoning over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is: it names the allowance and the reset. Wait, or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
 | `429 Rate limit: N requests per minute` | The account's per-minute limit on routes that run a model or a compile (per plan; `GET /v1/rates` lists them under `limits.requests_per_minute`). Nothing was charged. faces-cli 1.19.0+ waits the `Retry-After` once and asks again, printing the wait. Refused again: wait the seconds the message names. Never retry in a loop, and remember that parallel agents share one account's limit |
 | `422 oauth_only_unavailable` | Pay-per-token (Free) runs on credits, so it cannot be OAuth-only. Nothing was charged. Drop `--oauth-only`, or subscribe to Connect to use a linked ChatGPT account |
@@ -778,14 +837,16 @@ one bills.
 
 ## FACE.md schema
 
-**The CLI owns the frontmatter; you own the body.** That is the whole rule. `face:create`,
-`face:edit`, the `face:tag:*` commands, `catalog:restore` and `catalog:doctor --fix` all
-rewrite the frontmatter from the server, and keep only the keys below. Any other key
-(`role`, `source_type`, `sources_compiled`, anything you add) is dropped. A frontmatter
-without both `name` and `alias` cannot be read at all, so the CLI writes a new block on top
-and the old one survives only as text in the body. The markdown body after the frontmatter
-is kept as it is, so put recipe notes, queued sources and anything else of yours there, and
-`catalog:doctor --fix` is then safe to run.
+**The CLI owns the keys below; you own the body.** `face:create`, `face:edit`, the
+`face:tag:*` commands, `catalog:restore` and `catalog:doctor --fix` all rewrite those keys
+from the server. From faces-cli 1.21.0 any other key (`role`, `source_type`,
+`sources_compiled`, anything you add) is kept as written, list items included, and the CLI
+never stacks a second frontmatter block: one left by an older version is read as one and
+collapsed on the next write. **Before 1.21.0 every other key is dropped**, and a frontmatter
+without both `name` and `alias` gets a new block written on top, so on an older CLI keep
+nothing of yours in the frontmatter. Either way the markdown body after the frontmatter is
+kept as it is, and it is the safe place for recipe notes, queued sources and anything else of
+yours.
 
 Fields the CLI writes:
 ```yaml
@@ -812,9 +873,10 @@ it, so a non-zero value does not mean anything has compiled: ask the server with
 `faces face:sources <alias>`. `profile_token_count` appears once the face has a compiled
 profile.
 
-`compiled_tokens` is written only when the server reports tokens saved for the face, and is
-usually absent, so it says nothing about whether a face is compiled. To know that, ask the
-server: `faces face:sources <alias>` (a source reading `synced` has compiled).
+`compiled_tokens` is the source tokens compiled into the face. From faces-cli 1.21.0 it is
+written for every synced face, `0` when nothing has compiled, so `compiled_tokens: 0` finds faces still
+to compile. Before 1.21.0 it was usually absent and said nothing. For the current state of each
+source, ask the server: `faces face:sources <alias>` (a source reading `synced` has compiled).
 
 All fields in FACE.md reflect the server state. The API returns `basic_facts` but the CLI renames it to `attributes` everywhere.
 
@@ -830,7 +892,7 @@ members: [ada, einstein, skeptic]
 ---
 ```
 
-The body after the frontmatter is the protocol (typically a mermaid diagram). Written by `team:create`, updated by `team:edit`/`team:add`/`team:remove`. Synced from server by `catalog:doctor --fix`.
+The body after the frontmatter is the protocol (typically a mermaid diagram). Written by `team:create`, updated by `team:edit`/`team:add`/`team:remove`, removed by `team:delete` (1.21.0+). Synced from server by `catalog:doctor --fix`. `members:` holds aliases (faces-cli 1.20.0's `team:edit` wrote ids instead). From 1.21.0 a key the CLI does not manage is kept, as in FACE.md; before, it is dropped.
 
 ## References
 

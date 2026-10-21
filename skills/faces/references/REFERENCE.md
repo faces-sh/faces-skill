@@ -3,7 +3,10 @@
 ```
 faces auth:login        --email  --password
 faces auth:logout
-faces auth:register     --email  --password  --username  [--plan free|connect|pro]  [--invite-key]   # username: lowercase, numbers, dashes only
+faces auth:register     --email  --password  --username  [--plan free|connect|pro]  [--invite-key]
+                                                       # username: 1-32 chars, a lowercase letter first, then lowercase letters,
+                                                       # numbers or underscores. NO DASHES. Password: at least one digit.
+                                                       # 1.21.0+ checks both before sending.
 faces auth:whoami
 faces auth:refresh
 faces auth:connect      openai   # device-code flow: prints a code + URL, polls until approved
@@ -29,9 +32,16 @@ faces face:get          <alias | owner:alias>  [--include tags,teams,profile,sha
                                                        # is not proof of absence: a published face may answer chat before it is
                                                        # listed. Do not report a miss to a user as "no such face".
                                                        # a published or shared face resolves under owner:alias, the same address chat
-                                                       # uses, and prints an `access:` line saying you do not own it.
+                                                       # uses, and prints an `access:` line saying you do not own it: it can be
+                                                       # chatted with or added to a team, but only its owner can edit it.
+                                                       # Plain output shows the description too (1.21.0+; before, only --json had it).
+                                                       # A 404 on `me` is never "no such face": every account has its own `me`,
+                                                       # made with the account, so a missing one is a server-side fault to report.
 faces face:attributes
 faces face:edit       <alias>  [--name]  [--default-model MODEL]  [--description TEXT]  [--specialty TEXT]  [--tag TAG...]  [--formula EXPR]  [--attr KEY=VALUE]...  [--tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH | --clear-profile-addendum]
+                                                       # --formula only changes a face that is ALREADY a composite (1.21.0+). On a
+                                                       # compiled face it would throw away what it learned, with no way back, so it
+                                                       # is refused: make a new composite with face:create --formula instead.
 faces face:delete       <alias>  [--yes]
 faces face:lock         <alias>              # freeze the face (read-only)
 faces face:unlock       <alias>              # unfreeze the face (writable)
@@ -101,6 +111,10 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # --best-of N (1-5) writes N replies and serves the closest to the style.
                                                        # It multiplies the cost by N, needs a + alias, and is never streamed.
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
+                                                       # --temperature is 0 to 2, checked before sending (1.21.0+; before, a
+                                                       # value that was not a number was silently dropped).
+                                                       # A streamed reply the model refused is reported as an error, not
+                                                       # printed as an empty reply with exit 0 (1.21.0+).
                                                        # --medium declares WHAT THE WRITING IS so the reply is shaped for the occasion.
                                                        # ELEVEN VALUES, SPELLED EXACTLY: email, text message, social post, essay,
                                                        # academic paper, blog post, legal document, thread reply, conversation,
@@ -125,7 +139,7 @@ faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]
                                                        # --medium is per REQUEST, not per thread: send it on each turn you want shaped.
 faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--no-stream]  [--oauth-only]  [--reasoning]  [--cause TEXT]  # resume a thread
 faces chat:thread       --list                                                                                                                    # list saved threads
-faces chat:thread       --id THREAD_ID  (--show | --delete)                                                                                        # show transcript / delete
+faces chat:thread       --id THREAD_ID  (--show | --delete [--yes])                                                                                # show transcript / delete
 
 faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--medium KIND]  [--perspective first-person|third-person]  [--face-speaker LABEL]  [--no-wait]
                                                        # --medium is required with --type document and refused with thread (1.16.0+).
@@ -156,7 +170,7 @@ faces compile:doc:get      <doc_id>  [--status-only]   # --status-only leaves ou
                                                        # whole document, which was 21KB in one measurement and grows with it. Poll with it.
 faces compile:doc:edit     <doc_id>  [--label]  [--content TEXT | --file PATH]  [--medium KIND]  [--perspective first-person|third-person]
                                                        # A document's medium can be changed, never cleared.
-faces compile:doc:delete   <doc_id>
+faces compile:doc:delete   <doc_id>  [--yes]
 
 faces compile:thread:create   <alias>  [--label]  [--oauth-only]
 faces compile:thread:list     <alias>
@@ -207,6 +221,7 @@ faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KI
                                                        # about email. A source that does not declare a medium is REFUSED, not
                                                        # guessed — declare it with --medium (all) or --source ID:MEDIUM (one).
 faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--timeout N]
+                                                       # exits 1 for a failed job (1.21.0+; before, --wait exited 0 on one).
                                                        # read one build, or list a face's builds. Listing is how you recover a job id.
                                                        # MEDIUM says what the build is for, stamped at creation so it is there on the
                                                        # first poll. A build started for several shows them all; one started before
@@ -231,8 +246,8 @@ faces style:delete      <alias>  [--medium KIND | --all]  [--yes]
 
 faces catalog:doctor      [--fix]  [--generate]
 faces catalog:list
-faces catalog:backup
-faces catalog:restore     [FILE]  [--compile]
+faces catalog:backup                                   # uploaded threads and style corpus rooms included (1.21.0+)
+faces catalog:restore     [FILE]  [--compile]          # exits non-zero listing anything it could not restore (1.21.0+)
 faces catalog:manyfaced   [--skill NAME]  [--install NAME --skills-dir PATH]  [--refresh]
 
 faces compile:all         [--timeout N]
@@ -246,21 +261,30 @@ faces compile:status      [--watch]  [--interval SECONDS]
                                                        # is this month's compile usage against the allowance.
 
 faces keys:create   --name  [--expires-days N]  [--budget F]  [--face ALIAS]...  [--model NAME]...  [--no-save]
+                                                       # --expires-days 1 to 36500. --budget is a lifetime cap in plain dollars
+                                                       # (5 or 0.50; anything else is refused). --face limits CHAT to those
+                                                       # aliases; other faces can still be read. --model limits the models.
+                                                       # Below 1.20.1 every one of these limits is refused by the API.
 faces keys:list
-faces keys:revoke   <key_id>  [--yes]
+faces keys:revoke   <key_id>  [--yes]                  # 1.21.0+ also removes it from the config when it is the saved api_key
 faces keys:update   <key_id>  [--name]  [--budget F]  [--reset-spent]
 
 faces billing:balance
 faces billing:subscription                             # plan (free|connect|pro|team), and on a paid plan a meter of each allowance.
                                                        # allowances.*.limit < 0 in --json means UNLIMITED (Team), never "used up".
 faces billing:subscription:activate  [--plan connect|pro]    # alias billing:subscribe. First subscription, or reactivate.
-faces billing:subscription:plan      <connect|pro>  [--yes]  # already subscribed: switch in place, prorated (1.17.0+)
+                                                       # With no --plan, a plan set to cancel is kept (1.21.0+; before, it
+                                                       # defaulted to connect, which a Pro user did not want).
+faces billing:subscription:plan      <connect|pro>  [--yes]  # already subscribed: switch in place, prorated (1.17.0+).
+                                                       # Refused while the plan is set to cancel (1.21.0+): keep it first.
 faces billing:subscription:cancel    [--yes]
 faces compile:stats                                    # plan, compile source tokens this month against the allowance, and the
                                                        # pay-as-you-go rate (1.18.0+; older versions call a retired endpoint).
                                                        # Per-face numbers: face:stats.
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
-faces billing:topup      --amount F  [--card PM_ID]  [--payment-ref REF]
+faces billing:topup      --amount F  [--card PM_ID]  [--payment-ref REF]  [--yes]
+                                                       # charges a card: from an agent it needs --yes (1.21.0+). --amount must be a
+                                                       # plain dollar amount (5 or 0.50); anything else is refused (1.21.0+).
 faces billing:cards                                    # saved cards, newest first; one is the default (1.17.0+)
 faces billing:card-setup [--no-default]                # alias billing:card:add: a Stripe link to save a card
 faces billing:card:default  <PM_ID>
@@ -270,10 +294,12 @@ faces billing:llm-costs  [--provider openai|anthropic|qwen|...]
                                                        # made it, never the service that runs it.
 
 faces team:create       --name  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]  [--tag TAG...]
+                                                       # --protocol-file drops a leading frontmatter block, so a TEAM.md can be
+                                                       # passed as it is (1.21.0+). Before, the file was stored as written.
 faces team:list
 faces team:get          <team_id>
 faces team:edit       <team_id>  [--name]  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]
-faces team:delete       <team_id>  [--yes]
+faces team:delete       <team_id>  [--yes]             # 1.21.0+ also removes the local TEAM.md
 faces team:members      <team_id>                      # FACE / STATUS / ID. A member you do not own can become unreachable when its
                                                        # owner revokes access or deletes it; it stays LISTED with the reason rather
                                                        # than vanishing, so the team never silently changes shape. "access was
@@ -303,7 +329,9 @@ faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
                                                        # face for --baseline. A face with no questions gives its reasoning
                                                        # alone. A .json --state-file is sent as JSON. See Decisions.
 
-faces config:set    <key> <value>
+faces config:set    <key> <value>                      # keys: base_url, api_key, token, user_id, catalog, catalog_model,
+                                                       # credentials_base_url. 1.21.0+ refuses any other key (naming the closest)
+                                                       # and a base_url that is not an http(s) URL.
 faces config:show
 faces config:clear  [--yes]
 ```
@@ -437,7 +465,7 @@ faces chat:thread --id t_abc123 -m "Say more about that"
 # Manage threads
 faces chat:thread --list                  # all saved threads, newest first
 faces chat:thread --id t_abc123 --show    # full transcript (system + every turn)
-faces chat:thread --id t_abc123 --delete  # remove the local thread file
+faces chat:thread --id t_abc123 --delete --yes  # remove the local thread file (--yes: 1.21.0+ asks first)
 ```
 
 **Message input:** provide the user message with `-m/--message` or read it from a file with `--file PATH` (one or the other is required when sending).
@@ -629,7 +657,7 @@ even on Connect and Pro: with none it is a `402`. Nothing is charged for a reque
 | `404` | No such face, or not yours to use | Check the alias |
 | `409` | The face needs recompiling (not compiled since decisions launched) | Compile one of its sources again; not retryable as it is |
 | `422` | Wrong shape: missing `type`, criteria that do not fit the type, more than 10 options for `faces-latest`, questions with a bare face | Read the message |
-| `402` | No credit for the decision model (on every plan) | `faces billing:topup` |
+| `402` | No credit for the decision model (on every plan) | `faces billing:topup --amount <USD> --yes`, once the user agrees |
 | `429` naming an allowance | A reasoning allowance used up, `api_fallback` off | Wait for the reset, or turn on `api_fallback` |
 | `429 Rate limit` | The account's per-minute limit | faces-cli 1.19.0+ waits `Retry-After` once; after that, wait the seconds named |
 | `503` + `Retry-After` | Warming up from a cold start | The CLI waits it out; with `--no-retry`, retry after that many seconds |
@@ -762,7 +790,7 @@ faces team:tag:add TEAM_ID --tag urgent
 faces team:tag:list TEAM_ID
 ```
 
-Teams also have a local TEAM.md representation at `~/.faces/teams/<name>/TEAM.md` with YAML frontmatter (name, description, tags, members as aliases) and the protocol as the markdown body.
+Teams also have a local TEAM.md representation at `~/.faces/teams/<name>/TEAM.md` with YAML frontmatter (name, description, tags, members as aliases) and the protocol as the markdown body. From faces-cli 1.21.0 `--protocol-file` strips the frontmatter, so `team:edit TEAM_ID --protocol-file ~/.faces/teams/<name>/TEAM.md` pushes an edited protocol directly; `team:edit` writes `members:` as aliases (1.20.0 wrote ids), a frontmatter key the CLI does not manage is kept, and `team:delete` removes the local folder.
 
 ## Compiling documents (`compile:doc`)
 
@@ -989,8 +1017,10 @@ faces style:make alice --all --medium email --model gpt-5.6-luna
 # Error: 'gpt-5.6-luna' is not on the free tier, so this build would bill you.
 ```
 
-If a capture fails on authentication, the ChatGPT link has expired. Reconnect it with
-`faces auth:connect openai` — do not switch to a paid model, which turns a fixable login
+If a capture fails on authentication, no ChatGPT account is linked or the link has expired.
+Check with `faces auth:connections`, then link or reconnect with `faces auth:connect openai`.
+From faces-cli 1.21.0 `style:make` checks for a link before queuing a free capture and refuses
+with none ("Nothing was started"; link one, or `--allow-paid`). Do not switch to a paid model, which turns a fixable login
 into a permanent bill. Pass `--allow-paid` only when you mean to pay.
 
 **One style per medium.** A face does not have "a style", it has one per medium. An email
@@ -1047,6 +1077,9 @@ faces style:status --face alice        # recover the job id
 faces style:status JOB_ID --wait
 ```
 
+`style:status` exits 1 when the job failed, with `--wait` or without, `--json` or not
+(1.21.0+). Before 1.21.0 a failed `--wait` exited 0: read `status`, not the exit code.
+
 **One capture per face and medium at a time.** Starting another while one runs is refused
 with `409 build_in_progress`, naming the running job; the CLI prints the `style:status
 JOB_ID --wait` to follow it. Nothing was started or charged. Do not retry in a loop.
@@ -1067,7 +1100,7 @@ starts with a code, and each has its own fix:
 |---|---|---|
 | `CONNECT_REQUIRED` | Not on Subscription Connect, so there is no free route | `--allow-paid` to pay from credits, if the user agrees |
 | `MODEL_NOT_FREE` | That model has no free ChatGPT route | Use the default model, or `--allow-paid` |
-| `CHATGPT_AUTH` | The ChatGPT link expired | `faces auth:connect openai`, then capture again |
+| `CHATGPT_AUTH` | No ChatGPT account is linked, or the link expired. 1.21.0+ says which ("No ChatGPT account is linked", or "most likely expired" when one is); when it cannot tell, it names `faces auth:connections` | `faces auth:connect openai`, then capture again |
 
 **Automatic captures** (*faces-cli 1.13.0+ to see and control them*). The server captures a
 medium on its own once the face has enough of its **own** writing in it: 10,000 words for
@@ -1335,10 +1368,10 @@ shows a bare `read only` line and `face:list` shows a `[read only]` marker
 The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file per face (YAML frontmatter + markdown notes) and a consolidated `~/.faces/catalog.json` index. The catalog is managed automatically on `face:create`, `face:edit`, and `face:delete`.
 
 - `faces catalog:doctor` — diagnose missing, stale, or orphaned catalog entries
-- `faces catalog:doctor --fix`: rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files). It rewrites the frontmatter of **every** FACE.md and the whole of every TEAM.md from the server, but `Fixed N` counts only entries that were missing or renamed, so `Fixed 0` does not mean nothing changed. It does not add a missing description; that is `--generate`. A FACE.md body is kept; frontmatter keys the CLI does not write are dropped (see the FACE.md schema in SKILL.md)
+- `faces catalog:doctor --fix`: rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files). It rewrites the frontmatter of **every** FACE.md and the whole of every TEAM.md from the server, but `Fixed N` counts only entries that were missing or renamed, so `Fixed 0` does not mean nothing changed. It does not add a missing description; that is `--generate`. A FACE.md body is kept. Frontmatter keys the CLI does not write are kept as written from faces-cli 1.21.0 and dropped before it (see the FACE.md schema in SKILL.md)
 - `faces catalog:doctor --generate` — fix + generate descriptions via LLM (syncs back to server)
-- `faces catalog:backup` — snapshot all faces (with descriptions, tags), teams, documents (with each one's medium, from 1.16.0), and threads to `~/.faces/backups/<timestamp>.json`
-- `faces catalog:restore [FILE]` — restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload. A document the backup records no medium for (an older backup, or a document saved before a medium was required) is refused by the server; restore names it, and it needs creating again with `compile:doc:create --medium`. Never guess the medium.
+- `faces catalog:backup`: snapshot all faces (with descriptions, tags), teams, documents (with each one's medium, from 1.16.0), and threads to `~/.faces/backups/<timestamp>.json`. From 1.21.0 it also takes uploaded threads and style corpus rooms, each thread's medium and source, and each face's specialty and `profile_addendum`
+- `faces catalog:restore [FILE]`: restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload. A document the backup records no medium for (an older backup, or a document saved before a medium was required) is refused by the server; restore names it, and it needs creating again with `compile:doc:create --medium`. Never guess the medium. From 1.21.0: threads are recreated from their backed-up messages without starting a paid interview (before, each one started one, and on an empty balance every thread was refused while the summary still counted it); style corpus rooms are **not** restored as threads, which would make them knowledge to compile, and are listed for you to load again with `style:upload`; a team that already exists is skipped rather than duplicated; specialty and `profile_addendum` are restored; and anything not restored is listed and the command exits non-zero. Before 1.21.0, read the summary rather than trusting exit 0.
 - `faces catalog:list` — print catalog contents
 - `faces compile:all` — compile all uncompiled documents and threads across all faces (one at a time with progress)
 - `faces config:set catalog false` — disable catalog management
@@ -1399,7 +1432,24 @@ faces face:list --json      # unchanged
 faces face:list             # human output, unchanged
 ```
 
-The two are mutually exclusive. Errors keep the same structured shape in either. Nothing
+The two are mutually exclusive. Errors keep the same structured shape in either, and with both
+flags given an error is reported in JSON (1.21.0+).
+
+**Errors under `--json`** (1.21.0+) are `{"error": {"message", "code", "status", "error_code",
+"fallback_available", "retry_after"}}` on stdout. `code` is the exit code, the same one text
+mode exits with; `status` is the HTTP status of the refused request (missing when nothing was
+sent); `error_code`, `fallback_available` and `retry_after` appear when the API sent them.
+Branch on `.error.status` and `.error.error_code`, never on the message text. Missing
+credentials are a JSON error too. Before 1.21.0 the error held only `message` and `code`, and
+the exit code was 1 for everything.
+
+**Confirmations** (1.21.0+). Every command that deletes, revokes or charges asks first; `--yes`
+skips the question. Under `--json`, or with no terminal to answer on, it does not ask: it
+refuses with "Re-run with --yes to confirm. Nothing was changed." and exits 2. This includes
+`compile:doc:delete`, `billing:topup` and `chat:thread --delete`, which did not ask before, and
+`face:publish`, `face:share`/`face:unshare` (when removing access), `billing:subscription:plan`
+and `billing:card:remove`, which `--json` used to let through unasked. Ask the user, then pass
+`--yes`. Nothing
 about the data changes, so anything that reads `--json` can read `--toon` by decoding it
 instead of parsing JSON.
 
@@ -1431,13 +1481,29 @@ refusals, and the ones that arrive inside a stream, are under
 
 Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_messages`,
 `corpus_room`, `too_short`); see the `compilable` section above. The CLI prints the repair for each.
+Under `--json` it is in `.error.error_code`, with the status in `.error.status` (1.21.0+).
 
 **`may be out of date`** (1.16.0+): the CLI ends a refusal with `Your faces-cli (X) may be out
 of date. Update with npm install -g faces-cli and try again.` when it looks like the API moved
 under it: a route that is gone, a `405` or `410`, a `422` about a top-level field the CLI sent
 or left out, or a response missing a field the CLI relies on. Update and retry. A missing face,
 a bad medium or a mistake in a questions file never carries it, since those are about what was
-asked.
+asked. From 1.20.1 the CLI checks npm first (cached for six hours): when the installed version is
+already the latest it says this **looks like a faces-cli bug** and where to report it instead, so
+do not reinstall. From 1.21.0 a server that does not answer in JSON is named as not the Faces API,
+a base URL ending in a path gets the exact fix, and a network failure names its cause.
+
+**Ids stay ids** (1.20.1+). An id or alias given to any command is encoded into its path, and
+`.` or `..` is refused, so no argument can reach a different route or a folder outside its own.
+
+**Saved credentials stay with their API** (1.21.0+). A login or key is saved with the API it
+came from (`credentials_base_url`; an older config falls back to its `base_url`, then
+api.faces.sh), and is sent only there, so `--base-url` to another host does not carry it. A
+token or key from a flag or the environment is always sent. Nothing goes over plain `http://`
+except to localhost. A **saved** API key the API refuses falls back once to the saved login, with
+a warning naming how to remove it; `auth:whoami` reports the same, on stdout. A `401` names
+`auth:whoami` and `auth:login`. A corrupt `config.json` is backed up before anything overwrites
+it.
 
 Two refusals can come from almost any route, and the CLI adds what to do to both (1.13.0+):
 
@@ -1454,7 +1520,8 @@ Two refusals can come from almost any route, and the CLI adds what to do to both
   again; a second refusal is final. Do not retry in a tight loop: agents running in parallel
   share the account's limit, and asking early is refused too.
 - **`402`.** No credit for the request. On Connect and Pro the answering model and `decide`'s
-  decision model are still paid from credits, so this can happen on any plan. Top up.
+  decision model are still paid from credits, so this can happen on any plan. Top up. A `402`
+  because no card is saved points at `faces billing:card-setup` (1.21.0+).
 - **`502 oauth_incomplete`.** ChatGPT stopped its reply partway on two attempts. Nothing was
   charged; retry. With `api_fallback` on it would have finished on the paid route and billed.
 
