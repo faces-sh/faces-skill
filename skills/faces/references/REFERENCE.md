@@ -434,7 +434,7 @@ plan that does not answers `422 model_not_supported`; pick another model, or all
 **Only chat models route a chat.** Each `GET /v1/models` entry has a `kind`: `chat`, `image`,
 `transcription`, `decision`, `cause` or `compile`. With no `?kind=` the list is chat models only;
 pass one kind or a comma list (`?kind=chat,image`), or `?kind=all`. An unknown kind is a `422`.
-`faces-compile-latest` (`?kind=compile`) prices compiling: $28 per million source tokens, with
+`faces-compile-latest` (`?kind=compile`) prices compiling: $25 per million source tokens, with
 `included_tokens_per_month` per plan. faces-cli 1.18.0+ routes chats only to `kind: chat`
 models, and a chat that names a decision model (`alias@jev-latest`, `clef`, `clef-flash`) is
 refused before sending: use `faces decide`.

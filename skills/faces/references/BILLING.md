@@ -54,7 +54,7 @@ or Pro user still needs credit for most chats, and always for `faces decide`.
   `faces account:preferences api_fallback true` only if the user agrees to pay from credits.
 
 **Pay-as-you-go rates** (the Free plan, and past an allowance with fallback on): a face's
-reasoning $0.75 per million tokens (each turn's input tokens plus 1,500), compile $28 per
+reasoning $0.75 per million tokens (each turn's input tokens plus 1,500), compile $25 per
 million source tokens, any model you name the provider's price + 5%. `billing:subscription
 --json` carries them as `rates` (`cause_usd_per_million_input_tokens`, `cause_added_tokens`,
 `compile_usd_per_million_source_tokens`, `model_markup`), and the public `GET /v1/rates` has
@@ -184,7 +184,7 @@ the pay-as-you-go compile rate (faces-cli 1.18.0+):
 ```
 Plan: connect
 Compiled this month: 4,072 of 250,000 source tokens (2%), resets 2026-10-28
-Pay-as-you-go compile rate: $28 per million source tokens (past the allowance, with api_fallback on)
+Pay-as-you-go compile rate: $25 per million source tokens (past the allowance, with api_fallback on)
 ```
 
 `--json` is `{plan, compile_this_month: {limit, used, remaining, resets_at}, pay_as_you_go:
@@ -205,7 +205,7 @@ anthropic, xai, qwen, z-ai, moonshot, …; the row's `lab`), never by the servic
 A model's price is fixed whichever service runs it, so read it here rather than quoting one from
 memory. Each row carries `markup_rate` and `prices_include_markup`; 1.21.0+ states the markup
 from them, then lists compile and reasoning prices and what each plan includes, from
-`GET /v1/models?kind=compile,cause` (`faces-compile-latest`: $28 per million source tokens,
+`GET /v1/models?kind=compile,cause` (`faces-compile-latest`: $25 per million source tokens,
 `included_tokens_per_month` Connect 250,000, Pro 1,000,000).
 
 ## Usage analytics
@@ -228,7 +228,11 @@ free route), which they were not charged; 1.21.0+ shows it as a COVERED column w
 | Operation | Approximate cost |
 |-----------|-----------------|
 | Audio/video transcription | ~$0.37/hour |
-| Compile, past an allowance or on Free | $28 per million source tokens |
+| Compile, past an allowance or on Free | $25 per million source tokens |
+
+The compile price went from $28 to $25 per million source tokens on 2026-10-21. Quote the
+current one from `GET /v1/rates` (`compile.usd_per_million_source_tokens`) or
+`faces billing:llm-costs`, never from memory.
 | A face's reasoning, past an allowance or on Free | $0.75 per million tokens, each turn's input tokens plus 1,500 |
 | The answering model | Varies by model; see `faces billing:llm-costs` |
 

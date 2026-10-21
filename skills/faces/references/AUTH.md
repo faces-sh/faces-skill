@@ -150,7 +150,7 @@ Some agent environments run a terminal security scanner that redacts `sk-`-prefi
 ### Free
 
 - **Activation:** $5 minimum initial spend (added as API credits).
-- **Pricing:** everything pays as it goes from credits: a face's reasoning at $0.75 per million reasoning tokens (each turn's input tokens plus 1,500), compiling at $28 per million source tokens, the answering model at the provider's price plus 5%.
+- **Pricing:** everything pays as it goes from credits: a face's reasoning at $0.75 per million reasoning tokens (each turn's input tokens plus 1,500), compiling at $25 per million source tokens, the answering model at the provider's price plus 5%.
 - **No monthly fee.**
 
 ### Connect ($17/month) and Pro ($49/month)
