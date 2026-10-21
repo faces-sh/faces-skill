@@ -327,7 +327,7 @@ faces team:edit $TEAM_ID --protocol-file /tmp/$SLUG-protocol.md
 rather than aliases. `faces catalog:doctor --fix` puts the aliases back for your own faces,
 or read them with `faces team:members $TEAM_ID`.
 
-**TEAM.md format**: deterministic: YAML frontmatter + mermaid body, written by the CLI.
+**TEAM.md format.** Deterministic: YAML frontmatter + mermaid body, written by the CLI.
 The frontmatter holds structured metadata. Everything after the closing `---` is the protocol (mermaid diagram), as stored on the server. These are the only frontmatter keys; the CLI drops any other.
 
 ```markdown
