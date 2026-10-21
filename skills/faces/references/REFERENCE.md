@@ -121,7 +121,8 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # refused naming the ones it has. Omitting it classifies one from the text.
                                                        # On COMPILE it is required and the spelling is held to exactly.
 faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--no-stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT | --cause-file PATH]
-faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT | --cause-file PATH]
+faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--max-tokens N]  [--temperature F]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT | --cause-file PATH]
+                                                       # --max-tokens (at least 16) and --temperature from 1.21.0.
                                                        # These two send the model as typed. A bare alias gets the face's
                                                        # reasoning only, no reply (printed in its place, with a note).
 faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT]   # start a new thread
@@ -307,6 +308,10 @@ faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
                                                        # faces-cli 1.18.0+. Jev's typed answers, as this face, or with no
                                                        # face for --baseline. A face with no questions gives its reasoning
                                                        # alone. A .json --state-file is sent as JSON. See Decisions.
+                                                       # 1.21.0+: --model is checked against GET /v1/models?kind=decision
+                                                       # (any case; sent as the catalog spells it), and at most 10 questions
+                                                       # with a face, 32 with --baseline, 2 to 255 options a choice, are
+                                                       # checked before a face is asked to reason.
 
 faces config:set    <key> <value>
 faces config:show
@@ -353,12 +358,12 @@ to the public id (`gpt-5.2`, `glm-5-3-flash`). Do not offer them. The free route
 
 For a bare alias (no `@model`) the CLI resolves the face's `default_model` (local catalog, else `GET /v1/faces`) to pick the endpoint, and on `chat:chat` and `chat:thread` (faces-cli 1.13.0+) sends `alias@default_model`, because the API answers a bare alias with the face's reasoning only. A face with no `default_model` is refused before sending: name the model, or use `--reasoning-only` for the reasoning alone. A bare alias only ever resolves **your own** faces; a namespaced `owner:alias` (e.g. `head:socrates`) addresses a published face owned by another account — see [System & published faces](#system--published-faces). System faces have no `default_model`, so they always require an explicit `@model`.
 
-**Codex models are free when a ChatGPT account is linked** (Subscription Connect), otherwise billed at the paid API rate — same endpoint and response either way. A connect-plan user with no linked token (and `api_fallback` off) gets a 422 on codex; the CLI then suggests `faces auth:connect openai`.
+**Models with `codex_eligible: true` are free when a ChatGPT account is linked** (Connect or Pro; `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-6-astra`, `gpt-6-luna` and `gpt-6.1-sol` today), otherwise billed at the paid API rate. `gpt-5-mini`, `gpt-5.4` and the rest of gpt-5 through gpt-5.5 are always paid. The endpoint and response are the same either way. A connect-plan user with no linked token (and `api_fallback` off) gets a 422 on codex; the CLI then suggests `faces auth:connect openai`.
 
 `codex_eligible` says a model **can** run on ChatGPT, not that the user's ChatGPT plan serves it. A
 plan that does not answers `422 model_not_supported`; pick another model, or allow paid fallback.
 
-`--responses` forces the Responses endpoint as an escape hatch; routing is automatic otherwise. In `--json` mode the response includes a `_meta` block with `provider` (the model's lab), `billing` (`oauth` or `credits`, 1.13.0+), `cost_usd`, and `endpoint`. **`billing` is how to tell free from paid.** `provider` used to read `openai-codex` on a free call and no longer does.
+`--responses` forces the Responses endpoint as an escape hatch; routing is automatic otherwise. In `--json` mode the response includes a `_meta` block with `provider` (the model's lab), `billing` (`oauth` or `credits`, 1.13.0+) and `cost_usd` (a string); `chat:chat` adds `endpoint` and `model`. **`billing` is how to tell free from paid.** `provider` used to read `openai-codex` on a free call and no longer does.
 
 `chat:messages` (always `/v1/messages`) and `chat:responses` (always `/v1/responses`) remain available for direct, single-endpoint access.
 
@@ -369,6 +374,27 @@ pass one kind or a comma list (`?kind=chat,image`), or `?kind=all`. An unknown k
 `included_tokens_per_month` per plan. faces-cli 1.18.0+ routes chats only to `kind: chat`
 models, and a chat that names a decision model (`alias@jev-latest`, `clef`, `clef-flash`) is
 refused before sending: use `faces decide`.
+
+## The `me` face
+
+Every account has one face with the alias **`me`**: the account's own face, made with the
+account. The alias is literally `me` (there is no `@me`). Another account's is
+`<username>:me`, readable only if that account published or shared it.
+
+- **It starts with the account's name only**: no description, attributes or default model, and
+  not published. Until a source is compiled for it, its reasoning is a `409` ("nothing
+  compiled"), and a reply needs a model named (`me@gpt-5.4-mini`).
+- **Edit it like any face**: `faces face:edit me --name ... --description ... --attr key=value`
+  (`faces face:attributes` lists the keys). Its alias cannot change; no face's can (`422`).
+- **It cannot be made or removed**: creating another face aliased `me` is a `400`, and
+  `face:delete me` is refused. Publishing, sharing, locking, tags and teams work as for any face.
+- **Nothing goes to it by itself**: uploads, compiles and style captures go to whichever face is
+  named. `faces style:upload me <file>` then `faces style:make me --all` captures the user's own
+  writing style.
+- **A 404 on `me` is a fault on the server**, never "no such face": some accounts made before it
+  was created with every account still lack one. Say so plainly and report it (see
+  [CONTRIBUTING.md](CONTRIBUTING.md)); faces-cli 1.21.0+ says the same on `face:get`, `face:edit`,
+  `face:delete` and chat.
 
 ## System & published faces
 
@@ -457,7 +483,7 @@ faces chat:thread --id t_abc123 --delete  # remove the local thread file
 
 **The face's reasoning adds up across turns** (faces-cli 1.13.1+). Each assistant turn on the thread keeps the face's cause, and every resume sends it back exactly as the endpoint returned it: `cause` on a chat completions turn, the `rs_faces_…` reasoning item before a responses message, the `faces-reasoning` thinking block on a messages turn. The face then builds on its earlier thoughts instead of starting fresh; the server carries the last 10. Nothing has to be stripped. If you build a transcript yourself against the API, do the same: send back what was returned. `--reasoning` shows each turn's cause on stderr. `--cause TEXT` (or `--cause-file PATH`) on a turn supplies that turn's cause instead of letting the face reason (1.15.0+); it is kept on the thread the same way, and later turns build on it.
 
-**Per-turn flags** (honored on every send, new or resumed): `--max-tokens N` (Anthropic defaults to 1024 when unset), `--temperature F` (OpenAI / Chat Completions endpoints only — ignored on Anthropic and Responses), `--no-stream` (turns are streamed by default from 1.14.0), and `--oauth-only` (see below). A refused turn is not saved, so the same message can be sent again on the thread.
+**Per-turn flags** (honored on every send, new or resumed): `--max-tokens N` (Anthropic defaults to 1024 when unset), `--temperature F` (Chat Completions, and Responses from 1.21.0; a model that does not take it answers without it, and the CLI says so), `--no-stream` (turns are streamed by default from 1.14.0), and `--oauth-only` (see below). A refused turn is not saved, so the same message can be sent again on the thread.
 
 **`--json` output** returns `{thread_id, model, provider, assistant, turns}`; `--list` returns an array of `{id, face, model, turns, created_at, updated_at}`; `--show` returns the full stored thread object.
 
@@ -510,9 +536,9 @@ once.
 
 The `--oauth-only` flag and `api_fallback` preference only apply to **Connect and Pro** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth, and cannot be OAuth-only: on pay-per-token (Free), `--oauth-only` on `chat:chat`, `chat:responses` or `chat:messages` is refused with `422` `error_code: "oauth_only_unavailable"` and nothing is charged; `account:preferences api_fallback false` is refused with a `422`; and reading the preferences reports `api_fallback: true` while the account is on Free.
 
-The `--oauth-only` flag prevents fallback to paid system keys. When set, requests that fail OAuth return a 422 error instead of silently falling back to credits. Available on `chat:chat`, `chat:messages`, `chat:responses`, `chat:thread`, `compile:thread:create`, and `compile:thread:message`.
+What `--oauth-only` guarantees: the reply is not paid from credits. A request the ChatGPT route cannot serve (a model that is not `codex_eligible`, no link, a ChatGPT plan that does not serve it) is refused with `422 oauth_only_unavailable` and nothing is charged; a failed OAuth call returns a 422 instead of falling back to credits. The face's own reasoning still counts against the plan's allowance as usual. Available on `chat:chat`, `chat:messages`, `chat:responses`, `chat:thread`, `compile:thread:create`, and `compile:thread:message`.
 
-The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Connect and Pro), all requests behave as if `--oauth-only` is set: OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
+The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Connect and Pro; Free is always `true`), all requests behave as if `--oauth-only` is set: OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
 
 ```bash
 faces account:preferences api_fallback false    # default: no fallback (Connect and Pro)

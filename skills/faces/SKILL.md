@@ -519,12 +519,14 @@ See [REFERENCE.md → Style](references/REFERENCE.md#style-how-a-face-writes-sty
 faces chat:chat alias -m "message"
 ```
 
-Auto-routes off the model catalog: `gpt-5.x`/codex → `/v1/responses` (free when a ChatGPT account is linked, else paid), `claude-*` → `/v1/messages`, everything else → `/v1/chat/completions`. Override the model with `--llm MODEL`. Each model is listed **once, under its lab's id** (`gpt-5.2`, `glm-5-3-flash`), and `faces billing:llm-costs` lists them; old host-prefixed ids such as `openai-gpt-52` still resolve, but do not offer them. See [references/REFERENCE.md](references/REFERENCE.md#chat-auto-routing).
-Connect and Pro users: add `--oauth-only` to prevent paid fallback.
-In `--json` mode, response includes `_meta` with `provider` (the model's **lab**, not who ran it), `billing` (`oauth` = the linked ChatGPT subscription paid, so it cost nothing; `credits` = billed; faces-cli 1.13.0+), `cost_usd`, and `endpoint`. Branch on `billing`, never on `provider`. Branch on a refusal's status and `error_code`, never on its message text, which is written for people and changes.
+Auto-routes off the model catalog: `gpt-5.x`/codex → `/v1/responses` (free on a linked ChatGPT account only for models with `codex_eligible: true` in `GET /v1/models`, today `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-6-astra`, `gpt-6-luna` and `gpt-6.1-sol`; every other model is paid, including `gpt-5-mini`, the default on a new face, and `gpt-5.4`), `claude-*` → `/v1/messages`, everything else → `/v1/chat/completions`. Override the model with `--llm MODEL`. Each model is listed **once, under its lab's id** (`gpt-5.2`, `glm-5-3-flash`), and `faces billing:llm-costs` lists them; old host-prefixed ids such as `openai-gpt-52` still resolve, but do not offer them. See [references/REFERENCE.md](references/REFERENCE.md#chat-auto-routing).
+Connect and Pro users: add `--oauth-only` to guarantee nothing is charged for the reply: a request the ChatGPT route cannot serve is refused (`422 oauth_only_unavailable`) rather than billed.
+In `--json` mode, response includes `_meta` with `provider` (the model's **lab**, not who ran it), `billing` (`oauth` = the linked ChatGPT subscription paid, so it cost nothing; `credits` = billed; faces-cli 1.13.0+) and `cost_usd` (a string, e.g. `"0.000168"`); `chat:chat` adds `endpoint` and `model`. Branch on `billing`, never on `provider`. Branch on a refusal's status and `error_code`, never on its message text, which is written for people and changes.
 **No `${alias}` templates.** A `${...}` token in a prompt is plain text: the API stopped expanding
-it. To bring another face's view into a prompt, ask that face first and quote its answer in the
-prompt, or chat a composite of both (`"(alice | bob)@model"`).
+it. To bring another face's view into a prompt, get that face's **cause**, its reasoning about
+the question, with `faces chat:chat bob -m "<question>" --reasoning-only` (the API's
+`POST /v1/causes`), and include it in your own prompt. Or chat a composite of both
+(`"(alice | bob)@model"`).
 
 **The face's reasoning** (*faces-cli 1.13.0+*): before it answers, a face reasons about the
 conversation in its own voice: its **cause**. `--reasoning` prints that to stderr ahead of the

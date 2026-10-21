@@ -444,7 +444,7 @@ architecture without reading the prose.
 
 <instructions for this step>
 
-Use `faces chat:chat <alias> -m "<prompt>"`. To give this face another's view, quote that face's answer from an earlier step in the prompt.
+Use `faces chat:chat <alias> -m "<prompt>"`. To give this face another's view, include that face's cause (`faces chat:chat <other> -m "<question>" --reasoning-only`) or its answer from an earlier step in the prompt.
 ```
 
 **For team steps:**

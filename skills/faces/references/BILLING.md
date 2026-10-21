@@ -8,7 +8,7 @@ structured output.
 | plan | price | what it includes |
 |---|---|---|
 | `free` | $0 | Everything pays as it goes, from credits |
-| `connect` | $17/month | The allowances below; chat on gpt-5.x runs free on the user's linked ChatGPT subscription |
+| `connect` | $17/month | The allowances below; chat runs free on the user's linked ChatGPT subscription for models with `codex_eligible: true` (`gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-6-astra`, `gpt-6-luna` and `gpt-6.1-sol` today) |
 | `pro` | $49/month | Larger allowances, and the same ChatGPT routing |
 | `team` | comped | No limits, never charged. By promo code only |
 
@@ -232,7 +232,10 @@ to pay from credits, or, on Free, subscribe to Connect to use a linked ChatGPT a
 fallback: `faces account:preferences api_fallback true`. If no credits, run
 `faces billing:topup` first. See [OAUTH.md](OAUTH.md) for details.
 
-**Connect and Pro users:** Link a ChatGPT account (`faces auth:connect openai`) so gpt-5.x
-models run free on it at `/v1/responses` (which `chat:chat` routes them to). Other models are
-paid from credits at the provider's price plus 5%. If the ChatGPT route fails and `api_fallback`
-is `false` (the default), the request is refused instead of billed.
+**Connect and Pro users:** Link a ChatGPT account (`faces auth:connect openai`) so the models
+marked `codex_eligible: true` in `GET /v1/models` (`gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-6-astra`, `gpt-6-luna` and `gpt-6.1-sol` today) run free
+on it at `/v1/responses` (which `chat:chat` routes them to). Every other model, including
+`gpt-5-mini`, `gpt-5.4` and the rest of gpt-5 through gpt-5.5, is paid from credits at the
+provider's price plus 5%. If the ChatGPT route fails and `api_fallback` is `false` (the default
+on Connect and Pro), the request is refused instead of billed. On Free `api_fallback` is always
+`true`, and setting it to `false` is refused with a `422`.
