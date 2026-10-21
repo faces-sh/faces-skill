@@ -319,7 +319,7 @@ faces team:tag:remove   <team_id>  <tag>
 faces account:state
 faces account:preferences [KEY] [VALUE]  [--allow-paid]
                                                        # KEY: api_fallback, default_model, auto_style, auto_style_thresholds.
-                                                       # auto_style on|off|default. Turning it on off Connect bills per capture,
+                                                       # auto_style on|off|default. Turning it on off Connect and Pro bills per capture,
                                                        # so it is refused there without --allow-paid. 1.13.0+ for auto_style*.
 
 faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
@@ -547,7 +547,7 @@ Server-side preferences stored on the user's account. Viewed and modified with `
 |---|---|---|---|
 | `api_fallback` | `true` / `false` | `false` | When false, OAuth failures return 422 instead of falling back to paid system keys |
 | `default_model` | any valid model | `gpt-5.4` | Model inherited by new faces that don't specify `--default-model` |
-| `auto_style` | `on` / `off` / `default` | `default` | Capture each face's style automatically once it has enough of its own writing in a medium. `default` follows the plan: on for Subscription Connect (free), off for pay-per-token (bills per token when on). 1.13.0+ |
+| `auto_style` | `on` / `off` / `default` | `default` | Capture each face's style automatically once it has enough of its own writing in a medium. `default` follows the plan: on for Connect and Pro (free), off for pay-per-token (bills per token when on). 1.13.0+; before 1.21.0 the CLI treated Pro as pay-per-token here and refused `on` without `--allow-paid` |
 | `auto_style_thresholds` | `medium=words,...` | 10,000 / 15,000 | Words of the face's own writing before a capture runs, per medium. At least 500; `default` resets one. Merged into what is stored. 1.13.0+ |
 
 Read back, `auto_style` is the **effective** answer (is it running now) and
