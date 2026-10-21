@@ -675,7 +675,8 @@ TEAM_ID=$(echo "$TEAM" | jq -r '.id')
 # Add faces as members
 faces team:add $TEAM_ID --face alice --face bob
 
-# Set a protocol (mermaid workflow diagram)
+# Set a protocol (mermaid workflow diagram). The file is stored as written, so
+# pass the diagram alone, never TEAM.md with its frontmatter.
 faces team:edit $TEAM_ID --protocol-file workflow.mmd
 
 # List teams, members
@@ -683,7 +684,7 @@ faces team:list
 faces team:members $TEAM_ID
 ```
 
-Teams have a local TEAM.md at `~/.faces/teams/<name>/TEAM.md` with YAML frontmatter (name, description, tags, members) and the protocol as the body.
+Teams have a local TEAM.md at `~/.faces/teams/<slug>/TEAM.md`, where `<slug>` is the name lowercased with each run of other characters turned into `-` ("Review Panel" is `review-panel`). It has YAML frontmatter (id, name, description, tags, members) and the protocol as the body. The CLI writes it; to push a protocol edited there, strip the frontmatter first: `sed '1,/^---$/d' TEAM.md > protocol.md`, then `team:edit --protocol-file protocol.md`.
 
 ### 8. Backup & restore
 
@@ -760,7 +761,7 @@ one bills.
   catalog.json          # auto-generated index
   catalog/<alias>/      # individual FACE.md files
   backups/              # timestamped JSON backup snapshots (v2: faces + teams)
-  teams/<team-name>/    # TEAM.md files
+  teams/<team-slug>/    # TEAM.md files, one folder per team, named by a slug of the team name
   skills/              # shared skills (facechat, etc.)
 ```
 

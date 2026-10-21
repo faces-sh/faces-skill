@@ -171,7 +171,7 @@ so a human can see the pattern at a glance.
 **Diagram convention — three shapes, one rule each:**
 
 - `(alias)` **rounded rectangle** = a face gets called via
-  `faces chat:chat alias`. The alias must appear in the frontmatter `faces:`
+  `faces chat:chat alias`. The alias must appear in the frontmatter `members:`
   list.
 - `[text]` **sharp rectangle** = the orchestrating agent executes this step
   itself. The text inside IS the instruction — make it specific enough that
@@ -207,12 +207,16 @@ graph TD
     Q --> C(face-c)
     A --> B
     B --> C
-    C --> CHK{All 3 converged on a specific recommendation. If yes or round = max_rounds, done. Otherwise, loop.}
+    C --> CHK{All 3 converged on a specific recommendation. If yes, or this is round 3, done. Otherwise, loop.}
     A --> CHK
     B --> CHK
     CHK -->|next round| A
     CHK -->|done| OUT[Response]
 ```
+
+Put any round limit in the diamond's own text, as above ("or this is round 3"). There
+is no `max_rounds` key: the CLI rewrites TEAM.md frontmatter and only keeps `id`, `name`,
+`description`, `tags` and `members`.
 
 **Pipeline** — sequential chain, each face adds a layer. Output of one becomes
 input to the next. Good for review processes, quality gates, progressive
@@ -279,31 +283,56 @@ Present your recommended protocol to the user:
 
 ### Step 4: Create the team and write TEAM.md
 
-First create the team on the server, then write the local TEAM.md:
+Write the protocol (the mermaid block only, no frontmatter) to its own file, create the
+team with it, then add members. The CLI writes TEAM.md for you, frontmatter and all:
 
 ```bash
-# Create team on server
-TEAM=$(faces team:create --name "<team-name>" --description "<what this team does>" --tag review --json)
+# 1. The protocol body only: whatever is in this file is stored as the protocol
+cat > /tmp/<team-slug>-protocol.md << 'PROTOCOL'
+<the mermaid block>
+PROTOCOL
+
+# 2. Create the team on the server with that protocol
+TEAM=$(faces team:create --name "<team-name>" --description "<what this team does>" \
+  --tag review --protocol-file /tmp/<team-slug>-protocol.md --json)
 TEAM_ID=$(echo "$TEAM" | jq -r '.id')
 
-# Add members
+# 3. Add members (this also fills in members: in the local TEAM.md)
 faces team:add $TEAM_ID --face alias-1 --face alias-2 --face alias-3
 
-# Write TEAM.md locally
-mkdir -p ~/.faces/teams/<team-name>
-cat > ~/.faces/teams/<team-name>/TEAM.md << 'TEAM'
-<full TEAM.md content>
-TEAM
-
-# Sync protocol to server
-faces team:edit $TEAM_ID --protocol-file ~/.faces/teams/<team-name>/TEAM.md
+# 4. Check what the CLI wrote
+cat ~/.faces/teams/<team-slug>/TEAM.md
 ```
 
-**TEAM.md format** — deterministic: YAML frontmatter + mermaid body.
-The frontmatter holds structured metadata. Everything after the closing `---` is the protocol (mermaid diagram). This format syncs bidirectionally with the server.
+**`<team-slug>` is not the team name.** The CLI stores a team under a slug of its name:
+lowercased, with every run of characters other than `a-z` and `0-9` turned into one `-`,
+and no leading or trailing `-`. "Review Panel" lives in `~/.faces/teams/review-panel/`.
+Never `mkdir` the raw name: for a name with spaces or capitals that makes a second folder
+the CLI never reads. Compute it with:
+
+```bash
+SLUG=$(echo "<team-name>" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
+```
+
+**Never pass TEAM.md itself to `--protocol-file`.** In faces-cli 1.20.0 the file is
+uploaded as written, so the frontmatter would become part of the team's protocol. To push a
+protocol you edited in TEAM.md, strip the frontmatter first:
+
+```bash
+sed '1,/^---$/d' ~/.faces/teams/$SLUG/TEAM.md > /tmp/$SLUG-protocol.md
+faces team:edit $TEAM_ID --protocol-file /tmp/$SLUG-protocol.md
+```
+
+`team:edit` rewrites the local TEAM.md and, in 1.20.0, lists `members:` as member ids
+rather than aliases. `faces catalog:doctor --fix` puts the aliases back for your own faces,
+or read them with `faces team:members $TEAM_ID`.
+
+**TEAM.md format** — deterministic: YAML frontmatter + mermaid body, written by the CLI.
+The frontmatter holds structured metadata. Everything after the closing `---` is the protocol (mermaid diagram), as stored on the server. These are the only frontmatter keys; the CLI drops any other.
 
 ```markdown
 ---
+id: <team id>
 name: <team-name>
 description: <what this team does>
 tags: [review, research]

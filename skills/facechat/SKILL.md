@@ -82,7 +82,9 @@ faces with a collaboration protocol). Check both.
 faces face:get $ALIAS --json 2>/dev/null
 echo "---TEAM_CHECK---"
 faces team:list --json 2>/dev/null | jq -r '.[] | select(.name == "'$ALIAS'") | .id'
-ls ~/.faces/teams/$ALIAS/TEAM.md 2>/dev/null
+# Local teams live under a slug of the name ("Review Panel" -> review-panel)
+SLUG=$(echo "$ALIAS" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
+ls ~/.faces/teams/$SLUG/TEAM.md 2>/dev/null
 ```
 
 - If face found → single-face chat (see **Chat** section below).
@@ -178,11 +180,16 @@ diagram mechanically.
 ### Load the protocol
 
 ```bash
-cat ~/.faces/teams/$ALIAS/TEAM.md
+cat ~/.faces/teams/$SLUG/TEAM.md
 ```
 
-Parse the YAML frontmatter for the `faces:` list and `max_rounds:` limit.
-Then parse the mermaid flowchart — this is the entire execution spec.
+Parse the YAML frontmatter for the `members:` list (the faces on the team).
+Then parse the mermaid flowchart — this is the entire execution spec, round
+limits included.
+
+If `members:` holds ids rather than aliases (faces-cli 1.20.0 writes ids after a
+`team:edit`), read the aliases with `faces team:members TEAM_ID`, or run
+`faces catalog:doctor --fix` to rewrite the file.
 
 ### Walk the graph
 
@@ -215,7 +222,8 @@ and ends at the `[Response]` node (what you show the user).
    - `[instruction]` → execute the instruction yourself.
    - `{condition}` → evaluate and branch.
 3. If an edge loops back (e.g. round-robin), increment the round counter.
-   Stop at `max_rounds` from the frontmatter.
+   Stop where the diamond's condition says to (e.g. "or this is round 3"). If
+   the diagram names no limit, stop after 3 rounds.
 4. When you reach `[Response]`, present the final output to the user.
 
 ### Presenting team responses
