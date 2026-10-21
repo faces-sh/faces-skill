@@ -185,7 +185,8 @@ faces compile:thread:delete   <thread_id>  [--yes]
 
 faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json]  [--messages-per-room N]  [--strict]
                                                        # load a corpus of the person's OWN writing (mail, messages, anything with
-                                                       # one JSON object per line). Stores only: nothing compiled, nothing billed.
+                                                       # one JSON object per line: author, sender, date, snippet; see "Corpus
+                                                       # line format" below). Stores only: nothing compiled, nothing billed.
                                                        # Invalid rows are skipped and reported; --strict refuses the whole file.
                                                        # UPLOAD ONE MEDIUM PER FILE. The output line `medium:` is what the rooms
                                                        # were actually stamped with; `none` means they teach NO writing rules and
@@ -195,8 +196,10 @@ faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json] 
                                                        # whole; the default 50 slices a long one into arbitrary fragments.
 faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KIND]  [--model MODEL]  [--allow-paid]  [--no-compile]  [--best-of N]  [--timeout N]  [--no-wait]
                                                        # capture how the face writes and install it. --all takes every document and
-                                                       # every imported corpus room; live threads still compiling are skipped and
-                                                       # named. Each medium is analysed separately, so an essay never teaches a rule
+                                                       # every thread that is ready, INTERVIEW THREADS INCLUDED, and --medium stamps
+                                                       # any of them that declare none; live threads still compiling are skipped and
+                                                       # named. Prefer --source when the face has anything but the subject's own
+                                                       # writing in one medium. Each medium is analysed separately, so an essay never teaches a rule
                                                        # about email. A source that does not declare a medium is REFUSED, not
                                                        # guessed — declare it with --medium (all) or --source ID:MEDIUM (one).
 faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--timeout N]
@@ -843,8 +846,9 @@ mail, their messages, their essays. It is learned from first-person material onl
 # 1. Load material. Stores only — nothing is compiled, nothing is billed.
 faces style:upload alice ./mail.jsonl
 
-# 2. Capture. --all takes every document and every imported corpus room.
-faces style:make alice --all --medium email
+# 2. Capture from the rooms that upload made, named by id.
+faces face:sources alice --type thread --json | jq -r '.threads[] | "\(.id)  \(.medium)  \(.label)"'
+faces style:make alice --source ROOM_ID_1 --source ROOM_ID_2
 
 # 3. Check what happened
 faces style:versions alice
@@ -924,12 +928,35 @@ Set `--messages-per-room` above the length of a conversation you want kept whole
 is the unit a style is learned from, and the default of 50 cuts a long conversation into
 arbitrary slices.
 
+**Corpus line format.** For `--type jsonl` (and the older `email_jsonl` spelling), each line
+is one JSON object, one message. Required: `author` (`self` when the face's subject wrote
+it, `other` when someone else did), `sender`, `date` (ISO-8601) and the message text in
+`snippet`. Optional: `kind`, which must spell one of the eleven media. `body`, `content`
+and `role` are not accepted; a line that uses them in place of the required fields is
+invalid, skipped and reported (or, with `--strict`, the whole file is refused).
+
+```json
+{"author": "self", "sender": "alice@example.com", "date": "2026-03-14T09:12:00Z", "kind": "email", "snippet": "Friday works. I'll bring the draft and we can cut it down together."}
+{"author": "other", "sender": "bob@example.com", "date": "2026-03-14T08:40:00Z", "kind": "email", "snippet": "Can we meet Friday to go over the proposal?"}
+```
+
+**`--all` with `--medium` stamps every undeclared source, interview threads too.** `--all`
+takes every ready document and thread on the face, not only corpus rooms. On a face that
+also has an interview thread, `style:make alice --all --medium email` stamps that thread
+`email` and learns from the interview transcript as if it were mail. Use `--all` only when
+everything on the face is the subject's own writing in one medium; otherwise pick sources:
+
+```bash
+faces face:sources alice                                   # every source, with its id and medium
+faces style:make alice --source ROOM_ID --source "$DOC_ID:essay"
+```
+
 **Declare the medium.** Each medium is analysed on its own, so an essay never teaches a
 rule about email. A source that does not say what it is gets refused rather than guessed:
 
 ```bash
-faces style:make alice --all --medium email               # fills in ONLY where nothing is declared
 faces style:make alice --source "$DOC_ID:essay"           # one source, one medium
+faces style:make alice --all --medium email               # fills in ONLY where nothing is declared (see the --all warning above)
 faces compile:doc:edit DOC_ID --medium essay              # record it on the document itself
 ```
 

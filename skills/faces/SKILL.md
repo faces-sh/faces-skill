@@ -399,17 +399,35 @@ writing *about* someone teaches the wrong writer.
 # Load a corpus. Stores only — nothing compiles, nothing is billed.
 faces style:upload alias ./mail.jsonl
 
-# Capture and install. --all takes every document and imported corpus room.
-faces style:make alias --all --medium email --no-wait --json
+# Find the rooms it made, then capture from them by id.
+faces face:sources alias --type thread --json | jq -r '.threads[] | "\(.id)  \(.medium)  \(.label)"'
+faces style:make alias --source ROOM_ID_1 --source ROOM_ID_2 --no-wait --json
 faces style:status --face alias          # recover the job id if you lose it
 ```
+
+**The corpus file is one JSON object per line, one message each.** Four fields are
+required: `author` (`self` when the face's subject wrote it, `other` when someone else
+did), `sender`, `date` (ISO-8601) and the text in `snippet`. `kind`, if present, must be
+one of the eleven media. `body`, `content` and `role` are not accepted, and a line using
+them is skipped as invalid (`--strict` refuses the whole file). A working line:
+
+```json
+{"author": "self", "sender": "alice@example.com", "date": "2026-03-14T09:12:00Z", "kind": "email", "snippet": "Friday works. I'll bring the draft and we can cut it down together."}
+```
+
+**`--all` takes everything on the face, interview threads included.** With `--medium`,
+any source that declares no medium of its own is stamped with it, so on a face that also
+has an interview thread, `style:make alias --all --medium email` learns an "email" style
+partly from the interview transcript. Use `--all` only when every source on the face is the
+subject's own writing in that one medium. Otherwise name the sources: list them with
+`faces face:sources alias`, then pass each with `--source ID` (or `--source "ID:MEDIUM"`).
 
 **Always declare the medium.** Each is analysed separately, so an essay never teaches a
 rule about email. A source that does not say what it is gets refused, not guessed:
 
 ```bash
-faces style:make alias --all --medium email        # fills in ONLY where nothing is declared
 faces style:make alias --source "$DOC_ID:essay"    # one source, one medium
+faces style:make alias --all --medium email        # fills in ONLY where nothing is declared; see the --all warning above
 ```
 
 `--medium` never overrides a source that already declares one; it only fills gaps, and a
