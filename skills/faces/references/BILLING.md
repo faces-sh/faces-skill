@@ -8,7 +8,7 @@ structured output.
 | plan | price | what it includes |
 |---|---|---|
 | `free` | $0 | Everything pays as it goes, from credits |
-| `connect` | $17/month | The allowances below; chat on gpt-5.x runs free on the user's linked ChatGPT subscription |
+| `connect` | $17/month | The allowances below; chat runs free on the user's linked ChatGPT subscription for models with `codex_eligible: true` (`gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-6-astra`, `gpt-6-luna` and `gpt-6.1-sol` today) |
 | `pro` | $49/month | Larger allowances, and the same ChatGPT routing |
 | `team` | comped | No limits, never charged. By promo code only |
 
@@ -100,7 +100,10 @@ faces billing:subscription:plan connect
 
 Switches in place. Stripe prorates the difference on the default card, and the new allowances
 apply at once. Confirm with the user before running it: it charges. A `409` means there is no
-subscription to switch (subscribe instead) or the plan is Team, which cannot switch.
+subscription to switch (subscribe instead) or the plan is Team, which cannot switch. While the
+plan is set to cancel, the switch is refused (`409 cancellation_pending`, before anything is
+charged), since the proration would be charged and the plan would still end: keep it first with
+`billing:subscription:activate`.
 
 ## Cancel
 
@@ -118,6 +121,10 @@ faces billing:balance --json                 # balance_usd, has_payment_method (
 faces billing:topup --amount 5               # charges the default card; minimum $1
 faces billing:topup --amount 5 --card pm_…   # charges another saved card (faces-cli 1.17.0+)
 ```
+
+A top-up must be whole cents. A repeat of a recent top-up is a `409` with
+`detail.error_code: "duplicate_topup"` and nothing charged: it usually means a retry of one that
+went through. Check `faces billing:balance` before trying again.
 
 Credits are applied at once. A `402` anywhere means there is no credit for that request,
 including `faces decide` on Connect and Pro, whose decision model is always paid. Top up and
@@ -173,8 +180,12 @@ faces billing:llm-costs --provider anthropic
 
 Lists available LLMs, their per-token costs and the user's spend on each. Each model appears
 once, under the id its lab gives it, and `--provider` filters by that **lab** (openai,
-anthropic, xai, qwen, z-ai, moonshot, …), never by the service that runs it. A model's price is
-fixed whichever service runs it, so read it here rather than quoting one from memory.
+anthropic, xai, qwen, z-ai, moonshot, …; the row's `lab`), never by the service that runs it.
+A model's price is fixed whichever service runs it, so read it here rather than quoting one from
+memory. Each row carries `markup_rate` and `prices_include_markup`; 1.21.0+ states the markup
+from them, then lists compile and reasoning prices and what each plan includes, from
+`GET /v1/models?kind=compile,cause` (`faces-compile-latest`: $28 per million source tokens,
+`included_tokens_per_month` Connect 250,000, Pro 1,000,000).
 
 ## Usage analytics
 
@@ -183,7 +194,10 @@ faces billing:usage --json
 faces billing:usage --group-by model --from 2026-03-01 --to 2026-03-31
 ```
 
-Aggregated usage analytics. Group by `api_key`, `model`, `llm`, or `date`.
+Aggregated usage analytics. Group by `api_key`, `model`, `llm`, or `date`. Provider cost counts
+only the user's own requests, so provider cost plus markup is the total. `absorbed_cost_usd` is
+what Faces paid on the user's behalf (a plan's allowance, a free route), which they were not
+charged.
 
 ## Rough cost reference
 
@@ -209,15 +223,19 @@ per-minute limit set by plan, published by `GET /v1/rates` under `limits.request
 Nothing is charged for the refused request. faces-cli 1.19.0+ waits the `Retry-After` once and
 asks again; after a second refusal, wait the seconds the message names. Never retry in a loop.
 
-**422 oauth_only_unavailable:** Pay-per-token (Free) always runs on credits, so `--oauth-only`
-is refused there, and so is turning `api_fallback` off. Nothing is charged. Drop the flag, or
-subscribe to Connect to use a linked ChatGPT account.
+**422 oauth_only_unavailable:** `--oauth-only` where the ChatGPT route cannot serve the request:
+always on pay-per-token (Free), which runs on credits, and on Connect or Pro when the model or the
+link cannot. Turning `api_fallback` off on Free is refused too. Nothing is charged. Drop the flag
+to pay from credits, or, on Free, subscribe to Connect to use a linked ChatGPT account.
 
 **422 oauth_rejected:** OAuth request failed and fallback is disabled. Enable
 fallback: `faces account:preferences api_fallback true`. If no credits, run
 `faces billing:topup` first. See [OAUTH.md](OAUTH.md) for details.
 
-**Connect and Pro users:** Link a ChatGPT account (`faces auth:connect openai`) so gpt-5.x
-models run free on it at `/v1/responses` (which `chat:chat` routes them to). Other models are
-paid from credits at the provider's price plus 5%. If the ChatGPT route fails and `api_fallback`
-is `false` (the default), the request is refused instead of billed.
+**Connect and Pro users:** Link a ChatGPT account (`faces auth:connect openai`) so the models
+marked `codex_eligible: true` in `GET /v1/models` (`gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-6-astra`, `gpt-6-luna` and `gpt-6.1-sol` today) run free
+on it at `/v1/responses` (which `chat:chat` routes them to). Every other model, including
+`gpt-5-mini`, `gpt-5.4` and the rest of gpt-5 through gpt-5.5, is paid from credits at the
+provider's price plus 5%. If the ChatGPT route fails and `api_fallback` is `false` (the default
+on Connect and Pro), the request is refused instead of billed. On Free `api_fallback` is always
+`true`, and setting it to `false` is refused with a `422`.

@@ -292,7 +292,7 @@ model to chat without specifying `--llm` every time.
 
 First check the user's plan and available models:
 ```bash
-faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" pays as it goes; "connect" and "pro" can run gpt-5.x on a linked ChatGPT account; "team" is never charged
+faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" pays as it goes; "connect" and "pro" can run codex_eligible models on a linked ChatGPT account; "team" is never charged
 faces billing:llm-costs --json 2>/dev/null
 ```
 
@@ -360,7 +360,8 @@ RECIPE
 
 Set the name, description, tags and formula with `face:create` / `face:edit` (`--description`,
 `--tag`, `--formula`), not by editing the frontmatter: the next CLI write replaces it from the
-server. With the recipe in the body, `faces catalog:doctor --fix` is safe to run.
+server. `face:edit --formula` on a face with compiled sources of its own, or one another
+composite uses, is refused with a `409`; a new composite is `face:create --formula`. With the recipe in the body, `faces catalog:doctor --fix` is safe to run.
 
 Recipe body format (everything below the CLI's closing `---`):
 

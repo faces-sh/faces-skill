@@ -17,7 +17,7 @@ faces auth:register \
   --json
 
 # Connect ($17/month) or Pro ($49/month): allowances for compiling and reasoning,
-# and gpt-5.x chat free on a linked ChatGPT account
+# and chat free on a linked ChatGPT account for the models it serves
 faces auth:register \
   --email user@example.com \
   --password 'SecurePass123!' \
@@ -147,7 +147,7 @@ Some agent environments run a terminal security scanner that redacts `sk-`-prefi
 
 - **Allowances** for compiling and a face's reasoning: Connect 250k source tokens and 10M reasoning tokens a month, Pro 1M and 25M (with weekly and 5-hour limits too). See [BILLING.md](BILLING.md#plans).
 - **The answering model** is still paid at the provider's price plus 5%, except:
-- **ChatGPT passthrough:** Link your ChatGPT Plus or Pro account via `faces auth:connect openai` and gpt-5.x models run free on it. See [OAUTH.md](OAUTH.md) for supported models.
+- **ChatGPT passthrough:** Link your ChatGPT Plus or Pro account via `faces auth:connect openai` and the models marked `codex_eligible` (the gpt-5.6 and gpt-6 families today) run free on it. See [OAUTH.md](OAUTH.md) for supported models.
 - **Fallback:** By default, OAuth failures and a used-up allowance are refused, never silently billed. Enable fallback with `faces account:preferences api_fallback true`.
 
 ### Team
