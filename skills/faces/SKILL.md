@@ -416,8 +416,10 @@ are fully readable and can still be deleted. A write to their **content**
 (`compile:thread:message`, `compile:thread:replace`, a content edit) is refused with:
 
 ```
-Error (409): This document is read-only and cannot be edited.
+Error: HTTP 409: This document is read-only and cannot be edited.
 ```
+
+(before faces-cli 1.21.0 it read `Error: Error (409): ...`)
 
 (threads say `This corpus is read-only…`). Don't retry the write — surface that
 the item is frozen. Labelling and reading-as corrections are not content and are
@@ -875,15 +877,15 @@ tags: [research, mathematics]
 formula: null
 component_counts: 140
 compiled_tokens: 47200
-profile_token_count: 1024
 ---
 ```
 
 `component_counts` here is a single number, the **sum** of the list the API returns
 (`face:get --json` gives a list such as `[12, 40, 31, 4, 50, 3]`). Attributes count toward
 it, so a non-zero value does not mean anything has compiled: ask the server with
-`faces face:sources <alias>`. `profile_token_count` appears once the face has a compiled
-profile.
+`faces face:sources <alias>`. `profile_token_count` is leaving the API and is not written from
+faces-cli 1.21.0, which drops an old line on the next write; do not read it, nor any "tokens
+saved" figure.
 
 `compiled_tokens` is the source tokens compiled into the face. From faces-cli 1.21.0 it is
 written for every synced face, `0` when nothing has compiled, so `compiled_tokens: 0` finds faces still

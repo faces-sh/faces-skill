@@ -14,6 +14,8 @@ faces auth:disconnect   <provider>                     # nothing connected is an
 faces auth:connections
 
 faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--specialty TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH]
+                                                       # --tool: the API keeps no list of tools and stores any name, so spell it
+                                                       # exactly. 1.21.0+ refuses an empty name, one with spaces, or a repeat.
                                                        # --name: at most 200 characters, no control or text-direction characters
                                                        # (refused before sending, 1.21.0+, also on face:edit). Tags that fail after
                                                        # the face saved exit 1 (1.21.0+): the face exists, re-run face:tag:set.
@@ -72,6 +74,8 @@ faces face:sources      <alias>  [--type doc|thread]
                                                        # answer from a face with no sources (exit 0). Never prints content and never
                                                        # truncates. --json carries a stable id per row for later delete/recompile.
 faces face:stats
+                                                       # 1.21.0+: a table per face: compiled, compiled tokens, last compiled, chat
+                                                       # tokens and cost. profile_token_count and tokens saved are leaving the API.
 faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
                                                        # one overall similarity score (`face`) per pair. The API no longer returns
                                                        # per-component scores. Every face named needs something compiled.
@@ -167,6 +171,8 @@ faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--me
                                                        # images and text boxes are not read, only document text.
 
 faces compile:doc          <alias>  (--content TEXT | --file PATH...)  --medium KIND  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--no-wait]
+                                                       # 1.21.0+ (and compile:doc:make): a source costing $1 or more to compile on
+                                                       # credits is announced on stderr, with its token count and price, before it starts.
                                                        # --file is repeatable: each file becomes its OWN document (not concatenated).
                                                        # Returns {"documents":[{file, document_id}...]} in input order; a bad file is
                                                        # reported in place and the rest still compile. --label is single-document only.
@@ -358,7 +364,9 @@ faces account:preferences [KEY] [VALUE]  [--allow-paid]
 
 faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
                       [--question TEXT [--type noul|choice|score] [--option NAME[=DESCRIPTION]... | --level DESCRIPTION...] [--id KEY] | --questions-file PATH]
-                      [--model jev-latest|clef|clef-flash]  [--reasoning]  [--no-retry]
+                      [--model jev-latest|clef|clef-flash]  [--format systemone|openai]  [--reasoning]  [--no-retry]
+                                                       # --format openai (1.21.0+) sends OpenAI's Decisions format to
+                                                       # /v1/decisions; the answers are the same, --json is that format's shape.
                                                        # faces-cli 1.18.0+. Jev's typed answers, as this face, or with no
                                                        # face for --baseline. A face with no questions gives its reasoning
                                                        # alone. A .json --state-file is sent as JSON. See Decisions.
@@ -634,7 +642,10 @@ On the API this format is `POST /v1/systemone`. `POST /v1/decisions` takes OpenA
 format instead (`input`, and `questions` as an array of `{type: predicate|choice|score, name,
 instructions, choices|levels}`, answered with `answers` as an array). Each path refuses the
 other's format with a `422` naming the right one, and a face alone (`"model": "alice"`, no
-questions) works on both.
+questions) works on both. From faces-cli 1.21.0, `faces decide --format openai` sends the same
+questions in OpenAI's format: a noul as a `predicate`, a choice's options as `choices`, a score's
+levels as `levels`. It prints the answers the same way, and `--json` returns OpenAI's shape. A
+noul's yes and no descriptions have no place in that format, so they are refused.
 
 ```bash
 faces decide alice --state "A colleague asks you to put your name on a grant proposal you have not read, due in an hour. They say it is a formality." \
@@ -1403,8 +1414,10 @@ Frozen items are readable and can still be deleted. Writes to their content
 (`compile:thread:message`, `compile:thread:replace`, a content edit) are refused:
 
 ```
-Error (409): This document is read-only and cannot be edited.
+Error: HTTP 409: This document is read-only and cannot be edited.
 ```
+
+(before faces-cli 1.21.0 it read `Error: Error (409): ...`)
 
 Threads phrase it `This corpus is read-only…`. On a 409, don't retry the write —
 surface that the item is frozen. Metadata is not content: on a frozen corpus room,
@@ -1541,7 +1554,8 @@ not tell a user a listing is complete unless 1.10.0 or newer is installed.
 ## Errors
 
 A client's mistake is a `422`, not a `500`. Every error body uses one `detail` shape and
-carries a reference code. **Branch on the status and `error_code`, never on the message text**:
+carries a reference code. From faces-cli 1.21.0 an error prints as `Error: HTTP 402: <message>`
+(before, `Error: Error (402): <message>`); under `--json` the status is `.error.status` either way. **Branch on the status and `error_code`, never on the message text**:
 messages are written for people, say what to do, and change. A refusal on a streamed request
 (chat, Messages, Responses) comes back as an ordinary error response, or as the endpoint's SSE
 error event on a held face turn, never as a `200` with a JSON body. `503` is the status worth retrying. A `409` means the thing is
