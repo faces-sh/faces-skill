@@ -1410,8 +1410,7 @@ not tell a user a listing is complete unless 1.10.0 or newer is installed.
 ## Errors
 
 A client's mistake is a `422`, not a `500`. Every error body uses one `detail` shape and
-carries a reference code; `https://docs.faces.sh/errors` describes the shape and which
-statuses are worth retrying — `503` is the retryable one. A `409` means the thing is
+carries a reference code. `503` is the status worth retrying. A `409` means the thing is
 busy or frozen, a `402` means no credits, and neither is fixed by retrying. A face chat's
 refusals, and the ones that arrive inside a stream, are under
 [Streaming face chats](#streaming-face-chats).

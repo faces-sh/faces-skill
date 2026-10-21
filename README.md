@@ -337,4 +337,4 @@ The FACE.md grows with the face. Queued tracks what to compile next. Sources rec
 
 ---
 
-[faces.sh](https://faces.sh) · [docs](https://docs.faces.sh) · [CLI reference](faces/references/REFERENCE.md) · [manyfaced catalog](https://github.com/faces-sh/manyfaced)
+[faces.sh](https://faces.sh) · [CLI reference](skills/faces/references/REFERENCE.md) · [manyfaced catalog](https://github.com/faces-sh/manyfaced)

@@ -4,7 +4,7 @@ End-to-end guide for getting a human from zero to chatting with a Face. Follow t
 
 **Important (Claude Code only):** If you just installed the faces-skill bundle in Claude Code, the slash commands (`/facemake`, `/facechat`, etc.) won't be available until the session restarts. You cannot restart it yourself, so tell the user: *"Type `/exit`, then run `claude --continue` so the new skills load and we pick up where we left off."* Other agents load new skills without a restart.
 
-**Website:** https://faces.sh — **Docs:** https://docs.faces.sh — **API:** api.faces.sh
+**Website:** https://faces.sh · **API:** api.faces.sh (schema: https://api.faces.sh/openapi.json)
 
 ## 1. Install or update the CLI
 

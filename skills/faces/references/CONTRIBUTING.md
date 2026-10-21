@@ -46,4 +46,4 @@ https://github.com/faces-sh/faces-skill/issues
 
 - Faces platform outages (contact support at faces.sh)
 - Feature requests for the CLI (file at the CLI repo, not the skill repo)
-- Questions about how to use Faces (use `/faces` or read the docs at docs.faces.sh)
+- Questions about how to use Faces (use `/faces`, or read [REFERENCE.md](REFERENCE.md))

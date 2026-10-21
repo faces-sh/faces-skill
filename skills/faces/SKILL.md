@@ -25,7 +25,7 @@ The Faces Platform compiles source texts (documents and conversation transcripts
 
 Without a Face, an LLM is **faceless** — generic, interchangeable, forgettable. A Face specializes it. Gives it perspective, coherence, and nuance that doesn't collapse back into LLM-speak on long threads.
 
-Official docs: https://docs.faces.sh
+This skill and its references are the documentation: start with [references/QUICKSTART.md](references/QUICKSTART.md) and [references/REFERENCE.md](references/REFERENCE.md). The live API schema is at https://api.faces.sh/openapi.json.
 
 Always use `--json` when you need to extract values from command output — or **`--toon`**,
 which carries the same fields in about 40% fewer tokens and is the better choice when the
