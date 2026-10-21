@@ -75,7 +75,7 @@ everything after it is the message. Examples:
 The alias can refer to a **face** (single persona) or a **team** (multiple
 faces with a collaboration protocol). Check both.
 
-**If alias provided** (`/facechat socrates` or `//facechat socrates How are you?`):
+**If alias provided** (`/facechat socrates` or `/facechat socrates How are you?`):
 
 ```bash
 # Check face first, then team

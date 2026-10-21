@@ -533,7 +533,7 @@ pay-per-token every automatic capture bills; the CLI refuses `auto_style on` the
 
 ## Decisions (`decide`)
 
-*Requires faces-cli 1.13.0 or newer.*
+*Requires faces-cli 1.18.0 or newer.*
 
 Chat gives you what a face would **say**. `faces decide` gives you what it would **decide**:
 describe a situation, ask typed questions about it, and get back numbers, as this face. It is
@@ -766,7 +766,7 @@ Teams also have a local TEAM.md representation at `~/.faces/teams/<name>/TEAM.md
 
 ## Compiling documents (`compile:doc`)
 
-`compile:doc` is the recommended one-step command for compiling a document into a face. Pass the face alias as the first argument. It handles create → compile (prepare + sync) automatically with real-time progress:
+`compile:doc` is the recommended one-step command for compiling a document into a face. Pass the face alias as the first argument. It handles create → compile automatically with real-time progress:
 
 ```bash
 faces compile:doc alice --file essay.txt --medium essay --perspective first-person

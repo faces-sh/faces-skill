@@ -12,7 +12,7 @@
 
 **6. Living proxy** — Compile your own writing: emails, notes, essays, voice memos. The Face becomes a 24/7 proxy for your thinking. Share it via a scoped API key so collaborators can consult your perspective when you're unavailable.
 
-**7. Ideological drift detection** — Sync new material into a Face quarterly. Compare centroid snapshots over time to detect whether a person's or organization's thinking is shifting — and in which direction.
+**7. Ideological drift detection** — Compile new material into a Face quarterly. Compare centroid snapshots over time to detect whether a person's or organization's thinking is shifting — and in which direction.
 
 **8. Boolean composition** — You have a pragmatist and a visionary. Their union (`pragmatist | visionary`) gives you someone who holds both worldviews. Their intersection (`pragmatist & visionary`) gives you only what they share — the narrow common ground. Their difference (`visionary - pragmatist`) gives you the visionary's thinking stripped of any practical instinct. Each is a real, chattable Face. None required a single additional document to compile.
 

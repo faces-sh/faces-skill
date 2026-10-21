@@ -8,8 +8,8 @@ report so the team can fix it:
 ```bash
 gh issue create --repo faces-sh/faces-skill \
   --title "Bug: <one-line summary>" \
-  --label "agent-report" \
-  --body "$(cat <<'ISSUE'
+  --label "bug" \
+  --body "$(cat <<ISSUE
 ## What happened
 <what you were trying to do and what went wrong>
 
@@ -17,20 +17,24 @@ gh issue create --repo faces-sh/faces-skill \
 $(faces --version 2>&1)
 
 ## Commands that failed
-```
+\`\`\`
 <paste the exact command and error output>
-```
+\`\`\`
 
 ## Expected behavior
 <what should have happened>
 
 ## Context
-- Skill: /face | /faceteam | /manyface | /faces
+- Skill: /facemake | /facechat | /faceteam | /manyface | /faces
 - OS: $(uname -s) $(uname -m)
 - Node: $(node --version 2>&1)
 ISSUE
 )"
 ```
+
+The heredoc delimiter is unquoted (`<<ISSUE`) so that `$(faces --version)` and the other
+substitutions expand; the code fences inside are escaped with backslashes for the same reason. Do
+not paste text containing `$` or backticks into the body unescaped, or the shell will run it.
 
 If `gh` is not installed or not authenticated, open an issue manually at:
 https://github.com/faces-sh/faces-skill/issues

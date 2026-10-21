@@ -7,7 +7,7 @@ description: >
   research), or /facemake with no argument for the full guided flow. This skill
   walks through the entire process: interview, research real source material,
   sketch a FACE.md recipe, iterate with the user, compile, and optionally
-  Trigger when the user says "create a face", "I need a persona", "make me a
+  capture how the person writes. Trigger when the user says "create a face", "I need a persona", "make me a
   digital twin", "build a face for", or names a person they want to turn into
   an AI. Also trigger on /facemake.
 allowed-tools:
@@ -344,7 +344,7 @@ faces face:create --name "Name" --alias slug \
   --default-model MODEL --attr key=value
 #   face:create takes NO source material — no --source, --interview, --file or
 #   --content. It makes an empty face; sources attach afterwards with
-#   compile:doc / compile:upload / compile:thread (see "Attach source material").
+#   compile:doc / compile:upload / compile:import (Step 5).
 #   Optional: --profile-addendum "<rules>" (or --profile-addendum-file path) to
 #   give the face a standing system prompt — durable behavior/format/constraints
 #   layered on top of the compiled persona. See faces skill REFERENCE.md.

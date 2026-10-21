@@ -293,7 +293,7 @@ everything a poller needs, including `synced`, `version`, `synced_version` and
 is compiling across the whole account, use `compile:status` below rather than a list.
 
 **To ask whether anything is still compiling, use `faces compile:status`** rather than
-polling sources one by one. It answers for the whole account in one small call: 136
+polling sources one by one. It answers for the whole account in one small call: 123
 bytes idle, against 2.1MB for the document list. Needs faces-cli 1.12.0.
 
 ```bash
@@ -772,7 +772,8 @@ one bills.
   catalog/<alias>/      # individual FACE.md files
   backups/              # timestamped JSON backup snapshots (v2: faces + teams)
   teams/<team-slug>/    # TEAM.md files, one folder per team, named by a slug of the team name
-  skills/              # shared skills (facechat, etc.)
+  threads/              # chat:thread conversation history
+  models-cache.json     # cached model catalog for chat routing
 ```
 
 ## FACE.md schema
