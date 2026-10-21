@@ -83,11 +83,15 @@ You can register manually at the [faces.sh](https://faces.sh/) website, or via t
 
 ```bash
 # Pay-per-token plan ($5 activation, 5% markup on all API calls)
-faces auth:register --email you@example.com --password 'your-password' --username your-username
+faces auth:register --email you@example.com --password 'your-password-1' --username your_username
 
 # Subscription Connect plan ($17/month, link ChatGPT for select OpenAI models at no extra cost)
-faces auth:register --email you@example.com --password 'your-password' --username your-username --plan connect
+faces auth:register --email you@example.com --password 'your-password-1' --username your_username --plan connect
 ```
+
+A username is 1 to 32 characters: a lowercase letter, then lowercase letters, numbers or
+underscores (no dashes). A password needs at least one digit. faces-cli 1.21.0 checks both
+before sending anything.
 
 This returns a Stripe Checkout URL. Complete payment in your browser, then verify:
 
@@ -294,7 +298,8 @@ Everything under `~/.faces/` is the Faces ecosystem. Catalog and teams compound 
 Every face has a living document:
 
 The frontmatter is written by the CLI from the server, and rewritten on every face command
-and on `faces catalog:doctor --fix`:
+and on `faces catalog:doctor --fix` (from faces-cli 1.21.0 it keeps any key it does not manage;
+older versions drop them):
 
 ```yaml
 ---

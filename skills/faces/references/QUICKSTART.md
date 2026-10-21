@@ -63,6 +63,10 @@ RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --use
 echo "$RESULT" | jq -r '.checkout_url'
 ```
 
+`USERNAME` is 1 to 32 characters: a lowercase letter, then lowercase letters, numbers or
+underscores (no dashes, so `jane_doe`, not `jane-doe`). The password needs at least one digit.
+faces-cli 1.21.0 refuses either before sending; an older CLI gets the server's refusal.
+
 `--json` returns `status`, `user_id`, `plan`, `amount` and `checkout_url`. If the
 checkout link could not be fetched, `checkout_url` is missing and `checkout_error` says why.
 

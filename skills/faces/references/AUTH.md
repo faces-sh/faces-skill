@@ -29,6 +29,10 @@ faces auth:register \
 `--plan` is `free` (the default), `connect` or `pro` (`pro` from faces-cli 1.17.0). Team is by
 promo code only, and Standard is retired.
 
+`--username` is 1 to 32 characters: a lowercase letter, then lowercase letters, numbers or
+underscores. No dashes. `--password` needs at least one digit. faces-cli 1.21.0 checks both
+before sending the request.
+
 The response includes:
 
 ```json
@@ -121,11 +125,17 @@ Pass `--no-save` to `keys:create` if you want to print the key without persistin
 faces keys:create --name "other-machine" --no-save
 ```
 
-API keys support optional restrictions:
-- `--face ALIAS` — restrict to specific faces (repeatable)
-- `--model NAME` — restrict to specific LLM models (repeatable)
-- `--budget F` — spending cap in USD
-- `--expires-days N` — auto-expiry
+API keys support optional restrictions (faces-cli 1.20.1+; an older CLI sends them under
+names the API refuses, so every limit fails):
+- `--face ALIAS`: the key can chat only with these faces (repeatable); other faces' details can still be read
+- `--model NAME`: restrict to specific LLM models (repeatable)
+- `--budget F`: lifetime spending cap in plain dollars (`5`, `0.50`); anything else is refused
+- `--expires-days N`: auto-expiry, 1 to 36500 days
+
+`faces keys:revoke KEY_ID --yes` revokes a key; from 1.21.0, when it is the key saved in
+`~/.faces/config.json`, it is removed from there too. A saved key that has been revoked
+elsewhere no longer breaks every command: from 1.21.0 the CLI falls back once to the saved
+login and warns, naming `faces config:set api_key ""` to remove it.
 
 ### One-time secret
 
@@ -166,15 +176,15 @@ faces compile:stats --json          # this month's compile usage against the all
 
 ```bash
 faces billing:subscribe --plan connect     # or --plan pro; alias of billing:subscription:activate
-faces billing:subscription:plan pro        # already subscribed: switch in place, prorated
+faces billing:subscription:plan pro --yes  # already subscribed: switch in place, prorated. It charges: ask first
 ```
 
-`billing:subscribe` prints a Stripe Checkout URL (it takes a promo code). The human must open it in a browser to complete payment. If previously canceled, this reactivates the existing subscription. Already subscribed, use `billing:subscription:plan` instead. See [BILLING.md](BILLING.md).
+`billing:subscribe` prints a Stripe Checkout URL (it takes a promo code). The human must open it in a browser to complete payment. If the plan is set to cancel, `billing:subscription:activate` with no `--plan` keeps it (faces-cli 1.21.0+; before, it defaulted to Connect, which is wrong for a Pro user: pass `--plan pro`). Already subscribed, use `billing:subscription:plan` instead; from 1.21.0 it refuses while the plan is set to cancel, so keep the plan first. See [BILLING.md](BILLING.md).
 
 ### Canceling
 
 ```bash
-faces billing:subscription:cancel
+faces billing:subscription:cancel --yes   # from an agent, --yes is required (1.21.0+): ask the user first
 ```
 
 Soft cancel — keeps access until the current billing period ends.
@@ -190,7 +200,7 @@ Soft cancel — keeps access until the current billing period ends.
 
 ## Credential storage
 
-Credentials are stored in `~/.faces/config.json`. The CLI reads from there automatically, or from environment variables:
+Credentials are stored in `~/.faces/config.json`. The CLI reads from there automatically, or from environment variables. From faces-cli 1.21.0 saved credentials are sent only to the API they were saved for (`credentials_base_url`, recorded at login), so `--base-url` to another host runs signed out; credentials from a flag or the environment are always sent, and nothing goes over plain `http://` except to localhost. `faces config:set` takes only the keys it knows (`base_url`, `api_key`, `token`, `user_id`, `catalog`, `catalog_model`, `credentials_base_url`) and refuses a `base_url` that is not an http(s) URL.
 
 | Variable | Purpose |
 |---|---|

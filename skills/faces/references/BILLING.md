@@ -3,6 +3,13 @@
 All billing commands: `faces billing:COMMAND`. Use `--json` on any command for
 structured output.
 
+**Every command here that charges or removes something needs `--yes` from an agent**
+(faces-cli 1.21.0+): `billing:topup`, `billing:subscription:plan`, `billing:subscription:cancel`
+and `billing:card:remove`. Under `--json` or with no terminal, without `--yes` they refuse with
+"Re-run with --yes to confirm. Nothing was changed." and exit 2. Ask the user before adding it.
+Before 1.21.0 `--json` let a plan switch or card removal through unasked, and `billing:topup`
+never asked.
+
 ## Plans
 
 | plan | price | what it includes |
@@ -60,7 +67,9 @@ faces billing:subscription
 faces billing:subscription --json
 ```
 
-Shows the plan, renewal date and, on a paid plan, a meter of each allowance (faces-cli 1.17.0+):
+Shows the plan, renewal date and, on a paid plan, a meter of each allowance (faces-cli 1.17.0+).
+A plan set to cancel is the first thing it says, with the end date and the command that keeps
+it (1.21.0+):
 
 ```
 Connect allowances (tokens):
@@ -86,7 +95,10 @@ faces billing:subscribe --plan pro
 
 From the Free plan, prints a Stripe Checkout URL. The human must open it in a browser to pay; the
 page takes a **promo code**, which can make a plan free for a while or add credits. If the
-subscription is set to cancel and is still in its period, this reactivates it instead.
+subscription is set to cancel and is still in its period, this reactivates it instead. To keep
+a cancelling plan, run `faces billing:subscription:activate` with **no** `--plan` (1.21.0+ keeps
+the current plan). Before 1.21.0 `--plan` defaulted to `connect`, so name the plan the user is
+on.
 
 Checkout is for a **first** subscription only. Already on Connect, Pro or Team, a second checkout
 would bill twice, so it is refused (`409`); the CLI says so before asking. Switch instead.
@@ -94,18 +106,20 @@ would bill twice, so it is refused (`409`); the CLI says so before asking. Switc
 ## Switch between Connect and Pro
 
 ```bash
-faces billing:subscription:plan pro         # asks to confirm; --yes skips that
-faces billing:subscription:plan connect
+faces billing:subscription:plan pro --yes   # asks to confirm in a terminal; from an agent --yes is required
+faces billing:subscription:plan connect --yes
 ```
 
 Switches in place. Stripe prorates the difference on the default card, and the new allowances
 apply at once. Confirm with the user before running it: it charges. A `409` means there is no
-subscription to switch (subscribe instead) or the plan is Team, which cannot switch.
+subscription to switch (subscribe instead) or the plan is Team, which cannot switch. While the
+plan is set to cancel, 1.21.0+ refuses the switch, since the proration would be charged and the
+plan would still end: keep it first with `billing:subscription:activate`.
 
 ## Cancel
 
 ```bash
-faces billing:subscription:cancel
+faces billing:subscription:cancel --yes
 ```
 
 Soft cancel: keeps the plan until the current period ends, then reverts to Free. To keep it,
@@ -115,11 +129,13 @@ run `billing:subscription:activate` before then.
 
 ```bash
 faces billing:balance --json                 # balance_usd, has_payment_method (= a default card exists)
-faces billing:topup --amount 5               # charges the default card; minimum $1
-faces billing:topup --amount 5 --card pm_…   # charges another saved card (faces-cli 1.17.0+)
+faces billing:topup --amount 5 --yes               # charges the default card; minimum $1
+faces billing:topup --amount 5 --card pm_… --yes   # charges another saved card (faces-cli 1.17.0+)
 ```
 
-Credits are applied at once. A `402` anywhere means there is no credit for that request,
+Ask the user for the amount and their go-ahead before running it: it charges a card. From
+1.21.0 `--amount` must be a plain dollar amount (`5`, `0.50`); anything else is refused rather
+than read loosely. Credits are applied at once. A `402` anywhere means there is no credit for that request,
 including `faces decide` on Connect and Pro, whose decision model is always paid. Top up and
 retry; the CLI names the command.
 
@@ -134,7 +150,7 @@ faces billing:cards                          # newest first: brand, last 4, expi
 faces billing:card-setup                     # alias billing:card:add: prints a Stripe link to save a card
 faces billing:card-setup --no-default        # save it without making it the default
 faces billing:card:default pm_…              # the next renewal charges this one
-faces billing:card:remove pm_…  [--yes]
+faces billing:card:remove pm_… --yes        # from an agent, --yes is required (1.21.0+)
 ```
 
 - Saving a card charges nothing. The new card becomes the default unless `--no-default`; the
@@ -196,8 +212,9 @@ Aggregated usage analytics. Group by `api_key`, `model`, `llm`, or `date`.
 
 ## Common scenarios
 
-**402:** No credit for the request. Run `faces billing:balance --json` to confirm, then
-`faces billing:topup --amount <USD>` (with no card saved, `faces billing:card-setup` first)
+**402:** No credit for the request. Run `faces billing:balance --json` to confirm, then, once
+the user agrees, `faces billing:topup --amount <USD> --yes` (with no card saved,
+`faces billing:card-setup` first; from 1.21.0 a `402` for want of a card says so and names it)
 and retry.
 
 **429 naming an allowance:** A plan's allowance is used and `api_fallback` is off. Wait for the
@@ -215,7 +232,7 @@ subscribe to Connect to use a linked ChatGPT account.
 
 **422 oauth_rejected:** OAuth request failed and fallback is disabled. Enable
 fallback: `faces account:preferences api_fallback true`. If no credits, run
-`faces billing:topup` first. See [OAUTH.md](OAUTH.md) for details.
+`faces billing:topup --amount <USD> --yes` first. See [OAUTH.md](OAUTH.md) for details.
 
 **Connect and Pro users:** Link a ChatGPT account (`faces auth:connect openai`) so gpt-5.x
 models run free on it at `/v1/responses` (which `chat:chat` routes them to). Other models are
