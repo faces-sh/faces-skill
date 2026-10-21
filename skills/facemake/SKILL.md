@@ -368,7 +368,7 @@ Recipe body format (everything below the CLI's closing `---`):
 ## Recipe
 
 - Role: <the role this face fills>
-- Source type: <public-figure | archetype | composite | custom>
+- Source type: <public-figure | composite | custom, or option B from the first question>
 
 ## Queued
 
