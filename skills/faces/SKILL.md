@@ -46,7 +46,8 @@ Later additions have their own floors: `face:list --sort/--order/--search` needs
 the billing commands for Pro, plan switching and saved cards need **1.17.0**, and
 `faces decide` needs **1.18.0**: the API moved it, so an older CLI's `decide` is refused, and
 **1.19.0** waits out a rate-limit `429` once, explains the pay-per-token OAuth-only refusal, and
-reads a held decision that failed as the error it is. From
+reads a held decision that failed as the error it is. Compiling needs **1.20.0**: the API
+replaced the progress fields, and an older CLI waits on fields that no longer arrive. From
 **1.16.0** every document save requires `--medium`, which the server now enforces at every
 version. Each is marked where it appears.
 
@@ -75,6 +76,8 @@ echo "EXIT:$?"
 If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run setup.
 
 If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then run `faces catalog:doctor --fix` to migrate local catalog files (FACE.md and TEAM.md) to the latest format.
+
+**If `faces --version` is below 1.20.0, update before any compile, even with no `UPDATE_AVAILABLE` line.** The API changed its compile calls and progress fields on 2026-10-20, so an older CLI's compile commands fail or wait on progress that never arrives. Tell the user that is why you are updating.
 
 **Auth triage:**
 
@@ -165,7 +168,7 @@ faces compile:doc alias --file a.txt --file b.txt --file c.txt --medium essay --
 # About the subject (biography, Wikipedia, news profile) — you MUST set third-person
 faces compile:doc alias --file biography.txt --medium essay --perspective third-person --no-wait --json
 # compile:doc takes TEXT only. For PDF, Word (.docx), audio or video use compile:upload instead.
-# Poll: faces compile:doc:get DOC_ID --status-only --json | jq '{prepare_status}'
+# Poll: faces compile:doc:get DOC_ID --status-only --json | jq '{status, progress}'
 ```
 
 **Every compile must declare `--medium`, and you must not guess it.** A compile reads
@@ -251,8 +254,8 @@ faces compile:thread:make "$THREAD_ID" --no-wait --json
 # Thread from audio/video — DON'T pass --face-speaker at upload
 THREAD_ID=$(faces compile:upload alias --file recording.mp4 --kind thread --no-wait --json | jq -r '.thread_id // .id')
 # Poll for transcription:
-faces compile:thread:get "$THREAD_ID" --status-only --json | jq '{prepare_status}'
-# When transcription done (prepare_status: null), review and remap:
+faces compile:thread:get "$THREAD_ID" --status-only --json | jq '{status}'
+# When transcription is done (status: "not_compiled"), review and remap:
 faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
@@ -265,8 +268,8 @@ runs independently on the server — you can fire multiple compiles in parallel
 without waiting for any to finish. Upload all sources, kick off all compiles,
 then poll them all at the end. Poll on your own schedule:
 ```bash
-faces compile:thread:get ID --status-only --json | jq '{prepare_status, chunks_completed, chunks_total}'
-faces compile:doc:get ID --status-only --json | jq '{prepare_status}'
+faces compile:thread:get ID --status-only --json | jq '{status, progress}'
+faces compile:doc:get ID --status-only --json | jq '{status, progress}'
 ```
 
 **Always poll with `--status-only`.** Without it the whole source comes back on every
@@ -295,38 +298,41 @@ This is the question a resumed session cannot answer from its own memory. A comp
 started in an earlier turn, or by the user on another machine, is otherwise invisible,
 and the failure mode is reporting work finished when it is still running.
 
-**An empty answer means nothing is RUNNING, not nothing is outstanding.** A paused
-source does not appear here; a stalled one does, because it is being retried. That is
-the same `finishing` distinction as below. So if you paused a compile and then check
-here, seeing nothing does not mean the work completed — find a paused source through
-`faces face:sources <alias>`.
+**`sources_active: 0` means nothing is RUNNING, not nothing is outstanding.** Running,
+queued and retried sources are counted. Paused ones are not: they are listed apart in
+`paused`, since they wait on you, and `--watch` does not wait for them. So if you paused a
+compile, look in `paused` before reporting that the work completed. faces-cli 1.20.0
+prints that list, with the command that resumes each one.
 
-**Branch on `measurable` before reporting a percentage.** A source that is transcribing
-or harvesting has no chunk count, so `chunks_total` is null and a percentage from it
-would be invented. When `measurable` is false, say "working" and report
-`chunks_completed` on its own: "8 chunks done" is true, "of what" is not. It is
-all-or-nothing across a group on purpose — summing only the totals that exist gives a
-denominator that grows when the missing one arrives, so a percentage would go
-*backwards*, and narrating that regression is worse than saying nothing. Read
-`sources_active` first: `measurable` is false on an idle account, which is neither true
-nor useful.
+**Branch on `measurable` before reporting a percentage.** Every source, every face and the
+account carry `progress`, from 0 to 1. On a face and on the account it is `null` while it
+cannot be measured, during a transcription for one, and `measurable` is false: say
+"working" rather than inventing a number. Read `sources_active` first: `measurable` is
+false on an idle account, which is neither true nor useful. A source that is `queued` has
+progress 0 and is waiting, not stuck: say "queued", never "0%" (faces-cli 1.20.0+ does).
 
 `faces` in that response is activity, not a roster. A face appears only while it has
 work, so it is never a listing of the account's faces.
 
-Status meanings (`prepare_status` field):
+Status meanings (the `status` field, with `progress` from 0 to 1 beside it). These replaced
+`prepare_status`, `chunks_total` and `chunks_completed`, which the API no longer sends;
+faces-cli 1.20.0 is the first version that reads them, so update an older CLI before
+compiling.
 
 | Status | Meaning | Action |
 |--------|---------|--------|
+| `"not_compiled"` | Never compiled (or transcription finished) | Run `compile:thread:make` or `compile:doc:make` |
 | `"transcribing"` | Audio/video being transcribed | Keep polling |
-| `null` | Ready to compile (transcription done, no compilation started) | Run `compile:thread:make` or `compile:doc:make` |
-| `"preparing"` | Compilation in progress, extracting cognitive primitives | Keep polling |
-| `"syncing"` | Writing primitives to the face | Almost done, keep polling |
-| `"synced"` | Done | Compilation complete |
-| `"pausing"` | Pause requested, finishing the current chunk | Keep polling until `"paused"` |
-| `"paused"` | Compilation paused by user/agent | Resume with `compile:*:make` or reset with `compile:*:reset` |
-| `"failed"` | Something went wrong | Investigate or retry |
-| `"stalled"` | Stuck for 10+ minutes | Re-run the make command |
+| `"queued"` | Waiting behind the face's other sources (a face compiles one source at a time), or interrupted and about to resume by itself | Keep polling; say "queued", never "0%" |
+| `"compiling"` | Running; `progress` says how far | Keep polling |
+| `"compiled"` | Done; `progress` is 1 | Compilation complete. The face's style update for it can finish up to about a minute later in the background; do not wait for it |
+| `"paused"` | Paused by you or the user; nothing moves until it is resumed | Resume with `compile:*:make` or reset with `compile:*:reset` |
+| `"failed"` | Finished without success | Read `finishing` first: `true` means the server is still retrying, so wait. Otherwise `stall_reason` and `error_code` say why |
+
+Treat a status not in this table as `"compiling"`. `/make` is the only compile call:
+`/prepare` and `/sync` are gone, and so is `compile:thread:sync`. A second `/make` of an
+unchanged, compiled source is refused with `409` `error_code: "already_compiled"` and
+nothing is charged; to compile it again, edit it or `compile:*:reset` it first.
 
 **If YouTube blocks the download** ("Sign in to confirm you're not a bot"):
 Download locally with yt-dlp, extract and compress audio with ffmpeg, upload.
@@ -706,9 +712,9 @@ one bills.
 | `may be out of date` | The API has moved under this version: `npm install -g faces-cli@latest`, then retry |
 | `401 Unauthorized` | `faces auth:login` or check `FACES_API_KEY` via `faces config:show` |
 | status "transcribing" | Audio/video transcription in progress — poll with `compile:thread:get ID --status-only --json` |
-| status "preparing" | Compilation in progress — poll with `compile:doc:get ID --status-only --json` or `compile:thread:get ID --status-only --json` |
-| status "stalled" | Being retried automatically. Read `finishing`: `true` means keep waiting and offer nothing. `false` means it is out of retries — read `stall_reason` for why |
-| status "failed" | Out of attempts. `stall_reason` says why; do not re-run without fixing it |
+| status "queued" or "compiling" | Compilation waiting or in progress. Poll with `compile:doc:get ID --status-only --json` or `compile:thread:get ID --status-only --json`, or `compile:status` for everything at once |
+| `409 already_compiled` | The source is compiled and unchanged; nothing was charged. Edit it or `compile:*:reset` it to compile again |
+| status "failed" | If `finishing` is `true` the server is still retrying: wait and offer nothing. Otherwise it is out of attempts; `stall_reason` says why, so do not re-run without fixing it |
 | `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1; `--card pm_…` for a card other than the default). If no card on file: `faces billing:card-setup` first. Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
 | `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
 | `429` naming an allowance | A Connect or Pro allowance (reasoning over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is: it names the allowance and the reset. Wait, or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
@@ -718,7 +724,7 @@ one bills.
 | `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
 | `422` on thread import | Retry with `--type document` |
 | `409` read-only on edit | The document/thread is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
-| Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID` — pause is a request, so wait for `prepare_status: "paused"` before reading results (the CLI waits for you unless you pass `--no-wait`). Then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
+| Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID` — pause is a request, so wait for `status: "paused"` before reading results (the CLI waits for you unless you pass `--no-wait`). Then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 
 ## Related skills
 

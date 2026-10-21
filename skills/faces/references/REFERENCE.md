@@ -181,7 +181,6 @@ faces compile:thread:message  <thread_id>  -m MSG  [--oauth-only]
 faces compile:thread:make     <thread_id>  [--timeout N]  [--no-wait]
 faces compile:thread:pause    <thread_id>  [--no-wait]  [--timeout N]
 faces compile:thread:reset    <thread_id>  [--yes]
-faces compile:thread:sync     <thread_id>
 faces compile:thread:delete   <thread_id>  [--yes]
 
 faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json]  [--messages-per-room N]  [--strict]
@@ -232,11 +231,11 @@ faces catalog:manyfaced   [--skill NAME]  [--install NAME --skills-dir PATH]  [-
 faces compile:all         [--timeout N]
 faces compile:status      [--watch]  [--interval SECONDS]
                                                        # faces-cli 1.12.0+. What is compiling on the ACCOUNT, grouped by face,
-                                                       # in one small call: 136 bytes idle against 2.1MB for the document list.
+                                                       # in one small call: 123 bytes idle against 2.1MB for the document list.
                                                        # --watch polls until nothing is in flight, then exits.
-                                                       # Branch on sources_active. An EMPTY answer means nothing is RUNNING,
-                                                       # not nothing outstanding: a paused source is absent, a stalled one is
-                                                       # present because it is retried. Not the same as compile:stats, which
+                                                       # Branch on sources_active. 0 means nothing is RUNNING, not nothing
+                                                       # outstanding: paused sources are listed apart in `paused` (printed
+                                                       # from 1.20.0), one the server is retrying is counted. Not compile:stats, which
                                                        # is this month's compile usage against the allowance.
 
 faces keys:create   --name  [--expires-days N]  [--budget F]  [--face ALIAS]...  [--model NAME]...  [--no-save]
@@ -802,12 +801,17 @@ separately:
 Output:
 ```
 Creating document... done (abc123)
-Compiling (3 chunks):
-  [1/3] 11 components
-  [2/3] 25 components
-  [3/3] 45 components (syncing)
+Compiling:
+  compiling, 0%  0 components
+  compiling, 43%  11 components
+  compiling, 86%  25 components
+  compiled  45 components
 Done.
 ```
+
+A source waiting behind the face's other sources, or interrupted and about to resume,
+prints `queued` until its turn (`compile:doc:make` and `compile:thread:make` say so up
+front: `Compiling (queued, and it starts on its own):`). Output as of faces-cli 1.20.0.
 
 For an already-created document, use `compile:doc:make <doc_id>` to compile it.
 
@@ -1050,25 +1054,46 @@ reverting and then capturing again never loses the style you chose.
 
 ## Compile state: read `finishing` first
 
-A source carries a `finishing` boolean as well as `synced` and `prepare_status`. **Branch
-on `finishing` first; read `prepare_status` only when it is false.**
+A source carries a `finishing` boolean as well as `synced`, `status` and `progress`.
+**Branch on `finishing` first; read `status` only when it is false.**
 
 | `finishing` | means | what to do |
 |---|---|---|
 | `true` | running, or queued for an automatic retry | show progress, **offer no action**, keep polling |
-| `false` | finished, out of retries, or paused | read `prepare_status` to tell those apart |
+| `false` | finished, out of retries, or paused | read `status` to tell those apart |
 
 `finishing: true` never coexists with `synced: true`. It is not the opposite of `synced`
 (a source never compiled is neither), and it is **not** true for `paused`, because a pause
 waits on you rather than on the server.
 
-**Never offer to compile a source that is finishing.** `"stalled"` is retried
-automatically, so presenting it as an error and telling someone to re-run is asking them
-to do what the system is already doing, and invites a second charge for work in flight.
-`faces compile:all` skips them and says how many it skipped.
+**Never offer to compile a source that is finishing.** A source being retried
+automatically can report `failed` on the way, so presenting it as an error and telling
+someone to re-run is asking them to do what the system is already doing, and invites a
+second charge for work in flight. `faces compile:all` skips them and says how many it
+skipped.
 
-`prepare_status` keeps its terminal set (`synced` / `ready` / `failed`), so an existing
-poll loop needs no change.
+**`status` and `progress`** replaced `prepare_status`, `chunks_total` and
+`chunks_completed`, which the API no longer sends, on every compile response: the
+document and thread reads (with `?status_only=true` too), the lists, `PATCH`, `/make` and
+`/v1/compile/activity`. A poll loop written against the old fields waits forever, and
+faces-cli 1.20.0 is the first CLI that reads the new ones.
+
+| `status` | meaning |
+|---|---|
+| `not_compiled` | never compiled; call `/make` |
+| `transcribing` | an audio or video source is being transcribed |
+| `queued` | waiting behind the face's other sources (one face compiles one source at a time), or interrupted and about to resume by itself |
+| `compiling` | running |
+| `compiled` | done. The face's style update for it can land up to about a minute later in the background; treat `compiled` as finished |
+| `paused` | paused by the caller; nothing moves until it is resumed |
+| `failed` | finished without success; `error_code` and `stall_reason` say why |
+
+Treat an unknown value as `compiling`. `progress` runs from 0 to 1: it is 1 only when
+`compiled`, and 0 while `queued` or `not_compiled`. Show queued work as queued, never as
+"0%". `/make` is the only compile call, interview threads included; `/prepare` and
+`/sync` are gone, and with them `compile:thread:sync`. A second `/make` of an unchanged,
+compiled source answers `409` with `error_code: "already_compiled"` and charges nothing:
+edit the source or reset it to compile again.
 
 **A synced source with `GAVE 0`** had nothing the compiler could use, such as a PDF that
 is only images. A compile that extracts nothing from real text no longer reports success,
@@ -1078,8 +1103,8 @@ the same result.
 ## Is anything compiling? (`compile:status`)
 
 `finishing` above answers it for one source. For the account, `faces compile:status`
-answers for everything at once — 136 bytes idle, against 2.1MB to walk the document
-list. Needs faces-cli 1.12.0.
+answers for everything at once — 123 bytes idle, against 2.1MB to walk the document
+list. Needs faces-cli 1.12.0, and 1.20.0 for the current fields.
 
 ```bash
 faces compile:status                 # grouped by face
@@ -1091,35 +1116,50 @@ Idle it is exactly:
 
 ```json
 {"object":"compile_activity","faces":[],"faces_active":0,"sources_active":0,
- "chunks_completed":0,"chunks_total":null,"measurable":false}
+ "progress":null,"measurable":false,"paused":[]}
 ```
 
-With work in hand each entry in `faces` carries `alias`, `sources_active`,
-`chunks_completed`, `chunks_total`, `measurable`, and a `sources` list of
-`{id, kind, label, prepare_status, chunks_completed, chunks_total, stall_reason}`.
+With work in hand each entry in `faces` carries `alias`, `sources_active`, `progress`,
+`measurable`, and a `sources` list of `{id, kind, label, status, progress, stall_reason}`.
+Paused sources are not in `faces`. Each one is an entry in the top-level `paused` list,
+`{alias, id, kind, label, status, progress, stall_reason}`, for example:
+
+```json
+"paused": [{"alias": "alice", "id": "549e…", "kind": "document", "label": "Letters",
+            "status": "paused", "progress": 0.14, "stall_reason": null}]
+```
+
+faces-cli 1.20.0 prints them after the running work:
+
+```
+Nothing is compiling.
+
+1 paused source(s), waiting for you to resume:
+  alice  document Letters
+         paused, 14%
+         resume: faces compile:doc:make 549e…
+```
 
 **This is the question a resumed session cannot answer from memory.** A compile started
 in an earlier turn, or by someone on another machine, is otherwise invisible, and the
 failure is reporting work finished while it is still running.
 
-**An empty answer means nothing is RUNNING, not nothing is outstanding.** Membership is
-the same `finishing` predicate as above: a pause waits on you, so a paused source is
-**absent**; a stall is retried automatically, so a stalled one is **present**. Having
-paused a compile and then seeing nothing here is not evidence it completed. Find a
-paused source through `faces face:sources <alias>`.
+**`sources_active: 0` means nothing is RUNNING, not nothing is outstanding.** Membership
+in `faces` is the same `finishing` predicate as above: a retry is the server's, so a
+source being retried is **counted**, and so is a queued one; a pause waits on you, so a
+paused source is **not counted** and sits in `paused` instead. `--watch` exits without
+waiting for paused sources. Having paused a compile, read `paused` before reporting that
+the work completed.
 
-**Branch on `measurable` before reporting a percentage.** A source that is transcribing
-or harvesting has no chunk count, so `chunks_total` is null. When `measurable` is false,
-report `chunks_completed` alone and call it working: "8 chunks done" is true, "of what"
-is not. It is all-or-nothing across a group deliberately — summing only the totals that
-exist gives a denominator that grows when the missing one arrives, so a percentage runs
-*backwards*. A single face can be `measurable: true` while the account is false. Read
-`sources_active` first, since `measurable` is false on an idle account, which is neither
-true nor useful.
+**Branch on `measurable` before reporting a percentage.** On a face and on the account,
+`progress` is `null` while it cannot be measured, during a transcription for one, and
+`measurable` says so: call it working and give no number. A single face can be
+`measurable: true` while the account is false. Read `sources_active` first, since
+`measurable` is false on an idle account, which is neither true nor useful.
 
 A **source** entry carries no `measurable` of its own and does not need one: its
-`chunks_total` is either a number or null, and a number can be trusted, because one
-source is not a sum.
+`progress` is always a number from 0 to 1. When every source in a face is `queued`, the
+face's progress is 0 because it is waiting, not stuck.
 
 `faces` is activity, not a roster. A face appears only while it has work, so this is
 never a listing of the account's faces.

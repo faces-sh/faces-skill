@@ -440,8 +440,8 @@ ffmpeg -i video.mp4 -vn -ac 1 -b:a 48k audio.mp3
 THREAD_ID=$(faces compile:upload <alias> --file audio.mp3 --kind thread \
   --no-wait --json | jq -r '.thread_id // .id')
 # Poll for transcription:
-faces compile:thread:get "$THREAD_ID" --status-only --json | jq '{prepare_status}'
-# When done, review and remap speaker:
+faces compile:thread:get "$THREAD_ID" --status-only --json | jq '{status}'
+# When done (status: "not_compiled"), review and remap speaker:
 faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
@@ -479,28 +479,30 @@ no form-specific conventions assumed. Reach for it when nothing fits; do not rea
 it to skip asking, and do not file a letter or a memo there, which are forms with rules
 of their own.
 
-Poll one source: `faces compile:thread:get ID --status-only --json | jq '{prepare_status, chunks_completed, chunks_total}'`
+Poll one source: `faces compile:thread:get ID --status-only --json | jq '{status, progress}'`
 
 **Poll the whole set with one call instead.** This step queues several compiles with
 `--no-wait`, so the question is "are they all done", not "is this one done":
 
 ```bash
-faces compile:status --json | jq '{sources_active, measurable, chunks_completed}'
+faces compile:status --json | jq '{sources_active, measurable, progress}'
 faces compile:status --watch      # blocks until the account is quiet, then exits
 ```
 
-136 bytes idle, against one request per id. Needs faces-cli 1.12.0.
+123 bytes idle, against one request per id. Needs faces-cli 1.12.0, and 1.20.0 to read the
+`status` and `progress` fields the API now sends.
 
 Two things to get right when reporting it back to the user:
 
-- **An empty answer means nothing is running, not nothing is outstanding.** A paused
-  source is absent; a stalled one is present, because it is retried automatically. If
-  you paused something, seeing nothing here is not evidence it finished.
-- **Do not report a percentage when `measurable` is false.** A source still
-  transcribing has no chunk count, so there is no denominator. Say how many chunks are
-  done and leave it there — summing the totals that do exist makes a denominator that
-  grows, so the percentage would go backwards, and narrating that is worse than saying
-  nothing.
+- **`sources_active: 0` means nothing is running, not nothing is outstanding.** Paused
+  sources are not counted. They are listed apart in `paused`, each with its `alias`, so
+  read that list before telling the user everything finished. One the server is
+  retrying is counted as active.
+- **Do not report a percentage when `measurable` is false.** While a face or the account
+  cannot be measured, during a transcription for one, its `progress` is `null`: say
+  "working" and leave it there.
+- **Queued is waiting, not stuck.** A face compiles one source at a time, so the rest of
+  this set reads `queued` with progress 0 until its turn. Say "queued", never "0%".
 
 For audio/video sources, always review the transcript with the user before
 compiling — transcription quality varies and speaker labels may need correction.

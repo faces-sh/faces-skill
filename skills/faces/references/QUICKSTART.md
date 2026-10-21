@@ -160,7 +160,7 @@ Or, if you created the document inline (step 4, "Raw text"), you can create and 
 
 ```bash
 faces compile:doc alice --file essay.txt --medium essay --no-wait --json
-# Poll: faces compile:doc:get DOC_ID --status-only --json | jq '{prepare_status}'
+# Poll: faces compile:doc:get DOC_ID --status-only --json | jq '{status, progress}'
 ```
 
 For threads:
@@ -169,7 +169,7 @@ For threads:
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 
-Poll status: `faces compile:thread:get THREAD_ID --status-only --json | jq '{prepare_status, chunks_completed, chunks_total}'`
+Poll status: `faces compile:thread:get THREAD_ID --status-only --json | jq '{status, progress}'`. `status` runs `queued`, `compiling`, `compiled` (or `paused`, `failed`), and `progress` goes from 0 to 1. Compiling needs faces-cli 1.20.0 or newer.
 
 `--status-only` leaves out the messages. Polling without it pulls the whole thread back
 every tick — a few hundred bytes against 120KB in one measurement — and for an agent
