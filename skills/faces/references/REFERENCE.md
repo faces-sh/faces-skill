@@ -3,7 +3,7 @@
 ```
 faces auth:login        --email  --password
 faces auth:logout
-faces auth:register     --email  --password  --username  [--plan free|connect|pro]  [--invite-key]
+faces auth:register     --email  --password  --username  [--plan free|connect|pro]
                                                        # username: 1-32 chars, a lowercase letter first, then lowercase letters,
                                                        # numbers or underscores. NO DASHES. Password: at least one digit.
                                                        # 1.21.0+ checks both before sending.
