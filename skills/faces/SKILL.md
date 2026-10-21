@@ -16,7 +16,7 @@ description: >
   if Faces is not yet installed — the skill covers setup. Do NOT use for
   fine-tuning models, RAG/retrieval systems, creative writing (NPC backstories,
   fiction), or thematic analysis of transcripts.
-compatibility: Requires the faces CLI (npm install -g faces-cli) and internet access to api.faces.sh.
+compatibility: Requires the faces CLI (npm install -g faces-cli@latest) and internet access to api.faces.sh.
 ---
 
 # Faces Skill
@@ -60,7 +60,7 @@ and try again.` Do that, then retry; do not work around it.
 !`faces config:show 2>/dev/null || echo "(no config saved)"`
 
 ## Anything compiling right now
-!`faces compile:status 2>/dev/null || echo "(needs faces-cli 1.12.0)"`
+!`faces compile:status 2>/dev/null || echo "(not signed in, or faces-cli older than 1.12.0)"`
 
 ## Setup
 
@@ -73,15 +73,16 @@ echo "EXIT:$?"
 [ -f ~/.faces/config.json ] && echo "HAS_CONFIG" || echo "NO_CONFIG"
 ```
 
-If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run setup.
+If `NOT_INSTALLED` (the auth check then prints `EXIT:127`, command not found): run `npm install -g faces-cli@latest` and re-run setup.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then run `faces catalog:doctor --fix` to migrate local catalog files (FACE.md and TEAM.md) to the latest format.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`. Once auth triage below reaches `EXIT:0`, run `faces catalog:doctor --fix` to migrate local catalog files (FACE.md and TEAM.md) to the latest format. It needs a signed-in account, so before sign-in it fails with "Authentication required"; that is not a broken update.
 
 **If `faces --version` is below 1.20.0, update before any compile, even with no `UPDATE_AVAILABLE` line.** The API changed its compile calls and progress fields on 2026-10-20, so an older CLI's compile commands fail or wait on progress that never arrives. Tell the user that is why you are updating.
 
 **Auth triage:**
 
 - `EXIT:0` → authenticated. Proceed.
+- `EXIT:127` → the CLI is not installed. Install it as above and re-run, before anything else.
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
   fix it. Do NOT walk through QUICKSTART or ask about plans.
@@ -708,7 +709,7 @@ one bills.
 
 | Error | Fix |
 |---|---|
-| `faces: command not found` | `npm install -g faces-cli` |
+| `faces: command not found` | `npm install -g faces-cli@latest` |
 | `may be out of date` | The API has moved under this version: `npm install -g faces-cli@latest`, then retry |
 | `401 Unauthorized` | `faces auth:login` or check `FACES_API_KEY` via `faces config:show` |
 | status "transcribing" | Audio/video transcription in progress — poll with `compile:thread:get ID --status-only --json` |

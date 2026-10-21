@@ -74,7 +74,7 @@ prep a PR to the catalog.
 ### Step 1: Install the faces CLI
 
 ```bash
-npm install -g faces-cli
+npm install -g faces-cli@latest
 ```
 
 ### Step 2: Register an account
@@ -327,7 +327,7 @@ The FACE.md grows with the face. Queued tracks what to compile next. Sources rec
 
 ## Troubleshooting
 
-**`faces: command not found`** — Run `npm install -g faces-cli`
+**`faces: command not found`** — Run `npm install -g faces-cli@latest`
 
 **Skills not showing up?** — Make sure you cloned to `~/.claude/skills/faces-skill` (not `~/.claude/skills/faces-skill/faces-skill`)
 

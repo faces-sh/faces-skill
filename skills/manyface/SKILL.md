@@ -35,13 +35,14 @@ echo "EXIT:$?"
 [ -f ~/.faces/config.json ] && echo "HAS_CONFIG" || echo "NO_CONFIG"
 ```
 
-If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run the preamble.
+If `NOT_INSTALLED` (the auth check then prints `EXIT:127`, command not found): run `npm install -g faces-cli@latest` and re-run the preamble.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalog:doctor --fix` to migrate local catalog files.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`. Once auth triage below reaches `EXIT:0`, run `faces catalog:doctor --fix` to migrate local catalog files. It needs a signed-in account, so before sign-in it fails with "Authentication required"; that is not a broken update.
 
 **Auth triage:**
 
 - `EXIT:0` → authenticated. Proceed.
+- `EXIT:127` → the CLI is not installed. Install it as above and re-run, before anything else.
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
   fix it. Do NOT walk through QUICKSTART or ask about plans.
