@@ -2,24 +2,34 @@
 
 > Every AI agent sounds the same. Helpful. Direct. Forgettable. **Faceless.**
 
-The Faces Platform compiles source texts — documents, interviews, YouTube talks — into cognitive primitives that change how an LLM composes language. Not a character description. Not a system prompt. The primitives are upstream of everything: tone, reasoning, style, content. They determine what word comes next.
+Faces are **causal models**. Compile one from an author's own texts (essays, emails,
+interviews, YouTube talks); prompt it, and it returns a **cause**: the principal *why* that
+would motivate that author's response in the context. The cause steers whichever model answers,
+so your agents keep a consistent, specific point of view however long they run. They become
+*someone* instead of no one.
 
-The result is a face that specializes an LLM with perspective, coherence, and nuance that doesn't collapse back into LLM-speak on long threads — using far fewer tokens than prompt-stuffing approaches like SOUL.md files.
+**faces-skill** is a bundle of five slash commands that turn Claude Code (or OpenClaw) into a
+system for making faces and putting them to work:
 
-**faces-skill** is a bundle of five slash commands that turn Claude Code (or OpenClaw) into a face creation and orchestration system:
-
-- **`/facemake`** — Create a face from scratch. Interview, research, compile.
-- **`/facechat`** — Chat with any face in your catalog. Pass an alias or browse to pick one.
-- **`/faceteam`** — Compose multiple faces into a team with a collaboration protocol.
-- **`/manyface`** — Transform any agent skill into a multi-persona version where every step is run by the ideal face for the job.
-- **`/faces`** — Core CLI operations. The power-user interface for direct platform access.
+- **`/facemake`**: create a face from scratch. Interview, research, compile.
+- **`/facechat`**: chat with any face or team in your catalog. Pass an alias or browse to pick one.
+- **`/faceteam`**: compose several faces into a team with a collaboration protocol.
+- **`/manyface`**: turn any agent skill into one where every step that needs judgment is run by the right face.
+- **`/faces`**: the core CLI operations, for direct access to the platform.
 
 **Who this is for:**
-- **Anyone tired of flat AI personas** — Character.ai characters that lose their voice after three messages. Custom GPTs that sound like every other Custom GPT. SOUL.md files that balloon to 2,000 tokens and still produce generic output. Faces compiles cognition, not descriptions.
-- **People frustrated with agent orchestration complexity** — If you've tried n8n, Paperclip, CrewAI, or similar tools and found them overengineered for what should be simple ("I just want three different perspectives on this decision"), Faces gives you that with slash commands, not flowchart builders.
-- **Isolated thinkers who need a real sparring partner** — Researchers, founders, writers, autodidacts working alone who need something that can genuinely push back on their thinking — not agree politely, not "have you considered the other side," but actually reason from a different cognitive structure.
-- **Agent skill authors** — who want to give their skills cognitive depth instead of a generic voice
-- **Teams** — who want to build a catalog of reusable faces that compound across projects
+- **Anyone tired of flat AI chatbots**: bots that lose their voice after three messages,
+  custom GPTs that sound like every other custom GPT, SOUL.md files that balloon to 2,000 tokens
+  and still produce generic output.
+- **People frustrated with agent orchestration**: if you have tried n8n, CrewAI or similar tools
+  and found them overbuilt for "I just want three different perspectives on this decision",
+  Faces gives you that with slash commands, not flowchart builders.
+- **Thinkers who need a real sparring partner**: researchers, founders, writers and
+  autodidacts working alone, who need something that pushes back from a genuinely different
+  point of view.
+- **Agent skill authors** who want their skills to have a point of view instead of a generic
+  voice.
+- **Teams** who want a catalog of reusable faces that grows across projects.
 
 ## Quick Start
 
@@ -82,11 +92,12 @@ npm install -g faces-cli@latest
 You can register manually at the [faces.sh](https://faces.sh/) website, or via the cli:
 
 ```bash
-# Pay-per-token plan ($5 activation, 5% markup on all API calls)
-faces auth:register --email you@example.com --password 'your-password' --username your-username
+# Free: add $5 of credit to start, then pay as you go (models at the provider's price plus 5%)
+faces auth:register --email you@example.com --password 'Your-password-1' --username your_username
 
-# Subscription Connect plan ($17/month, link ChatGPT for select OpenAI models at no extra cost)
-faces auth:register --email you@example.com --password 'your-password' --username your-username --plan connect
+# Connect ($17/month) or Pro ($49/month): monthly allowances for compiling and causes, and
+# Codex-eligible models run on your linked ChatGPT plan
+faces auth:register --email you@example.com --password 'Your-password-1' --username your_username --plan connect
 ```
 
 This returns a Stripe Checkout URL. Complete payment in your browser, then verify:
@@ -126,26 +137,26 @@ cd ~/.openclaw/workspace/skills/faces-skill && ./setup
 
 ```
 You:    /facemake "Albert Einstein"
-Claude: [searches for Einstein — finds Wikipedia, letters, lectures, interviews]
-        [checks catalog — no existing match]
+Claude: [searches for Einstein: finds Wikipedia, letters, lectures, interviews]
+        [checks catalog: no existing match]
         [creates face on platform, writes FACE.md recipe]
 
         Recipe ready at ~/.faces/catalog/einstein/FACE.md
         Sources queued:
-        - [ ] Wikipedia bio — career arc, key breakthroughs, philosophy of science
-        - [ ] "On the Electrodynamics of Moving Bodies" — original reasoning style
-        - [ ] 1950 Scientific American essay — late-career reflections on physics
-        - [ ] Einstein-Besso letters — informal voice, how he thinks through problems
+        - [ ] Wikipedia bio: career arc, key breakthroughs, philosophy of science
+        - [ ] "On the Electrodynamics of Moving Bodies": original reasoning style
+        - [ ] 1950 Scientific American essay: late-career reflections on physics
+        - [ ] Einstein-Besso letters: informal voice, how he thinks through problems
         Review and edit, then I'll compile.
 
 You:    Looks good, compile it.
 Claude: [imports Wikipedia bio, Scientific American essay, Electrodynamics paper,
-         Einstein-Besso letters — all queued for compilation]
-        [compiles Wikipedia bio — 14.1k tokens, 38 primitives]
-        [compiles Electrodynamics paper — 11.2k tokens, 31 primitives]
-        [compiles Scientific American essay — 9.8k tokens, 27 primitives]
-        [compiles Einstein-Besso letters — 16.4k tokens, 44 primitives]
-        Done. 140 cognitive primitives across 4 sources.
+         Einstein-Besso letters: all queued for compilation]
+        [compiles Wikipedia bio: 14.1k tokens]
+        [compiles Electrodynamics paper: 11.2k tokens]
+        [compiles Scientific American essay: 9.8k tokens]
+        [compiles Einstein-Besso letters: 16.4k tokens]
+        Done. 4 sources compiled, 51.5k tokens.
         Chat with him anytime: /facechat einstein
 ```
 
@@ -153,7 +164,7 @@ Claude: [imports Wikipedia bio, Scientific American essay, Electrodynamics paper
 
 ```
 You:    /facechat einstein "I'm stuck. I have two competing models and the data fits both."
-Einstein: That is not a problem — that is a gift. When two theories
+Einstein: That is not a problem: that is a gift. When two theories
           explain the same facts, you do not yet understand what you
           are really measuring. The question is not which model is
           correct. The question is: what experiment would make them
@@ -163,11 +174,11 @@ You:    /facechat
 Claude: Your catalog:
 
         Faces:
-        1. einstein — theoretical physicist, first-principles thinker
-        2. skeptic — adversarial critic, assumption challenger
+        1. einstein: theoretical physicist, first-principles thinker
+        2. skeptic: adversarial critic, assumption challenger
 
         Teams:
-        3. research-review-panel — round-robin critique panel
+        3. research-review-panel: round-robin critique panel
 
         Who do you want to chat with?
 
@@ -176,14 +187,14 @@ Claude: Chatting with skeptic. What would you like to ask or discuss?
 
 You:    Is my startup idea defensible?
 Skeptic: Define "defensible." You mean a moat? Because if your answer
-         is "we'll move faster," that's not a moat — that's a prayer...
+         is "we'll move faster," that's not a moat: that's a prayer...
 ```
 
 ### Build a team
 
 ```
 You:    /faceteam "I need a panel to critique my research paper"
-Claude: [checks catalog — finds einstein, creates 2 new faces]
+Claude: [checks catalog: finds einstein, creates 2 new faces]
         [designs round-robin protocol as a mermaid diagram]
 
         Team: research-review-panel (3 rounds max)
@@ -209,23 +220,23 @@ Claude: [checks catalog — finds einstein, creates 2 new faces]
 ### Chat with a team
 
 ```
-You:    /facechat research-review-panel "Here's my draft paper on cognitive primitives..."
+You:    /facechat research-review-panel "Here's my draft paper on memory consolidation in sleep..."
 Claude: [reads TEAM.md, walks the mermaid protocol]
 
-        einstein: The central claim — that cognitive primitives are
-                  extractable from text — needs a falsifiability criterion.
-                  What observation would disprove this?...
+        einstein: The central claim, that consolidation happens only in
+                  deep sleep, needs a falsifiability criterion. What
+                  observation would disprove it?...
 
         methodology: The sample size in Section 4 is too small to support
                      the generalization in your conclusion. You need at
                      minimum...
 
-        skeptic: You're assuming primitives are stable across contexts.
-                 What if the same source material produces different
-                 primitives under different LLMs?...
+        skeptic: You're assuming the effect holds across ages. What if
+                 the same protocol gives different results in older
+                 subjects?...
 
-        [Consensus check: all 3 flagged Section 4 methodology — converged.
-         Einstein and skeptic diverge on falsifiability framing — round 2.]
+        [Consensus check: all 3 flagged Section 4 methodology: converged.
+         Einstein and skeptic diverge on falsifiability framing: round 2.]
 
         ...
 ```
@@ -257,11 +268,11 @@ Claude: [reads the skill, decomposes into 5 steps]
 
 | Skill | What it does |
 |-------|-------------|
-| `/facemake` | **Guided face creation.** Six steps: interview → research (real URLs via web search) → sketch FACE.md → iterate with user → compile. Quick mode: `/facemake "Person Name"` skips the interview. |
+| `/facemake` | **Guided face creation.** Interview → research (real URLs via web search) → sketch FACE.md → iterate with the user → compile → optionally build a style. Quick mode: `/facemake "Person Name"` skips the interview. |
 | `/facechat` | **Chat with any face or team.** `/facechat einstein` to chat with a face, `/facechat review-panel` to run a team's protocol, or `/facechat` to browse your catalog and pick. Supports model override. |
 | `/faceteam` | **Team composition.** Composes faces into a team with a self-sufficient mermaid protocol diagram. Three shapes: `(face)` rounded rects get called, `[instruction]` sharp rects the agent executes, `{condition}` diamonds the agent branches on. Produces a TEAM.md in `~/.faces/teams/`. |
 | `/manyface` | **Skill orchestrator.** Takes an existing skill (or designs one from scratch), decomposes it into steps, determines which need a solo face vs. a team vs. no face, and outputs a `manyfaced-` skill directory. |
-| `/faces` | **Core CLI.** Direct access to the faces platform: create faces, compile documents, import YouTube videos, chat, compare faces, compose with Face Math, manage API keys, billing, account preferences, and backup/restore. |
+| `/faces` | **Core CLI.** Direct access to the faces platform: create faces, compile documents, import YouTube videos, build styles, chat, get causes, ask for decisions, run sessions, compare faces, compose them with set algebra, benchmark, manage API keys, billing, account preferences, and backup/restore. |
 
 ## The hierarchy
 
@@ -271,7 +282,7 @@ Group of faces      →  TEAM.md   →  ~/.faces/teams/<team-name>/
 Workflow            →  SKILL.md  →  manyfaced-<skillname>/
 ```
 
-A manyfaced skill's SKILL.md is a conductor's score. It says: "In step 1, use this solo face. In step 3, convene this team using their protocol. In step 5, use this other face." The SKILL.md doesn't contain cognitive depth (that's FACE.md) or collaboration logic (that's TEAM.md). It wires them together.
+A manyfaced skill's SKILL.md is a conductor's score. It says: "In step 1, use this solo face. In step 3, convene this team using their protocol. In step 5, use this other face." The SKILL.md doesn't hold a face's point of view (that's FACE.md) or collaboration logic (that's TEAM.md). It wires them together.
 
 ## The filesystem
 
@@ -303,7 +314,7 @@ description: Theoretical physicist, first-principles thinker
 alias: albert-einstein
 default_model: claude-sonnet-4-6
 tags: [physics, science, philosophy, first-principles]
-component_counts: 140
+compiled_tokens: 51500
 ---
 ```
 
@@ -315,12 +326,12 @@ The body is yours, and the CLI keeps it:
 - Source type: public-figure
 
 ## Queued
-- [ ] https://youtube.com/watch?v=abc — 1950 Scientific American essay
+- [ ] https://youtube.com/watch?v=abc: 1950 Scientific American essay
 - [x] https://en.wikipedia.org/wiki/Albert_Einstein *(compiled 2026-03-28)*
 
 ## Sources
-- Wikipedia bio — career arc, key breakthroughs, philosophy of science (14.1k tokens)
-- Scientific American essay — late-career reflections on physics (9.8k tokens)
+- Wikipedia bio: career arc, key breakthroughs, philosophy of science (14.1k tokens)
+- Scientific American essay: late-career reflections on physics (9.8k tokens)
 
 ## Lessons
 - Defaults to physics analogies. Needs grounding for non-scientific contexts.
@@ -330,17 +341,17 @@ The body is yours, and the CLI keeps it:
 - Consider adding Einstein-Besso letters for informal reasoning voice
 ```
 
-The FACE.md grows with the face. Queued tracks what to compile next. Sources records what's been compiled. Lessons captures what works and what doesn't. Notes is a freeform scratchpad. It's not a spec — it's the face's living file.
+The FACE.md grows with the face. Queued tracks what to compile next. Sources records what's been compiled. Lessons captures what works and what doesn't. Notes is a freeform scratchpad. It's not a spec: it's the face's living file.
 
 ## Troubleshooting
 
 **`faces: command not found`**: run `npm install -g faces-cli@latest`
 
-**Skills not showing up?** — Make sure you cloned to `~/.claude/skills/faces-skill` (not `~/.claude/skills/faces-skill/faces-skill`)
+**Skills not showing up?** Make sure you cloned to `~/.claude/skills/faces-skill` (not `~/.claude/skills/faces-skill/faces-skill`)
 
-**`401 Unauthorized`** — Run `faces auth:login --email you@example.com --password 'your-password'` or check `faces config:show`
+**`401 Unauthorized`**: run `faces auth:login --email you@example.com --password 'your-password'` or check `faces config:show`
 
-**Never run `faces config:clear`** — It wipes all credentials with no recovery. If auth fails, fix the specific value with `faces config:set`.
+**Never run `faces config:clear`**: it wipes all credentials with no recovery. If auth fails, fix the specific value with `faces config:set`.
 
 ---
 
