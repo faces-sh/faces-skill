@@ -77,6 +77,8 @@ If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run setup.
 
 If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then run `faces catalog:doctor --fix` to migrate local catalog files (FACE.md and TEAM.md) to the latest format.
 
+**If `faces --version` is below 1.20.0, update before any compile, even with no `UPDATE_AVAILABLE` line.** The API changed its compile calls and progress fields on 2026-10-20, so an older CLI's compile commands fail or wait on progress that never arrives. Tell the user that is why you are updating.
+
 **Auth triage:**
 
 - `EXIT:0` → authenticated. Proceed.
