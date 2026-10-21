@@ -772,7 +772,16 @@ one bills.
 
 ## FACE.md schema
 
-CLI-managed fields (regenerated on sync via `catalog:doctor --fix`):
+**The CLI owns the frontmatter; you own the body.** That is the whole rule. `face:create`,
+`face:edit`, the `face:tag:*` commands, `catalog:restore` and `catalog:doctor --fix` all
+rewrite the frontmatter from the server, and keep only the keys below. Any other key
+(`role`, `source_type`, `sources_compiled`, anything you add) is dropped. A frontmatter
+without both `name` and `alias` cannot be read at all, so the CLI writes a new block on top
+and the old one survives only as text in the body. The markdown body after the frontmatter
+is kept as it is, so put recipe notes, queued sources and anything else of yours there, and
+`catalog:doctor --fix` is then safe to run.
+
+Fields the CLI writes:
 ```yaml
 ---
 name: Ada Lovelace
@@ -797,7 +806,9 @@ it, so a non-zero value does not mean anything has compiled: ask the server with
 `faces face:sources <alias>`. `profile_token_count` appears once the face has a compiled
 profile.
 
-Agent/user-managed fields (preserved by CLI, never overwritten): `role`, `source_type`, and any other keys not listed above. The markdown body after the frontmatter is always preserved.
+`compiled_tokens` is written only when the server reports tokens saved for the face, and is
+usually absent, so it says nothing about whether a face is compiled. To know that, ask the
+server: `faces face:sources <alias>` (a source reading `synced` has compiled).
 
 All fields in FACE.md reflect the server state. The API returns `basic_facts` but the CLI renames it to `attributes` everywhere.
 

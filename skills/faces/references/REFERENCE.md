@@ -1331,7 +1331,7 @@ shows a bare `read only` line and `face:list` shows a `[read only]` marker
 The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file per face (YAML frontmatter + markdown notes) and a consolidated `~/.faces/catalog.json` index. The catalog is managed automatically on `face:create`, `face:edit`, and `face:delete`.
 
 - `faces catalog:doctor` — diagnose missing, stale, or orphaned catalog entries
-- `faces catalog:doctor --fix` — rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files)
+- `faces catalog:doctor --fix` — rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files). It rewrites the frontmatter of **every** FACE.md and the whole of every TEAM.md from the server, but `Fixed N` counts only entries that were missing or renamed, so `Fixed 0` does not mean nothing changed. It does not add a missing description; that is `--generate`. A FACE.md body is kept; frontmatter keys the CLI does not write are dropped (see the FACE.md schema in SKILL.md)
 - `faces catalog:doctor --generate` — fix + generate descriptions via LLM (syncs back to server)
 - `faces catalog:backup` — snapshot all faces (with descriptions, tags), teams, documents (with each one's medium, from 1.16.0), and threads to `~/.faces/backups/<timestamp>.json`
 - `faces catalog:restore [FILE]` — restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload. A document the backup records no medium for (an older backup, or a document saved before a medium was required) is refused by the server; restore names it, and it needs creating again with `compile:doc:create --medium`. Never guess the medium.

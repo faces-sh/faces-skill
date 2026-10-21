@@ -356,11 +356,18 @@ fi
 rm -rf /tmp/manyfaced-install
 ```
 
-After installing, check which faces need compilation:
+After installing, check which faces need compilation. Ask the server, not FACE.md
+(the CLI does not record this in the file). `face:sources` exits 4 for a face that does
+not exist on the account yet, which needs creating first:
 
 ```bash
-for f in $(grep -l 'compiled_tokens: 0' ~/.faces/catalog/*/FACE.md 2>/dev/null); do
-  echo "Needs compilation: $f"
+for d in ~/.faces/catalog/*/; do
+  a=$(basename "$d")
+  if ! out=$(faces face:sources "$a" --json 2>/dev/null); then
+    echo "Not on this account yet (create, then compile): $a"
+  elif [ "$(echo "$out" | jq '[.documents[], .threads[]] | map(select(.synced)) | length')" -eq 0 ]; then
+    echo "Needs compilation: $a"
+  fi
 done
 ```
 
@@ -369,7 +376,7 @@ Ask the user:
 > **Installed manyfaced-<name>.** [N] faces need compilation before you can
 > use this skill.
 >
-> A) Compile them now — I'll walk you through each one with /face
+> A) Compile them now — I'll walk you through each one with /facemake
 > B) I'll compile them later
 >
 > RECOMMENDATION: Choose A — the skill won't work until its faces are compiled.
@@ -481,8 +488,8 @@ compile using the `/faces` skill.
 |------|------|----------|-------|
 | <role> | `<team-name>` | `~/.faces/teams/<team-name>/TEAM.md` | alias-1, alias-2, alias-3 |
 
-Faces with `compiled_tokens: 0` need compilation before use. See each FACE.md's
-Queued section for source material.
+Faces with no `synced` source in `faces face:sources <alias>` need compilation
+before use. See each FACE.md's Queued section for source material.
 
 ## Circuit
 
@@ -548,7 +555,7 @@ After QA, present the manyfaced skill to the user:
 > **The cast:**
 > [Table: step → face/team → why, with new vs. reused noted]
 >
-> **Needs compilation:** [list faces with compiled_tokens: 0]
+> **Needs compilation:** [list faces with no `synced` source in `faces face:sources <alias>`]
 >
 > A) Looks good — I'll compile the faces and start using it
 > B) I want to change the cast (tell me which roles)

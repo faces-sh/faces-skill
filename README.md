@@ -293,20 +293,27 @@ Everything under `~/.faces/` is the Faces ecosystem. Catalog and teams compound 
 
 Every face has a living document:
 
+The frontmatter is written by the CLI from the server, and rewritten on every face command
+and on `faces catalog:doctor --fix`:
+
 ```yaml
 ---
-name: albert-einstein
+name: Albert Einstein
 description: Theoretical physicist, first-principles thinker
-role: scientific-advisor
-source_type: public-figure
+alias: albert-einstein
+default_model: claude-sonnet-4-6
 tags: [physics, science, philosophy, first-principles]
-compiled_tokens: 47200
-sources_compiled: 6
-formula: null
+component_counts: 140
 ---
 ```
 
+The body is yours, and the CLI keeps it:
+
 ```markdown
+## Recipe
+- Role: scientific-advisor
+- Source type: public-figure
+
 ## Queued
 - [ ] https://youtube.com/watch?v=abc — 1950 Scientific American essay
 - [x] https://en.wikipedia.org/wiki/Albert_Einstein *(compiled 2026-03-28)*

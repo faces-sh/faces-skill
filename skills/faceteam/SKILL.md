@@ -367,7 +367,7 @@ Ask the user:
 > [Summary: who's on the team, what each face brings, where the productive
 > tension is]
 >
-> Faces needing compilation: [list any with compiled_tokens: 0]
+> Faces needing compilation: [list any with no `synced` source in `faces face:sources <alias>`]
 >
 > A) Looks good — compile all the faces for me now
 > B) I want to change the roster or protocol
@@ -379,8 +379,17 @@ Ask the user:
 ### Step 6: Compile the team's faces
 
 If the user chose A (or comes back after reviewing), compile each face that
-has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
-(compile) flow:
+has nothing compiled yet. Ask the server, not FACE.md (the CLI does not record this
+in the file):
+
+```bash
+for a in alias-1 alias-2 alias-3; do
+  n=$(faces face:sources "$a" --json 2>/dev/null | jq '[.documents[], .threads[]] | map(select(.synced)) | length')
+  [ "${n:-0}" -eq 0 ] && echo "Needs compilation: $a"
+done
+```
+
+For each face it names, follow the `/facemake` skill's Step 5 (compile) flow:
 
 1. Read the face's FACE.md from `~/.faces/catalog/<alias>/FACE.md`
 2. Walk through each Queued item using `--no-wait`:

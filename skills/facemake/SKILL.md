@@ -282,7 +282,8 @@ compile time); mixing these up corrupts the face.
 source material for each. Note which cognitive aspects to extract from each.
 
 **Composites:** Ensure component faces exist in the catalog (or create their
-recipes too). Set the `formula` field with the Face Math expression.
+recipes too). Pass the Face Math expression to `face:create --formula`; the CLI then
+writes it into the FACE.md frontmatter.
 
 ### Step 3: Sketch the FACE.md
 
@@ -333,7 +334,9 @@ Then ask the user:
 > RECOMMENDATION: Choose A [If Subscription Connect: — no extra cost on your plan.]
 > [If pay-per-token: — best quality for the price.]
 
-Create the face on the platform, then overwrite the stub with the full recipe:
+Create the face on the platform, then write the recipe into the body of the FACE.md the CLI
+created. The CLI owns the frontmatter and rewrites it on every face command and on
+`catalog:doctor --fix`, keeping only its own keys, so the recipe goes **below** it:
 
 ```bash
 # 1. Create on platform (use the model the user chose)
@@ -346,27 +349,26 @@ faces face:create --name "Name" --alias slug \
 #   give the face a standing system prompt — durable behavior/format/constraints
 #   layered on top of the compiled persona. See faces skill REFERENCE.md.
 
-# 2. Overwrite stub with full recipe
-cat > ~/.faces/catalog/<alias>/FACE.md << 'RECIPE'
-<full recipe>
+# 2. Keep the CLI's frontmatter, replace the body with the recipe
+F=~/.faces/catalog/<alias>/FACE.md
+{ sed -n '1,/^---$/p' "$F"; cat << 'RECIPE'
+
+<recipe body>
 RECIPE
+} > "$F.new" && mv "$F.new" "$F"
 ```
 
-Do NOT run `faces catalog:doctor --fix` after — it clobbers the recipe.
+Set the name, description, tags and formula with `face:create` / `face:edit` (`--description`,
+`--tag`, `--formula`), not by editing the frontmatter: the next CLI write replaces it from the
+server. With the recipe in the body, `faces catalog:doctor --fix` is safe to run.
 
-FACE.md format:
+Recipe body format (everything below the CLI's closing `---`):
 
 ```markdown
----
-name: <display name>
-description: <one-line description of this face>
-role: <the role this face fills>
-source_type: <public-figure | archetype | composite | custom>
-tags: [tag1, tag2, tag3]
-compiled_tokens: 0
-sources_compiled: 0
-formula: null
----
+## Recipe
+
+- Role: <the role this face fills>
+- Source type: <public-figure | archetype | composite | custom>
 
 ## Queued
 
@@ -534,8 +536,10 @@ spell the kind as one of the eleven.
 The upload answers `200` with a plausible `message_count` either way, so the warnings
 are the only thing that distinguishes a clean import from a broken one. Read them.
 
-After each successful compile, update the FACE.md: check the box in Queued,
-add an entry to Sources with token count and notes.
+After each successful compile, update the FACE.md body: check the box in Queued,
+add an entry to Sources with token count and notes. Whether a face is compiled is the
+server's answer, not the file's: `faces face:sources <alias>` (a source reading `synced`
+has compiled).
 
 ### Step 6: Done
 
