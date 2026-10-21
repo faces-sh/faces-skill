@@ -47,8 +47,9 @@ Ask the user which plan they want:
 > A) **Free**: $5 initial spend (added as API credits), then everything pays
 >    as it goes. No monthly fee. Good for trying it out.
 > B) **Connect ($17/month)**: monthly allowances for compiling and for the
->    face's reasoning, and gpt-5.x chat free on your linked ChatGPT Plus or Pro
->    account. Other models pay as they go.
+>    face's reasoning, and chat free on your linked ChatGPT Plus or Pro account
+>    for the models it serves (the gpt-5.6 and gpt-6 families today). Other
+>    models pay as they go.
 > C) **Pro ($49/month)**: Connect with larger allowances.
 
 Then register with the chosen plan:
@@ -98,6 +99,11 @@ faces face:create --name "Alice Smith" --alias alice \
   --attr education="Studied design at RISD." \
   --json
 ```
+
+Every account also has a face of its own already, aliased **`me`**, holding only the account's
+name. To build the user's own face, fill that one in rather than creating another (`faces
+face:edit me --description ... --attr ...`), and use `me` wherever this guide says `alice`. See
+[REFERENCE.md → The `me` face](REFERENCE.md#the-me-face).
 
 Keep the **alias** (`alias` in the `--json` output, `alice` here): every command after this takes it. The response also has a `uid`, which no command in this guide needs.
 
@@ -220,6 +226,6 @@ attributes and nothing compiled returns something like `[0, 0, 0, 4, 0, 0]`.
 - **Create more Faces** — repeat steps 3–5 for each persona.
 - **Compare Faces** — `faces face:diff --face alice --face bob`
 - **Compose Faces** — `faces face:create --alias alice-and-bob --formula "alice | bob"`
-- **Compare answers**: ask each face the same question with `faces chat:chat`, then give both answers to a bare model: `faces chat:messages claude-sonnet-4-6 -m 'Alice says: <answer>. Bob says: <answer>. Compare them.'` (a bare model works with `chat:messages` and `chat:responses`, not `chat:chat`)
+- **Compare minds**: get each face's cause on the same question with `faces chat:chat <alias> -m '<question>' --reasoning-only`, then give both to a bare model: `faces chat:messages claude-sonnet-4-6 -m 'Alice reasons: <cause>. Bob reasons: <cause>. Compare them.'` (a bare model works with `chat:messages` and `chat:responses`, not `chat:chat`)
 - **Connect ChatGPT** (Connect or Pro plan): `faces auth:connect openai` to use select OpenAI models at no extra cost. See [OAUTH.md](OAUTH.md).
 - **Create an API key** — `faces keys:create --name "my-key"` for programmatic access. The key is saved to `~/.faces/config.json` automatically; pass `--no-save` to skip. See [AUTH.md](AUTH.md).

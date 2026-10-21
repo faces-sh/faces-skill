@@ -292,7 +292,7 @@ model to chat without specifying `--llm` every time.
 
 First check the user's plan and available models:
 ```bash
-faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" pays as it goes; "connect" and "pro" can run gpt-5.x on a linked ChatGPT account; "team" is never charged
+faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" pays as it goes; "connect" and "pro" can run codex_eligible models on a linked ChatGPT account; "team" is never charged
 faces billing:llm-costs --json 2>/dev/null
 ```
 

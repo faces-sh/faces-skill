@@ -170,8 +170,9 @@ faces chat:thread ALIAS -m "MESSAGE" --llm MODEL
 ### Bringing in another face
 
 `${other-alias}` in a message is plain text: the platform no longer expands it.
-To bring another face's view in, ask that face first and quote its answer in
-the message.
+To bring another face's view in, get its cause (its reasoning about the
+question) with `faces chat:chat OTHER -m "QUESTION" --reasoning-only`, and
+include that in the message.
 
 ## Team Chat
 
