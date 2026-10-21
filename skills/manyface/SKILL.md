@@ -35,13 +35,14 @@ echo "EXIT:$?"
 [ -f ~/.faces/config.json ] && echo "HAS_CONFIG" || echo "NO_CONFIG"
 ```
 
-If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run the preamble.
+If `NOT_INSTALLED` (the auth check then prints `EXIT:127`, command not found): run `npm install -g faces-cli@latest` and re-run the preamble.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalog:doctor --fix` to migrate local catalog files.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`. Once auth triage below reaches `EXIT:0`, run `faces catalog:doctor --fix` to migrate local catalog files. It needs a signed-in account, so before sign-in it fails with "Authentication required"; that is not a broken update.
 
 **Auth triage:**
 
 - `EXIT:0` → authenticated. Proceed.
+- `EXIT:127` → the CLI is not installed. Install it as above and re-run, before anything else.
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
   fix it. Do NOT walk through QUICKSTART or ask about plans.
@@ -50,10 +51,10 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
   > You're not logged into Faces, and I don't see any prior config on this
   > machine. Do you already have an account?
   >
-  > A) I have an account — I'll log in now
-  > B) I have an API key — let me paste it
-  > C) No account — help me set one up here
-  > D) No account — I'll register at faces.sh myself and come back
+  > A) I have an account, and I'll log in now
+  > B) I have an API key, and I'll paste it
+  > C) No account: help me set one up here
+  > D) No account: I'll register at faces.sh myself and come back
 
   If A: have the user run `faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
   If B: have the user run `faces config:set api_key <key>`, verify with `faces auth:whoami`
@@ -223,8 +224,9 @@ faces face:list --public --sort usage               # most used first — what o
 ```
 
 A published face is chatted as `owner:alias` and **requires an explicit
-`@model`**; it cannot join a team or be edited, so a role that needs either
-has to be its own face. From faces-cli 1.10.0 `faces face:get owner:alias`
+`@model`**. It can join a team by that same address (`faces team:add TEAM_ID
+--face owner:alias`), but it cannot be edited or compiled, so a role that needs
+its own sources or prompt has to be its own face. From faces-cli 1.10.0 `faces face:get owner:alias`
 and `faces face:neighbors owner:alias` work too, so you can read one before
 casting it.
 
@@ -340,8 +342,9 @@ git clone --depth 1 --filter=blob:none --sparse \
   https://github.com/faces-sh/manyfaced.git /tmp/manyfaced-install
 cd /tmp/manyfaced-install && git sparse-checkout set manyfaced-<name>
 
-# Install the skill into your agent (npx skills auto-detects it)
-npx skills add ./manyfaced-<name>
+# Install the skill into your agent. Always name the agent with -a: without it,
+# npx skills installs into every agent it supports, not just this one.
+npx skills add ./manyfaced-<name> -a claude-code   # or -a <your agent>
 
 # Copy structural FACE.md and TEAM.md files to ~/.faces/
 # (only if the skill ships with them in catalog/)
@@ -354,11 +357,18 @@ fi
 rm -rf /tmp/manyfaced-install
 ```
 
-After installing, check which faces need compilation:
+After installing, check which faces need compilation. Ask the server, not FACE.md
+(the CLI does not record this in the file). `face:sources` exits 4 for a face that does
+not exist on the account yet, which needs creating first:
 
 ```bash
-for f in $(grep -l 'compiled_tokens: 0' ~/.faces/catalog/*/FACE.md 2>/dev/null); do
-  echo "Needs compilation: $f"
+for d in ~/.faces/catalog/*/; do
+  a=$(basename "$d")
+  if ! out=$(faces face:sources "$a" --json 2>/dev/null); then
+    echo "Not on this account yet (create, then compile): $a"
+  elif [ "$(echo "$out" | jq '[.documents[], .threads[]] | map(select(.synced)) | length')" -eq 0 ]; then
+    echo "Needs compilation: $a"
+  fi
 done
 ```
 
@@ -367,7 +377,7 @@ Ask the user:
 > **Installed manyfaced-<name>.** [N] faces need compilation before you can
 > use this skill.
 >
-> A) Compile them now — I'll walk you through each one with /face
+> A) Compile them now: I'll walk you through each one with /facemake
 > B) I'll compile them later
 >
 > RECOMMENDATION: Choose A — the skill won't work until its faces are compiled.
@@ -479,8 +489,8 @@ compile using the `/faces` skill.
 |------|------|----------|-------|
 | <role> | `<team-name>` | `~/.faces/teams/<team-name>/TEAM.md` | alias-1, alias-2, alias-3 |
 
-Faces with `compiled_tokens: 0` need compilation before use. See each FACE.md's
-Queued section for source material.
+Faces with no `synced` source in `faces face:sources <alias>` need compilation
+before use. See each FACE.md's Queued section for source material.
 
 ## Circuit
 
@@ -546,7 +556,7 @@ After QA, present the manyfaced skill to the user:
 > **The cast:**
 > [Table: step → face/team → why, with new vs. reused noted]
 >
-> **Needs compilation:** [list faces with compiled_tokens: 0]
+> **Needs compilation:** [list faces with no `synced` source in `faces face:sources <alias>`]
 >
 > A) Looks good — I'll compile the faces and start using it
 > B) I want to change the cast (tell me which roles)

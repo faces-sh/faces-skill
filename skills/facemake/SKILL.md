@@ -7,7 +7,7 @@ description: >
   research), or /facemake with no argument for the full guided flow. This skill
   walks through the entire process: interview, research real source material,
   sketch a FACE.md recipe, iterate with the user, compile, and optionally
-  Trigger when the user says "create a face", "I need a persona", "make me a
+  capture how the person writes. Trigger when the user says "create a face", "I need a persona", "make me a
   digital twin", "build a face for", or names a person they want to turn into
   an AI. Also trigger on /facemake.
 allowed-tools:
@@ -35,13 +35,14 @@ echo "EXIT:$?"
 [ -f ~/.faces/config.json ] && echo "HAS_CONFIG" || echo "NO_CONFIG"
 ```
 
-If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run the preamble.
+If `NOT_INSTALLED` (the auth check then prints `EXIT:127`, command not found): run `npm install -g faces-cli@latest` and re-run the preamble.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalog:doctor --fix` to migrate local catalog files.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`. Once auth triage below reaches `EXIT:0`, run `faces catalog:doctor --fix` to migrate local catalog files. It needs a signed-in account, so before sign-in it fails with "Authentication required"; that is not a broken update.
 
 **Auth triage:**
 
 - `EXIT:0` → authenticated. Proceed.
+- `EXIT:127` → the CLI is not installed. Install it as above and re-run, before anything else.
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
   fix it. Do NOT walk through QUICKSTART or ask about plans.
@@ -50,10 +51,10 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
   > You're not logged into Faces, and I don't see any prior config on this
   > machine. Do you already have an account?
   >
-  > A) I have an account — I'll log in now
-  > B) I have an API key — let me paste it
-  > C) No account — help me set one up here
-  > D) No account — I'll register at faces.sh myself and come back
+  > A) I have an account, and I'll log in now
+  > B) I have an API key, and I'll paste it
+  > C) No account: help me set one up here
+  > D) No account: I'll register at faces.sh myself and come back
 
   If A: have the user run `faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
   If B: have the user run `faces config:set api_key <key>`, verify with `faces auth:whoami`
@@ -281,7 +282,8 @@ compile time); mixing these up corrupts the face.
 source material for each. Note which cognitive aspects to extract from each.
 
 **Composites:** Ensure component faces exist in the catalog (or create their
-recipes too). Set the `formula` field with the Face Math expression.
+recipes too). Pass the Face Math expression to `face:create --formula`; the CLI then
+writes it into the FACE.md frontmatter.
 
 ### Step 3: Sketch the FACE.md
 
@@ -311,7 +313,7 @@ Claude Sonnet. **If pay-per-token:** A is latest Claude Sonnet, B is latest GPT.
 |--------|----------|---------|-------|
 | A | Flagship (recommended) | `gpt-5.4` (Subscription Connect) or `claude-sonnet-4-6` (pay-per-token) | Subscription Connect: no extra cost via ChatGPT passthrough |
 | B | Flagship alternative | `claude-sonnet-4-6` (Subscription Connect) or `gpt-5.4` (pay-per-token) | High quality, different provider |
-| C | High-quality open source | `glm-4-32b` | Strong reasoning, open weights |
+| C | High-quality open source | `glm-5` | Strong reasoning, open weights |
 | D | Fast & cheap open source | `qwen3-next-80b` | Good for iteration, brainstorming, high-volume |
 
 Then ask the user:
@@ -332,7 +334,9 @@ Then ask the user:
 > RECOMMENDATION: Choose A [If Subscription Connect: — no extra cost on your plan.]
 > [If pay-per-token: — best quality for the price.]
 
-Create the face on the platform, then overwrite the stub with the full recipe:
+Create the face on the platform, then write the recipe into the body of the FACE.md the CLI
+created. The CLI owns the frontmatter and rewrites it on every face command and on
+`catalog:doctor --fix`, keeping only its own keys, so the recipe goes **below** it:
 
 ```bash
 # 1. Create on platform (use the model the user chose)
@@ -340,32 +344,31 @@ faces face:create --name "Name" --alias slug \
   --default-model MODEL --attr key=value
 #   face:create takes NO source material — no --source, --interview, --file or
 #   --content. It makes an empty face; sources attach afterwards with
-#   compile:doc / compile:upload / compile:thread (see "Attach source material").
+#   compile:doc / compile:upload / compile:import (Step 5).
 #   Optional: --profile-addendum "<rules>" (or --profile-addendum-file path) to
 #   give the face a standing system prompt — durable behavior/format/constraints
 #   layered on top of the compiled persona. See faces skill REFERENCE.md.
 
-# 2. Overwrite stub with full recipe
-cat > ~/.faces/catalog/<alias>/FACE.md << 'RECIPE'
-<full recipe>
+# 2. Keep the CLI's frontmatter, replace the body with the recipe
+F=~/.faces/catalog/<alias>/FACE.md
+{ sed -n '1,/^---$/p' "$F"; cat << 'RECIPE'
+
+<recipe body>
 RECIPE
+} > "$F.new" && mv "$F.new" "$F"
 ```
 
-Do NOT run `faces catalog:doctor --fix` after — it clobbers the recipe.
+Set the name, description, tags and formula with `face:create` / `face:edit` (`--description`,
+`--tag`, `--formula`), not by editing the frontmatter: the next CLI write replaces it from the
+server. With the recipe in the body, `faces catalog:doctor --fix` is safe to run.
 
-FACE.md format:
+Recipe body format (everything below the CLI's closing `---`):
 
 ```markdown
----
-name: <display name>
-description: <one-line description of this face>
-role: <the role this face fills>
-source_type: <public-figure | archetype | composite | custom>
-tags: [tag1, tag2, tag3]
-compiled_tokens: 0
-sources_compiled: 0
-formula: null
----
+## Recipe
+
+- Role: <the role this face fills>
+- Source type: <public-figure | composite | custom, or option B from the first question>
 
 ## Queued
 
@@ -420,13 +423,18 @@ starting the next.
 > face. For public figures especially, most talks are interviews — check before
 > defaulting to `--type document`.
 
-> **By them or about them? Set `--perspective` accordingly.** `--perspective`
-> defaults to `first-person` (the subject's own voice) — right for their own
-> essays, letters, interview answers, talks. For material *about* the person (a
-> biography, an encyclopedia/Wikipedia article, a news profile), you **must** pass
-> `--perspective third-person`, or it is compiled as if the subject wrote it and
-> corrupts the face. This is easy to get wrong for public figures, where a
-> Wikipedia page is often the first source.
+> **By them or about them? Always pass `--perspective`.** The default depends on
+> the command: `compile:doc` and `compile:doc:create` (text) default to
+> `first-person`, while `compile:upload` and `compile:import` (PDF, Word, audio,
+> video, YouTube) default to `third-person`. Say it every time. `first-person` is
+> the subject's own words: their essays, letters, interview answers, talks.
+> `third-person` is material *about* them: a biography, an encyclopedia/Wikipedia
+> article, a news profile. Either mistake corrupts the face: writing about them
+> compiled as first-person reads as if they wrote it, and their own PDF uploaded
+> without `--perspective first-person` is compiled as writing about them, which
+> style capture then refuses.
+> This is easy to get wrong for public figures, where a Wikipedia page is often
+> the first source.
 
 ```bash
 # YouTube video — solo talk (single voice). For an interview/podcast, use
@@ -448,17 +456,18 @@ faces compile:thread:make "$THREAD_ID" --no-wait --json
 
 # Text you already have — a transcript in hand, a draft, anything not on disk.
 # Pass it verbatim; do NOT retype or summarise it, or the face learns your paraphrase.
-faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --no-wait --json
-# Local text file — by the subject (first-person is the default)
-faces compile:doc <alias> --file <path> --medium <medium> --no-wait --json
+faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --perspective first-person --no-wait --json
+# Local text file, by the subject
+faces compile:doc <alias> --file <path> --medium <medium> --perspective first-person --no-wait --json
 # Several sources at once — --file is repeatable, each becomes its own document.
 # Returns {"documents":[{file, document_id}...]} in input order. One call, not one per file.
 # One --medium applies to all of them, so group files of the same kind in one call.
-faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --medium essay --no-wait --json
+faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --medium essay --perspective first-person --no-wait --json
 # Local text file — about the subject (biography, Wikipedia, news profile)
 faces compile:doc <alias> --file <path> --medium <medium> --perspective third-person --no-wait --json
-# PDF, Word (.docx), audio or video: use compile:upload — compile:doc takes text only
-faces compile:upload <alias> --file <path> --kind document --medium <medium> --no-wait --json
+# PDF, Word (.docx), audio or video: use compile:upload; compile:doc takes text only.
+# compile:upload defaults to third-person; use --perspective third-person for writing about them.
+faces compile:upload <alias> --file <path> --kind document --medium <medium> --perspective first-person --no-wait --json
 
 # Interview (agent-as-interviewer)
 # See ../faces/references/INTERVIEWS.md for the full workflow
@@ -527,8 +536,10 @@ spell the kind as one of the eleven.
 The upload answers `200` with a plausible `message_count` either way, so the warnings
 are the only thing that distinguishes a clean import from a broken one. Read them.
 
-After each successful compile, update the FACE.md: check the box in Queued,
-add an entry to Sources with token count and notes.
+After each successful compile, update the FACE.md body: check the box in Queued,
+add an entry to Sources with token count and notes. Whether a face is compiled is the
+server's answer, not the file's: `faces face:sources <alias>` (a source reading `synced`
+has compiled).
 
 ### Step 6: Done
 

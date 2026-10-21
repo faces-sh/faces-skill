@@ -16,7 +16,7 @@ description: >
   if Faces is not yet installed — the skill covers setup. Do NOT use for
   fine-tuning models, RAG/retrieval systems, creative writing (NPC backstories,
   fiction), or thematic analysis of transcripts.
-compatibility: Requires the faces CLI (npm install -g faces-cli) and internet access to api.faces.sh.
+compatibility: Requires the faces CLI (npm install -g faces-cli@latest) and internet access to api.faces.sh.
 ---
 
 # Faces Skill
@@ -25,7 +25,7 @@ The Faces Platform compiles source texts (documents and conversation transcripts
 
 Without a Face, an LLM is **faceless** — generic, interchangeable, forgettable. A Face specializes it. Gives it perspective, coherence, and nuance that doesn't collapse back into LLM-speak on long threads.
 
-Official docs: https://docs.faces.sh
+This skill and its references are the documentation: start with [references/QUICKSTART.md](references/QUICKSTART.md) and [references/REFERENCE.md](references/REFERENCE.md). The live API schema is at https://api.faces.sh/openapi.json.
 
 Always use `--json` when you need to extract values from command output — or **`--toon`**,
 which carries the same fields in about 40% fewer tokens and is the better choice when the
@@ -60,7 +60,7 @@ and try again.` Do that, then retry; do not work around it.
 !`faces config:show 2>/dev/null || echo "(no config saved)"`
 
 ## Anything compiling right now
-!`faces compile:status 2>/dev/null || echo "(needs faces-cli 1.12.0)"`
+!`faces compile:status 2>/dev/null || echo "(not signed in, or faces-cli older than 1.12.0)"`
 
 ## Setup
 
@@ -73,15 +73,16 @@ echo "EXIT:$?"
 [ -f ~/.faces/config.json ] && echo "HAS_CONFIG" || echo "NO_CONFIG"
 ```
 
-If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run setup.
+If `NOT_INSTALLED` (the auth check then prints `EXIT:127`, command not found): run `npm install -g faces-cli@latest` and re-run setup.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then run `faces catalog:doctor --fix` to migrate local catalog files (FACE.md and TEAM.md) to the latest format.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`. Once auth triage below reaches `EXIT:0`, run `faces catalog:doctor --fix` to migrate local catalog files (FACE.md and TEAM.md) to the latest format. It needs a signed-in account, so before sign-in it fails with "Authentication required"; that is not a broken update.
 
 **If `faces --version` is below 1.20.0, update before any compile, even with no `UPDATE_AVAILABLE` line.** The API changed its compile calls and progress fields on 2026-10-20, so an older CLI's compile commands fail or wait on progress that never arrives. Tell the user that is why you are updating.
 
 **Auth triage:**
 
 - `EXIT:0` → authenticated. Proceed.
+- `EXIT:127` → the CLI is not installed. Install it as above and re-run, before anything else.
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
   fix it. Do NOT walk through QUICKSTART or ask about plans.
@@ -140,15 +141,19 @@ fix the key and send it all again. `faces face:attributes` lists them with what 
 > check bakes the wrong person into the face. See **Verify speaker attribution**
 > below.
 
-> **By them or about them? Set `--perspective` accordingly.** `--perspective`
-> defaults to `first-person`, which treats the source as the subject's *own
-> voice*. That is a trap for material *about* a person.
-> - **First-person** (the default) — the person's own words: their essays,
->   letters, interview answers, talks, notes.
-> - **Third-person** — material *about* the person: a biography, an
+> **By them or about them? Always pass `--perspective`.** The default is not the
+> same everywhere: `compile:doc` and `compile:doc:create` default to
+> `first-person`, while `compile:upload` and `compile:import` default to
+> `third-person` (an uploaded file is as often someone else's writing). So say it
+> on every call.
+> - **First-person**: the person's own words: their essays, letters, interview
+>   answers, talks, notes. Pass `--perspective first-person`, above all on
+>   `compile:upload` and `compile:import`, or their own PDF is compiled as writing
+>   *about* them and style capture refuses it.
+> - **Third-person**: material *about* the person: a biography, an
 >   encyclopedia/Wikipedia article, a news profile, anyone else's writing about
->   them. You **must** pass `--perspective third-person` for these; otherwise the
->   default compiles them as if the subject wrote them and corrupts the face.
+>   them. Pass `--perspective third-person`, above all on `compile:doc`, or it is
+>   compiled as if the subject wrote it and corrupts the face.
 
 **Interview** (no documents needed — best way to build a face from scratch):
 Run a Q&A interview with the user, save the transcript, upload and compile.
@@ -158,13 +163,13 @@ See [references/INTERVIEWS.md](references/INTERVIEWS.md) for both modes (agent-a
 ```bash
 # Text you already have — a transcript in hand, a draft, anything not on disk.
 # Pass it verbatim; do NOT retype or summarise it, or the face learns your paraphrase.
-faces compile:doc alias --content "<text>" --label "Interview" --medium conversation --no-wait --json
-# By the subject (their own essay/notes) — first-person is the default
-faces compile:doc alias --file document.txt --medium essay --no-wait --json
+faces compile:doc alias --content "<text>" --label "Interview" --medium conversation --perspective first-person --no-wait --json
+# By the subject (their own essay/notes)
+faces compile:doc alias --file document.txt --medium essay --perspective first-person --no-wait --json
 # Several at once: --file is repeatable and each file becomes its own document.
 # Returns {"documents":[{file, document_id}...]} in input order — one call, not one per file.
 # One --medium applies to all of them, so group files of the same kind in one call.
-faces compile:doc alias --file a.txt --file b.txt --file c.txt --medium essay --no-wait --json
+faces compile:doc alias --file a.txt --file b.txt --file c.txt --medium essay --perspective first-person --no-wait --json
 # About the subject (biography, Wikipedia, news profile) — you MUST set third-person
 faces compile:doc alias --file biography.txt --medium essay --perspective third-person --no-wait --json
 # compile:doc takes TEXT only. For PDF, Word (.docx), audio or video use compile:upload instead.
@@ -213,14 +218,16 @@ required can be without one: it is refused at compile, and needs `compile:doc:ed
 every case, and it is the difference between a face that writes like the person and one
 that does not. Do not infer it from the filename or the text.
 
-Every compile refusal names itself in `error_code`, which is what to branch on. All four
-used to be a `202` followed by silence; the CLI prints the repair for each:
+Every compile refusal names itself in `error_code`, which is what to branch on. These
+used to be a `202` followed by silence; the CLI prints the repair for the first four
+(faces-cli 1.20.0 shows `too_short` by its code alone):
 
 | `error_code` | what happened | what to tell the user |
 |---|---|---|
 | `no_medium` | never said what it is | declare one: `faces compile:doc:edit <id> --medium essay` |
 | `empty` | no text to compile | add content before compiling |
 | `no_user_messages` | nothing the subject wrote | a fresh interview holds only the interviewer's question; it becomes compilable on the first answer |
+| `too_short` | under the minimum length: `word_count` is below `compile_min_words` (50) | add text, or merge it into a longer source; compiling it as it is gives a `400` |
 | `corpus_room` | a bulk upload for style capture | capture a style with `faces style:make`, or upload the same material with `--kind thread` to compile it |
 
 Treat an unknown code as "cannot be compiled". The set is not closed.
@@ -242,8 +249,9 @@ faces compile:thread:make THREAD_ID --no-wait --json
 
 **Upload a local file (text, PDF, Word .docx, audio, video):**
 ```bash
-# Document (text, PDF, or Word .docx — text is extracted server-side)
-DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --medium <medium> --no-wait --json | jq -r '.document_id // .id')
+# Document (text, PDF, or Word .docx; text is extracted server-side).
+# compile:upload defaults to third-person: pass first-person for the subject's own writing.
+DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --medium <medium> --perspective first-person --no-wait --json | jq -r '.document_id // .id')
 faces compile:doc:make "$DOC_ID" --no-wait --json
 
 # Thread from text transcript (you know the speakers — pass --face-speaker)
@@ -285,7 +293,7 @@ everything a poller needs, including `synced`, `version`, `synced_version` and
 is compiling across the whole account, use `compile:status` below rather than a list.
 
 **To ask whether anything is still compiling, use `faces compile:status`** rather than
-polling sources one by one. It answers for the whole account in one small call: 136
+polling sources one by one. It answers for the whole account in one small call: 123
 bytes idle, against 2.1MB for the document list. Needs faces-cli 1.12.0.
 
 ```bash
@@ -370,17 +378,20 @@ audio/video, run `compile:thread:get <thread_id>` and confirm:
 
 **Read-only (frozen) documents & threads.** Some items come back locked. A
 `compile:doc:list`/`:get` or `compile:thread:list`/`:get` prints a bare `read
-only` line when the item is frozen (nothing is printed when it's writable — there
-is no `read_only: false`). Frozen items are fully readable and can still be
-deleted, but any write — `compile:doc:edit`, `compile:thread:edit`,
-`compile:thread:message`, etc. — is refused with:
+only` line when the item is frozen (in human output nothing is printed when it's
+writable; in `--json`, `read_only` is always there, `true` or `false`). Frozen items
+are fully readable and can still be deleted. A write to their **content**
+(`compile:thread:message`, `compile:thread:replace`, a content edit) is refused with:
 
 ```
 Error (409): This document is read-only and cannot be edited.
 ```
 
 (threads say `This corpus is read-only…`). Don't retry the write — surface that
-the item is frozen. Today only style **corpus** uploads (`style:upload`) produce
+the item is frozen. Labelling and reading-as corrections are not content and are
+accepted on a frozen corpus room: `compile:thread:edit ID --label`, `--medium` and
+`--clear-medium` all succeed, which is how an `unknown` room gets its medium (see §3).
+Today only style **corpus** uploads (`style:upload`) produce
 locked threads; nothing locks individual documents. There is no per-item toggle for
 these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
 [references/REFERENCE.md](references/REFERENCE.md#face-locking)).
@@ -398,17 +409,35 @@ writing *about* someone teaches the wrong writer.
 # Load a corpus. Stores only — nothing compiles, nothing is billed.
 faces style:upload alias ./mail.jsonl
 
-# Capture and install. --all takes every document and imported corpus room.
-faces style:make alias --all --medium email --no-wait --json
+# Find the rooms it made, then capture from them by id.
+faces face:sources alias --type thread --json | jq -r '.threads[] | "\(.id)  \(.medium)  \(.label)"'
+faces style:make alias --source ROOM_ID_1 --source ROOM_ID_2 --no-wait --json
 faces style:status --face alias          # recover the job id if you lose it
 ```
+
+**The corpus file is one JSON object per line, one message each.** Four fields are
+required: `author` (`self` when the face's subject wrote it, `other` when someone else
+did), `sender`, `date` (ISO-8601) and the text in `snippet`. `kind`, if present, must be
+one of the eleven media. `body`, `content` and `role` are not accepted, and a line using
+them is skipped as invalid (`--strict` refuses the whole file). A working line:
+
+```json
+{"author": "self", "sender": "alice@example.com", "date": "2026-03-14T09:12:00Z", "kind": "email", "snippet": "Friday works. I'll bring the draft and we can cut it down together."}
+```
+
+**`--all` takes everything on the face, interview threads included.** With `--medium`,
+any source that declares no medium of its own is stamped with it, so on a face that also
+has an interview thread, `style:make alias --all --medium email` learns an "email" style
+partly from the interview transcript. Use `--all` only when every source on the face is the
+subject's own writing in that one medium. Otherwise name the sources: list them with
+`faces face:sources alias`, then pass each with `--source ID` (or `--source "ID:MEDIUM"`).
 
 **Always declare the medium.** Each is analysed separately, so an essay never teaches a
 rule about email. A source that does not say what it is gets refused, not guessed:
 
 ```bash
-faces style:make alias --all --medium email        # fills in ONLY where nothing is declared
 faces style:make alias --source "$DOC_ID:essay"    # one source, one medium
+faces style:make alias --all --medium email        # fills in ONLY where nothing is declared; see the --all warning above
 ```
 
 `--medium` never overrides a source that already declares one; it only fills gaps, and a
@@ -491,7 +520,7 @@ faces chat:chat alias -m "message"
 ```
 
 Auto-routes off the model catalog: `gpt-5.x`/codex → `/v1/responses` (free when a ChatGPT account is linked, else paid), `claude-*` → `/v1/messages`, everything else → `/v1/chat/completions`. Override the model with `--llm MODEL`. Each model is listed **once, under its lab's id** (`gpt-5.2`, `glm-5-3-flash`), and `faces billing:llm-costs` lists them; old host-prefixed ids such as `openai-gpt-52` still resolve, but do not offer them. See [references/REFERENCE.md](references/REFERENCE.md#chat-auto-routing).
-Subscription Connect users: add `--oauth-only` to prevent paid fallback.
+Connect and Pro users: add `--oauth-only` to prevent paid fallback.
 In `--json` mode, response includes `_meta` with `provider` (the model's **lab**, not who ran it), `billing` (`oauth` = the linked ChatGPT subscription paid, so it cost nothing; `credits` = billed; faces-cli 1.13.0+), `cost_usd`, and `endpoint`. Branch on `billing`, never on `provider`.
 Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](references/TEMPLATES.md).
 
@@ -656,7 +685,8 @@ TEAM_ID=$(echo "$TEAM" | jq -r '.id')
 # Add faces as members
 faces team:add $TEAM_ID --face alice --face bob
 
-# Set a protocol (mermaid workflow diagram)
+# Set a protocol (mermaid workflow diagram). The file is stored as written, so
+# pass the diagram alone, never TEAM.md with its frontmatter.
 faces team:edit $TEAM_ID --protocol-file workflow.mmd
 
 # List teams, members
@@ -664,7 +694,7 @@ faces team:list
 faces team:members $TEAM_ID
 ```
 
-Teams have a local TEAM.md at `~/.faces/teams/<name>/TEAM.md` with YAML frontmatter (name, description, tags, members) and the protocol as the body.
+Teams have a local TEAM.md at `~/.faces/teams/<slug>/TEAM.md`, where `<slug>` is the name lowercased with each run of other characters turned into `-` ("Review Panel" is `review-panel`). It has YAML frontmatter (id, name, description, tags, members) and the protocol as the body. The CLI writes it; to push a protocol edited there, strip the frontmatter first: `sed '1,/^---$/d' TEAM.md > protocol.md`, then `team:edit --protocol-file protocol.md`.
 
 ### 8. Backup & restore
 
@@ -708,7 +738,7 @@ one bills.
 
 | Error | Fix |
 |---|---|
-| `faces: command not found` | `npm install -g faces-cli` |
+| `faces: command not found` | `npm install -g faces-cli@latest` |
 | `may be out of date` | The API has moved under this version: `npm install -g faces-cli@latest`, then retry |
 | `401 Unauthorized` | `faces auth:login` or check `FACES_API_KEY` via `faces config:show` |
 | status "transcribing" | Audio/video transcription in progress — poll with `compile:thread:get ID --status-only --json` |
@@ -716,14 +746,14 @@ one bills.
 | `409 already_compiled` | The source is compiled and unchanged; nothing was charged. Edit it or `compile:*:reset` it to compile again |
 | status "failed" | If `finishing` is `true` the server is still retrying: wait and offer nothing. Otherwise it is out of attempts; `stall_reason` says why, so do not re-run without fixing it |
 | `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1; `--card pm_…` for a card other than the default). If no card on file: `faces billing:card-setup` first. Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
-| `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
+| `422 oauth_rejected` | Connect and Pro only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
 | `429` naming an allowance | A Connect or Pro allowance (reasoning over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is: it names the allowance and the reset. Wait, or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
 | `429 Rate limit: N requests per minute` | The account's per-minute limit on routes that run a model or a compile (per plan; `GET /v1/rates` lists them under `limits.requests_per_minute`). Nothing was charged. faces-cli 1.19.0+ waits the `Retry-After` once and asks again, printing the wait. Refused again: wait the seconds the message names. Never retry in a loop, and remember that parallel agents share one account's limit |
 | `422 oauth_only_unavailable` | Pay-per-token (Free) runs on credits, so it cannot be OAuth-only. Nothing was charged. Drop `--oauth-only`, or subscribe to Connect to use a linked ChatGPT account |
 | `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry. With `api_fallback` on it would have finished on the paid route instead |
 | `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
 | `422` on thread import | Retry with `--type document` |
-| `409` read-only on edit | The document/thread is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
+| `409` read-only on edit | The document/thread content is frozen (`This document/corpus is read-only…`). Don't retry; surface that it's read-only. You can still read or delete it, and a corpus room still takes `compile:thread:edit --label/--medium/--clear-medium`. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
 | Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID` — pause is a request, so wait for `status: "paused"` before reading results (the CLI waits for you unless you pass `--no-wait`). Then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 
 ## Related skills
@@ -741,13 +771,23 @@ one bills.
   catalog.json          # auto-generated index
   catalog/<alias>/      # individual FACE.md files
   backups/              # timestamped JSON backup snapshots (v2: faces + teams)
-  teams/<team-name>/    # TEAM.md files
-  skills/              # shared skills (facechat, etc.)
+  teams/<team-slug>/    # TEAM.md files, one folder per team, named by a slug of the team name
+  threads/              # chat:thread conversation history
+  models-cache.json     # cached model catalog for chat routing
 ```
 
 ## FACE.md schema
 
-CLI-managed fields (regenerated on sync via `catalog:doctor --fix`):
+**The CLI owns the frontmatter; you own the body.** That is the whole rule. `face:create`,
+`face:edit`, the `face:tag:*` commands, `catalog:restore` and `catalog:doctor --fix` all
+rewrite the frontmatter from the server, and keep only the keys below. Any other key
+(`role`, `source_type`, `sources_compiled`, anything you add) is dropped. A frontmatter
+without both `name` and `alias` cannot be read at all, so the CLI writes a new block on top
+and the old one survives only as text in the body. The markdown body after the frontmatter
+is kept as it is, so put recipe notes, queued sources and anything else of yours there, and
+`catalog:doctor --fix` is then safe to run.
+
+Fields the CLI writes:
 ```yaml
 ---
 name: Ada Lovelace
@@ -766,7 +806,15 @@ profile_token_count: 1024
 ---
 ```
 
-Agent/user-managed fields (preserved by CLI, never overwritten): `role`, `source_type`, and any other keys not listed above. The markdown body after the frontmatter is always preserved.
+`component_counts` here is a single number, the **sum** of the list the API returns
+(`face:get --json` gives a list such as `[12, 40, 31, 4, 50, 3]`). Attributes count toward
+it, so a non-zero value does not mean anything has compiled: ask the server with
+`faces face:sources <alias>`. `profile_token_count` appears once the face has a compiled
+profile.
+
+`compiled_tokens` is written only when the server reports tokens saved for the face, and is
+usually absent, so it says nothing about whether a face is compiled. To know that, ask the
+server: `faces face:sources <alias>` (a source reading `synced` has compiled).
 
 All fields in FACE.md reflect the server state. The API returns `basic_facts` but the CLI renames it to `attributes` everywhere.
 

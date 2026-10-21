@@ -30,13 +30,14 @@ echo "EXIT:$?"
 [ -f ~/.faces/config.json ] && echo "HAS_CONFIG" || echo "NO_CONFIG"
 ```
 
-If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run the preamble.
+If `NOT_INSTALLED` (the auth check then prints `EXIT:127`, command not found): run `npm install -g faces-cli@latest` and re-run the preamble.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalog:doctor --fix` to migrate local catalog files.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`. Once auth triage below reaches `EXIT:0`, run `faces catalog:doctor --fix` to migrate local catalog files. It needs a signed-in account, so before sign-in it fails with "Authentication required"; that is not a broken update.
 
 **Auth triage:**
 
 - `EXIT:0` -> authenticated. Proceed.
+- `EXIT:127` -> the CLI is not installed. Install it as above and re-run, before anything else.
 - `EXIT:1` + `HAS_CONFIG` -> returning user. Read the whoami output to
   understand what failed. Present the diagnosis and help them fix it. Do NOT
   walk through QUICKSTART or ask about plans.
@@ -45,10 +46,10 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
   > You're not logged into Faces, and I don't see any prior config on this
   > machine. Do you already have an account?
   >
-  > A) I have an account -- I'll log in now
-  > B) I have an API key -- let me paste it
-  > C) No account -- help me set one up here
-  > D) No account -- I'll register at faces.sh myself and come back
+  > A) I have an account, and I'll log in now
+  > B) I have an API key, and I'll paste it
+  > C) No account: help me set one up here
+  > D) No account: I'll register at faces.sh myself and come back
 
   If A: have the user run `faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
   If B: have the user run `faces config:set api_key <key>`, verify with `faces auth:whoami`
@@ -74,14 +75,16 @@ everything after it is the message. Examples:
 The alias can refer to a **face** (single persona) or a **team** (multiple
 faces with a collaboration protocol). Check both.
 
-**If alias provided** (`/facechat socrates` or `//facechat socrates How are you?`):
+**If alias provided** (`/facechat socrates` or `/facechat socrates How are you?`):
 
 ```bash
 # Check face first, then team
 faces face:get $ALIAS --json 2>/dev/null
 echo "---TEAM_CHECK---"
 faces team:list --json 2>/dev/null | jq -r '.[] | select(.name == "'$ALIAS'") | .id'
-ls ~/.faces/teams/$ALIAS/TEAM.md 2>/dev/null
+# Local teams live under a slug of the name ("Review Panel" -> review-panel)
+SLUG=$(echo "$ALIAS" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
+ls ~/.faces/teams/$SLUG/TEAM.md 2>/dev/null
 ```
 
 - If face found → single-face chat (see **Chat** section below).
@@ -177,11 +180,16 @@ diagram mechanically.
 ### Load the protocol
 
 ```bash
-cat ~/.faces/teams/$ALIAS/TEAM.md
+cat ~/.faces/teams/$SLUG/TEAM.md
 ```
 
-Parse the YAML frontmatter for the `faces:` list and `max_rounds:` limit.
-Then parse the mermaid flowchart — this is the entire execution spec.
+Parse the YAML frontmatter for the `members:` list (the faces on the team).
+Then parse the mermaid flowchart: this is the entire execution spec, round
+limits included.
+
+If `members:` holds ids rather than aliases (faces-cli 1.20.0 writes ids after a
+`team:edit`), read the aliases with `faces team:members TEAM_ID`, or run
+`faces catalog:doctor --fix` to rewrite the file.
 
 ### Walk the graph
 
@@ -214,7 +222,8 @@ and ends at the `[Response]` node (what you show the user).
    - `[instruction]` → execute the instruction yourself.
    - `{condition}` → evaluate and branch.
 3. If an edge loops back (e.g. round-robin), increment the round counter.
-   Stop at `max_rounds` from the frontmatter.
+   Stop where the diamond's condition says to (e.g. "or this is round 3"). If
+   the diagram names no limit, stop after 3 rounds.
 4. When you reach `[Response]`, present the final output to the user.
 
 ### Presenting team responses

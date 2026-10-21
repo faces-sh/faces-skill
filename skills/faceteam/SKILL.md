@@ -35,13 +35,14 @@ echo "EXIT:$?"
 [ -f ~/.faces/config.json ] && echo "HAS_CONFIG" || echo "NO_CONFIG"
 ```
 
-If `NOT_INSTALLED`: run `npm install -g faces-cli` and re-run the preamble.
+If `NOT_INSTALLED` (the auth check then prints `EXIT:127`, command not found): run `npm install -g faces-cli@latest` and re-run the preamble.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalog:doctor --fix` to migrate local catalog files.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`. Once auth triage below reaches `EXIT:0`, run `faces catalog:doctor --fix` to migrate local catalog files. It needs a signed-in account, so before sign-in it fails with "Authentication required"; that is not a broken update.
 
 **Auth triage:**
 
 - `EXIT:0` → authenticated. Proceed.
+- `EXIT:127` → the CLI is not installed. Install it as above and re-run, before anything else.
 - `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
   understand what failed. Present the diagnosis to the user and help them
   fix it. Do NOT walk through QUICKSTART or ask about plans.
@@ -50,10 +51,10 @@ If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, then `faces catalo
   > You're not logged into Faces, and I don't see any prior config on this
   > machine. Do you already have an account?
   >
-  > A) I have an account — I'll log in now
-  > B) I have an API key — let me paste it
-  > C) No account — help me set one up here
-  > D) No account — I'll register at faces.sh myself and come back
+  > A) I have an account, and I'll log in now
+  > B) I have an API key, and I'll paste it
+  > C) No account: help me set one up here
+  > D) No account: I'll register at faces.sh myself and come back
 
   If A: have the user run `faces auth:login --email YOUR_EMAIL --password 'YOUR_PASSWORD'`
   If B: have the user run `faces config:set api_key <key>`, verify with `faces auth:whoami`
@@ -170,7 +171,7 @@ so a human can see the pattern at a glance.
 **Diagram convention — three shapes, one rule each:**
 
 - `(alias)` **rounded rectangle** = a face gets called via
-  `faces chat:chat alias`. The alias must appear in the frontmatter `faces:`
+  `faces chat:chat alias`. The alias must appear in the frontmatter `members:`
   list.
 - `[text]` **sharp rectangle** = the orchestrating agent executes this step
   itself. The text inside IS the instruction — make it specific enough that
@@ -206,12 +207,16 @@ graph TD
     Q --> C(face-c)
     A --> B
     B --> C
-    C --> CHK{All 3 converged on a specific recommendation. If yes or round = max_rounds, done. Otherwise, loop.}
+    C --> CHK{All 3 converged on a specific recommendation. If yes, or this is round 3, done. Otherwise, loop.}
     A --> CHK
     B --> CHK
     CHK -->|next round| A
     CHK -->|done| OUT[Response]
 ```
+
+Put any round limit in the diamond's own text, as above ("or this is round 3"). There
+is no `max_rounds` key: the CLI rewrites TEAM.md frontmatter and only keeps `id`, `name`,
+`description`, `tags` and `members`.
 
 **Pipeline** — sequential chain, each face adds a layer. Output of one becomes
 input to the next. Good for review processes, quality gates, progressive
@@ -278,31 +283,56 @@ Present your recommended protocol to the user:
 
 ### Step 4: Create the team and write TEAM.md
 
-First create the team on the server, then write the local TEAM.md:
+Write the protocol (the mermaid block only, no frontmatter) to its own file, create the
+team with it, then add members. The CLI writes TEAM.md for you, frontmatter and all:
 
 ```bash
-# Create team on server
-TEAM=$(faces team:create --name "<team-name>" --description "<what this team does>" --tag review --json)
+# 1. The protocol body only: whatever is in this file is stored as the protocol
+cat > /tmp/<team-slug>-protocol.md << 'PROTOCOL'
+<the mermaid block>
+PROTOCOL
+
+# 2. Create the team on the server with that protocol
+TEAM=$(faces team:create --name "<team-name>" --description "<what this team does>" \
+  --tag review --protocol-file /tmp/<team-slug>-protocol.md --json)
 TEAM_ID=$(echo "$TEAM" | jq -r '.id')
 
-# Add members
+# 3. Add members (this also fills in members: in the local TEAM.md)
 faces team:add $TEAM_ID --face alias-1 --face alias-2 --face alias-3
 
-# Write TEAM.md locally
-mkdir -p ~/.faces/teams/<team-name>
-cat > ~/.faces/teams/<team-name>/TEAM.md << 'TEAM'
-<full TEAM.md content>
-TEAM
-
-# Sync protocol to server
-faces team:edit $TEAM_ID --protocol-file ~/.faces/teams/<team-name>/TEAM.md
+# 4. Check what the CLI wrote
+cat ~/.faces/teams/<team-slug>/TEAM.md
 ```
 
-**TEAM.md format** — deterministic: YAML frontmatter + mermaid body.
-The frontmatter holds structured metadata. Everything after the closing `---` is the protocol (mermaid diagram). This format syncs bidirectionally with the server.
+**`<team-slug>` is not the team name.** The CLI stores a team under a slug of its name:
+lowercased, with every run of characters other than `a-z` and `0-9` turned into one `-`,
+and no leading or trailing `-`. "Review Panel" lives in `~/.faces/teams/review-panel/`.
+Never `mkdir` the raw name: for a name with spaces or capitals that makes a second folder
+the CLI never reads. Compute it with:
+
+```bash
+SLUG=$(echo "<team-name>" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
+```
+
+**Never pass TEAM.md itself to `--protocol-file`.** In faces-cli 1.20.0 the file is
+uploaded as written, so the frontmatter would become part of the team's protocol. To push a
+protocol you edited in TEAM.md, strip the frontmatter first:
+
+```bash
+sed '1,/^---$/d' ~/.faces/teams/$SLUG/TEAM.md > /tmp/$SLUG-protocol.md
+faces team:edit $TEAM_ID --protocol-file /tmp/$SLUG-protocol.md
+```
+
+`team:edit` rewrites the local TEAM.md and, in 1.20.0, lists `members:` as member ids
+rather than aliases. `faces catalog:doctor --fix` puts the aliases back for your own faces,
+or read them with `faces team:members $TEAM_ID`.
+
+**TEAM.md format.** Deterministic: YAML frontmatter + mermaid body, written by the CLI.
+The frontmatter holds structured metadata. Everything after the closing `---` is the protocol (mermaid diagram), as stored on the server. These are the only frontmatter keys; the CLI drops any other.
 
 ```markdown
 ---
+id: <team id>
 name: <team-name>
 description: <what this team does>
 tags: [review, research]
@@ -337,7 +367,7 @@ Ask the user:
 > [Summary: who's on the team, what each face brings, where the productive
 > tension is]
 >
-> Faces needing compilation: [list any with compiled_tokens: 0]
+> Faces needing compilation: [list any with no `synced` source in `faces face:sources <alias>`]
 >
 > A) Looks good — compile all the faces for me now
 > B) I want to change the roster or protocol
@@ -349,14 +379,23 @@ Ask the user:
 ### Step 6: Compile the team's faces
 
 If the user chose A (or comes back after reviewing), compile each face that
-has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
-(compile) flow:
+has nothing compiled yet. Ask the server, not FACE.md (the CLI does not record this
+in the file):
+
+```bash
+for a in alias-1 alias-2 alias-3; do
+  n=$(faces face:sources "$a" --json 2>/dev/null | jq '[.documents[], .threads[]] | map(select(.synced)) | length')
+  [ "${n:-0}" -eq 0 ] && echo "Needs compilation: $a"
+done
+```
+
+For each face it names, follow the `/facemake` skill's Step 5 (compile) flow:
 
 1. Read the face's FACE.md from `~/.faces/catalog/<alias>/FACE.md`
 2. Walk through each Queued item using `--no-wait`:
-   - YouTube: `faces compile:import <alias> --url "<url>" --type document --medium lecture --no-wait --json` (a solo talk; ask if it is something else)
-   - Local file: `faces compile:doc <alias> --file <path> --medium <medium> --no-wait --json`
-   - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --no-wait --json`
+   - YouTube: `faces compile:import <alias> --url "<url>" --type document --medium lecture --perspective first-person --no-wait --json` (a solo talk by the subject; ask if it is something else)
+   - Local file: `faces compile:doc <alias> --file <path> --medium <medium> --perspective first-person --no-wait --json`
+   - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --perspective first-person --no-wait --json`
      — pass it verbatim; retyping or summarising teaches the face your paraphrase
    - `--medium` is required and must not be guessed: a compile reads writing differently
      per medium and the server refuses to infer one. Eleven values, spelled exactly:
@@ -365,9 +404,11 @@ has `compiled_tokens: 0`. For each face, follow the `/facemake` skill's Step 5
      no synonyms, so `transcript` and `keynote` are each a 422. `other` is for writing in
      none of those forms and it compiles; it is not a way to avoid choosing.
      **Ask the user** where the FACE.md does not say.
-   - For material *about* the person (biography, Wikipedia, news profile), add
-     `--perspective third-person` — the default (`first-person`) compiles it as
-     the subject's own voice and corrupts the face. See `/facemake` Step 5.
+   - Always pass `--perspective`: `third-person` for material *about* the person
+     (biography, Wikipedia, news profile), `first-person` for their own words. The
+     default differs by command (`compile:doc` is first-person, `compile:upload` and
+     `compile:import` are third-person), and either mistake corrupts the face. See
+     `/facemake` Step 5.
 3. Fire all compiles in parallel — don't wait for one to finish before starting the next
 4. Poll all at the end with ONE call: `faces compile:status --json | jq '{sources_active}'`,
    or `faces compile:status --watch` to block until the account is quiet. This is the

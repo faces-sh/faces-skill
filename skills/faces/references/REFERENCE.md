@@ -3,7 +3,7 @@
 ```
 faces auth:login        --email  --password
 faces auth:logout
-faces auth:register     --email  --password  --username  [--plan free|connect]  [--invite-key]   # username: lowercase, numbers, dashes only
+faces auth:register     --email  --password  --username  [--plan free|connect|pro]  [--invite-key]   # username: lowercase, numbers, dashes only
 faces auth:whoami
 faces auth:refresh
 faces auth:connect      openai   # device-code flow: prints a code + URL, polls until approved
@@ -129,8 +129,12 @@ faces chat:thread       --id THREAD_ID  (--show | --delete)                     
 
 faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread]  [--medium KIND]  [--perspective first-person|third-person]  [--face-speaker LABEL]  [--no-wait]
                                                        # --medium is required with --type document and refused with thread (1.16.0+).
+                                                       # --perspective defaults to third-person here: pass first-person when the
+                                                       # subject is the speaker.
 faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--medium KIND]  [--perspective first-person|third-person]  [--face-speaker NAME]  [--no-wait]
                                                        # --medium is required with --kind document and refused with thread (1.16.0+).
+                                                       # --perspective defaults to third-person here: pass first-person for the
+                                                       # subject's own writing.
                                                        # Accepts text, PDF, Word (.docx), audio and video. Text is extracted server-side.
                                                        # Legacy .doc is refused (400) — save it as .docx first. A .docx with no text 422s:
                                                        # images and text boxes are not read, only document text.
@@ -185,7 +189,8 @@ faces compile:thread:delete   <thread_id>  [--yes]
 
 faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json]  [--messages-per-room N]  [--strict]
                                                        # load a corpus of the person's OWN writing (mail, messages, anything with
-                                                       # one JSON object per line). Stores only: nothing compiled, nothing billed.
+                                                       # one JSON object per line: author, sender, date, snippet; see "Corpus
+                                                       # line format" below). Stores only: nothing compiled, nothing billed.
                                                        # Invalid rows are skipped and reported; --strict refuses the whole file.
                                                        # UPLOAD ONE MEDIUM PER FILE. The output line `medium:` is what the rooms
                                                        # were actually stamped with; `none` means they teach NO writing rules and
@@ -195,8 +200,10 @@ faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json] 
                                                        # whole; the default 50 slices a long one into arbitrary fragments.
 faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KIND]  [--model MODEL]  [--allow-paid]  [--no-compile]  [--best-of N]  [--timeout N]  [--no-wait]
                                                        # capture how the face writes and install it. --all takes every document and
-                                                       # every imported corpus room; live threads still compiling are skipped and
-                                                       # named. Each medium is analysed separately, so an essay never teaches a rule
+                                                       # every thread that is ready, INTERVIEW THREADS INCLUDED, and --medium stamps
+                                                       # any of them that declare none; live threads still compiling are skipped and
+                                                       # named. Prefer --source when the face has anything but the subject's own
+                                                       # writing in one medium. Each medium is analysed separately, so an essay never teaches a rule
                                                        # about email. A source that does not declare a medium is REFUSED, not
                                                        # guessed — declare it with --medium (all) or --source ID:MEDIUM (one).
 faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--timeout N]
@@ -491,16 +498,16 @@ A face with **nothing compiled** still chats: it answers from its name, `profile
 attributes, with no cause and no reasoning charge. A caller with no credit gets the `402` at
 once.
 
-## OAuth-only mode (`--oauth-only`) — Subscription Connect only
+## OAuth-only mode (`--oauth-only`): Connect and Pro
 
-The `--oauth-only` flag and `api_fallback` preference only apply to **Subscription Connect** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth, and cannot be OAuth-only: on pay-per-token (Free), `--oauth-only` on `chat:chat`, `chat:responses` or `chat:messages` is refused with `422` `error_code: "oauth_only_unavailable"` and nothing is charged; `account:preferences api_fallback false` is refused with a `422`; and reading the preferences reports `api_fallback: true` while the account is on Free.
+The `--oauth-only` flag and `api_fallback` preference only apply to **Connect and Pro** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth, and cannot be OAuth-only: on pay-per-token (Free), `--oauth-only` on `chat:chat`, `chat:responses` or `chat:messages` is refused with `422` `error_code: "oauth_only_unavailable"` and nothing is charged; `account:preferences api_fallback false` is refused with a `422`; and reading the preferences reports `api_fallback: true` while the account is on Free.
 
 The `--oauth-only` flag prevents fallback to paid system keys. When set, requests that fail OAuth return a 422 error instead of silently falling back to credits. Available on `chat:chat`, `chat:messages`, `chat:responses`, `chat:thread`, `compile:thread:create`, and `compile:thread:message`.
 
-The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Subscription Connect), all requests behave as if `--oauth-only` is set — OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
+The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Connect and Pro), all requests behave as if `--oauth-only` is set: OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
 
 ```bash
-faces account:preferences api_fallback false    # default: no fallback (Subscription Connect)
+faces account:preferences api_fallback false    # default: no fallback (Connect and Pro)
 faces account:preferences api_fallback true     # allow paid fallback when OAuth fails
 ```
 
@@ -526,7 +533,7 @@ pay-per-token every automatic capture bills; the CLI refuses `auto_style on` the
 
 ## Decisions (`decide`)
 
-*Requires faces-cli 1.13.0 or newer.*
+*Requires faces-cli 1.18.0 or newer.*
 
 Chat gives you what a face would **say**. `faces decide` gives you what it would **decide**:
 describe a situation, ask typed questions about it, and get back numbers, as this face. It is
@@ -759,10 +766,10 @@ Teams also have a local TEAM.md representation at `~/.faces/teams/<name>/TEAM.md
 
 ## Compiling documents (`compile:doc`)
 
-`compile:doc` is the recommended one-step command for compiling a document into a face. Pass the face alias as the first argument. It handles create → compile (prepare + sync) automatically with real-time progress:
+`compile:doc` is the recommended one-step command for compiling a document into a face. Pass the face alias as the first argument. It handles create → compile automatically with real-time progress:
 
 ```bash
-faces compile:doc alice --file essay.txt --medium essay
+faces compile:doc alice --file essay.txt --medium essay --perspective first-person
 ```
 
 `--medium` is required: the server will not save a document that has not said what it is
@@ -817,15 +824,21 @@ For an already-created document, use `compile:doc:make <doc_id>` to compile it.
 
 `--timeout` sets the polling timeout in seconds (default: 600 / 10 minutes).
 
-**`--perspective` — by them or about them?** Defaults to `first-person`, which
-treats the source as the subject's *own voice*. Use `first-person` for the
-person's own words (essays, letters, interview answers, talks). Set
-`--perspective third-person` for material *about* the person — a biography, an
-encyclopedia/Wikipedia article, a news profile, anyone else's writing about them.
-Omitting the flag on about-them material silently compiles it as if the subject
-wrote it and corrupts the face. Applies to every compile path that accepts it
-(`compile:doc`, `compile:doc:create`, `compile:import`, `compile:upload`,
-`compile:doc:edit`).
+**`--perspective`: by them or about them?** Use `first-person` for the person's own
+words (essays, letters, interview answers, talks) and `third-person` for material
+*about* the person: a biography, an encyclopedia/Wikipedia article, a news profile,
+anyone else's writing about them. **The default differs by command, so always pass it:**
+
+| command | default |
+|---|---|
+| `compile:doc`, `compile:doc:create` | `first-person` (text pasted in is usually theirs) |
+| `compile:upload --kind document`, `compile:import --type document` | `third-person` (an uploaded file is as often someone else's) |
+| `compile:doc:edit` | none: changes it only when passed |
+
+Omitting the flag on about-them text silently compiles it as if the subject wrote it, and
+omitting it on the subject's own PDF or video compiles it as writing about them, which
+teaches no style and which `style:make` refuses. Fix either afterwards with
+`compile:doc:edit ID --perspective ...`.
 
 ## Style: how a face writes (`style:*`)
 
@@ -843,8 +856,9 @@ mail, their messages, their essays. It is learned from first-person material onl
 # 1. Load material. Stores only — nothing is compiled, nothing is billed.
 faces style:upload alice ./mail.jsonl
 
-# 2. Capture. --all takes every document and every imported corpus room.
-faces style:make alice --all --medium email
+# 2. Capture from the rooms that upload made, named by id.
+faces face:sources alice --type thread --json | jq -r '.threads[] | "\(.id)  \(.medium)  \(.label)"'
+faces style:make alice --source ROOM_ID_1 --source ROOM_ID_2
 
 # 3. Check what happened
 faces style:versions alice
@@ -924,12 +938,35 @@ Set `--messages-per-room` above the length of a conversation you want kept whole
 is the unit a style is learned from, and the default of 50 cuts a long conversation into
 arbitrary slices.
 
+**Corpus line format.** For `--type jsonl` (and the older `email_jsonl` spelling), each line
+is one JSON object, one message. Required: `author` (`self` when the face's subject wrote
+it, `other` when someone else did), `sender`, `date` (ISO-8601) and the message text in
+`snippet`. Optional: `kind`, which must spell one of the eleven media. `body`, `content`
+and `role` are not accepted; a line that uses them in place of the required fields is
+invalid, skipped and reported (or, with `--strict`, the whole file is refused).
+
+```json
+{"author": "self", "sender": "alice@example.com", "date": "2026-03-14T09:12:00Z", "kind": "email", "snippet": "Friday works. I'll bring the draft and we can cut it down together."}
+{"author": "other", "sender": "bob@example.com", "date": "2026-03-14T08:40:00Z", "kind": "email", "snippet": "Can we meet Friday to go over the proposal?"}
+```
+
+**`--all` with `--medium` stamps every undeclared source, interview threads too.** `--all`
+takes every ready document and thread on the face, not only corpus rooms. On a face that
+also has an interview thread, `style:make alice --all --medium email` stamps that thread
+`email` and learns from the interview transcript as if it were mail. Use `--all` only when
+everything on the face is the subject's own writing in one medium; otherwise pick sources:
+
+```bash
+faces face:sources alice                                   # every source, with its id and medium
+faces style:make alice --source ROOM_ID --source "$DOC_ID:essay"
+```
+
 **Declare the medium.** Each medium is analysed on its own, so an essay never teaches a
 rule about email. A source that does not say what it is gets refused rather than guessed:
 
 ```bash
-faces style:make alice --all --medium email               # fills in ONLY where nothing is declared
 faces style:make alice --source "$DOC_ID:essay"           # one source, one medium
+faces style:make alice --all --medium email               # fills in ONLY where nothing is declared (see the --all warning above)
 faces compile:doc:edit DOC_ID --medium essay              # record it on the document itself
 ```
 
@@ -1215,8 +1252,12 @@ Every source row and detail response carries:
 { "compilable": false, "compile_blocked_reason": "no_medium" }
 ```
 
-`compile_blocked_reason` is a short stable code — `empty`, `no_medium`,
-`no_user_messages`, `corpus_room` — and you write the sentence.
+`compile_blocked_reason` is a short stable code (`empty`, `no_medium`,
+`no_user_messages`, `corpus_room`, `too_short`), and you write the sentence.
+
+`too_short` is a document under the minimum length: it carries `word_count` and
+`compile_min_words` (50 today), and a compile of it is a `400`. Add text or merge it into
+a longer source. faces-cli 1.20.0 prints the code as it is, with no repair line.
 
 **The two booleans compose.** Branch on `finishing` to decide between showing progress
 and offering an action, and on `compilable` to decide whether the action exists:
@@ -1255,20 +1296,20 @@ Do NOT warn users that components may persist after deletion — they don't.
 
 Documents and threads carry a `read_only` flag. When an item is frozen,
 `compile:doc:list`/`:get` and `compile:thread:list`/`:get` print a bare
-`read only` line; nothing is printed when it's writable (there is no
-`read_only: false`). Look for the literal `read only` marker to know an item is
-frozen.
+`read only` line; in human output nothing is printed when it's writable. In `--json`
+the field is always present, `"read_only": true` or `false`, so branch on it there.
 
-Frozen items are readable and can still be deleted, but any write —
-`compile:doc:edit`, `compile:thread:edit`, `compile:thread:message`, etc. — is
-refused:
+Frozen items are readable and can still be deleted. Writes to their content
+(`compile:thread:message`, `compile:thread:replace`, a content edit) are refused:
 
 ```
 Error (409): This document is read-only and cannot be edited.
 ```
 
 Threads phrase it `This corpus is read-only…`. On a 409, don't retry the write —
-surface that the item is frozen. Today only style **corpus** uploads
+surface that the item is frozen. Metadata is not content: on a frozen corpus room,
+`compile:thread:edit --label`, `--medium` and `--clear-medium` are accepted, so the
+medium correction under Style works there. Today only style **corpus** uploads
 (`style:upload`) produce locked threads; nothing locks individual documents. There is no per-item toggle
 for these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
 **Face locking** below).
@@ -1294,7 +1335,7 @@ shows a bare `read only` line and `face:list` shows a `[read only]` marker
 The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file per face (YAML frontmatter + markdown notes) and a consolidated `~/.faces/catalog.json` index. The catalog is managed automatically on `face:create`, `face:edit`, and `face:delete`.
 
 - `faces catalog:doctor` — diagnose missing, stale, or orphaned catalog entries
-- `faces catalog:doctor --fix` — rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files)
+- `faces catalog:doctor --fix`: rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files). It rewrites the frontmatter of **every** FACE.md and the whole of every TEAM.md from the server, but `Fixed N` counts only entries that were missing or renamed, so `Fixed 0` does not mean nothing changed. It does not add a missing description; that is `--generate`. A FACE.md body is kept; frontmatter keys the CLI does not write are dropped (see the FACE.md schema in SKILL.md)
 - `faces catalog:doctor --generate` — fix + generate descriptions via LLM (syncs back to server)
 - `faces catalog:backup` — snapshot all faces (with descriptions, tags), teams, documents (with each one's medium, from 1.16.0), and threads to `~/.faces/backups/<timestamp>.json`
 - `faces catalog:restore [FILE]` — restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload. A document the backup records no medium for (an older backup, or a document saved before a medium was required) is refused by the server; restore names it, and it needs creating again with `compile:doc:create --medium`. Never guess the medium.
@@ -1383,14 +1424,13 @@ not tell a user a listing is complete unless 1.10.0 or newer is installed.
 ## Errors
 
 A client's mistake is a `422`, not a `500`. Every error body uses one `detail` shape and
-carries a reference code; `https://docs.faces.sh/errors` describes the shape and which
-statuses are worth retrying — `503` is the retryable one. A `409` means the thing is
+carries a reference code. `503` is the status worth retrying. A `409` means the thing is
 busy or frozen, a `402` means no credits, and neither is fixed by retrying. A face chat's
 refusals, and the ones that arrive inside a stream, are under
 [Streaming face chats](#streaming-face-chats).
 
 Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_messages`,
-`corpus_room`); see the `compilable` section above. The CLI prints the repair for each.
+`corpus_room`, `too_short`); see the `compilable` section above. The CLI prints the repair for each.
 
 **`may be out of date`** (1.16.0+): the CLI ends a refusal with `Your faces-cli (X) may be out
 of date. Update with npm install -g faces-cli and try again.` when it looks like the API moved
@@ -1420,10 +1460,11 @@ Two refusals can come from almost any route, and the CLI adds what to do to both
 
 ## Global flags
 
-Any command accepts these flags:
+Any command accepts these flags. They go **after** the command name; before it they are
+read as the command (`faces --json face:list` fails with "command --json not found"):
 
 ```
-faces [--base-url URL] [--token JWT] [--api-key KEY] [--json | --toon] COMMAND
+faces COMMAND [ARGS] [--base-url URL] [--token JWT] [--api-key KEY] [--json | --toon]
 ```
 
 ## Environment variables

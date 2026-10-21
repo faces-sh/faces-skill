@@ -35,22 +35,27 @@ The response includes:
 {
   "status": "registered",
   "user_id": "...",
-  "activation_required": true,
-  "activation_checkout_url": "https://checkout.stripe.com/c/pay/..."
+  "checkout_url": "https://checkout.stripe.com/c/pay/...",
+  "plan": "free",
+  "amount": "$5 (added as API credits)"
 }
 ```
+
+On Connect or Pro, `checkout_url` is the subscription checkout and `amount` is `$17/mo` or
+`$49/mo`. If the CLI could not fetch a checkout link, `checkout_url` is missing and
+`checkout_error` says why.
 
 The JWT is saved automatically. The account exists but is not yet active.
 
 ### Step 2 — Activate via payment
 
-The `activation_checkout_url` is a Stripe Checkout page. The human must open it in a browser and complete payment.
+The `checkout_url` is a Stripe Checkout page. The human must open it in a browser and complete payment.
 
 Tell the user:
 
 > Paste this link into your browser and complete the payment. When you see the confirmation page, come back here and let me know it's done.
 >
-> `<activation_checkout_url>`
+> `<checkout_url>`
 
 Do **not** attempt to open the URL or complete payment programmatically. Only a human can do this step.
 
@@ -69,7 +74,7 @@ Check that `is_active` is `true`. If not, tell the user the payment may not have
 ```bash
 # 1. Register (use --plan connect for Subscription Connect plan)
 RESULT=$(faces auth:register --email user@example.com --password 'SecurePass123!' --username alice --json)
-URL=$(echo "$RESULT" | jq -r '.activation_checkout_url')
+URL=$(echo "$RESULT" | jq -r '.checkout_url')
 
 # 2. Give URL to human, wait for them to confirm payment
 
@@ -178,7 +183,9 @@ Soft cancel — keeps access until the current billing period ends.
 
 | Command group | Requires |
 |---|---|
-| `faces auth:*`, `faces keys:*` | JWT only — run `faces auth:login` first |
+| `faces auth:login`, `faces auth:register` | neither: they create the JWT |
+| `faces auth:whoami`, `faces auth:connections` | JWT **or** API key |
+| `faces auth:connect`, `faces auth:disconnect`, `faces auth:refresh`, `faces keys:*` | JWT: run `faces auth:login` first |
 | Everything else | JWT **or** API key |
 
 ## Credential storage
