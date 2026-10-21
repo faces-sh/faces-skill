@@ -498,16 +498,16 @@ A face with **nothing compiled** still chats: it answers from its name, `profile
 attributes, with no cause and no reasoning charge. A caller with no credit gets the `402` at
 once.
 
-## OAuth-only mode (`--oauth-only`) — Subscription Connect only
+## OAuth-only mode (`--oauth-only`) — Connect and Pro
 
-The `--oauth-only` flag and `api_fallback` preference only apply to **Subscription Connect** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth, and cannot be OAuth-only: on pay-per-token (Free), `--oauth-only` on `chat:chat`, `chat:responses` or `chat:messages` is refused with `422` `error_code: "oauth_only_unavailable"` and nothing is charged; `account:preferences api_fallback false` is refused with a `422`; and reading the preferences reports `api_fallback: true` while the account is on Free.
+The `--oauth-only` flag and `api_fallback` preference only apply to **Connect and Pro** users who have linked their ChatGPT account via `faces auth:connect openai`. Pay-per-token users do not use OAuth, and cannot be OAuth-only: on pay-per-token (Free), `--oauth-only` on `chat:chat`, `chat:responses` or `chat:messages` is refused with `422` `error_code: "oauth_only_unavailable"` and nothing is charged; `account:preferences api_fallback false` is refused with a `422`; and reading the preferences reports `api_fallback: true` while the account is on Free.
 
 The `--oauth-only` flag prevents fallback to paid system keys. When set, requests that fail OAuth return a 422 error instead of silently falling back to credits. Available on `chat:chat`, `chat:messages`, `chat:responses`, `chat:thread`, `compile:thread:create`, and `compile:thread:message`.
 
-The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Subscription Connect), all requests behave as if `--oauth-only` is set — OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
+The account-level equivalent is the `api_fallback` preference. When `api_fallback` is `false` (default for Connect and Pro), all requests behave as if `--oauth-only` is set — OAuth failures return 422 instead of falling back to paid keys. Set it to `true` to allow automatic paid fallback when OAuth fails.
 
 ```bash
-faces account:preferences api_fallback false    # default: no fallback (Subscription Connect)
+faces account:preferences api_fallback false    # default: no fallback (Connect and Pro)
 faces account:preferences api_fallback true     # allow paid fallback when OAuth fails
 ```
 

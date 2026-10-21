@@ -520,7 +520,7 @@ faces chat:chat alias -m "message"
 ```
 
 Auto-routes off the model catalog: `gpt-5.x`/codex → `/v1/responses` (free when a ChatGPT account is linked, else paid), `claude-*` → `/v1/messages`, everything else → `/v1/chat/completions`. Override the model with `--llm MODEL`. Each model is listed **once, under its lab's id** (`gpt-5.2`, `glm-5-3-flash`), and `faces billing:llm-costs` lists them; old host-prefixed ids such as `openai-gpt-52` still resolve, but do not offer them. See [references/REFERENCE.md](references/REFERENCE.md#chat-auto-routing).
-Subscription Connect users: add `--oauth-only` to prevent paid fallback.
+Connect and Pro users: add `--oauth-only` to prevent paid fallback.
 In `--json` mode, response includes `_meta` with `provider` (the model's **lab**, not who ran it), `billing` (`oauth` = the linked ChatGPT subscription paid, so it cost nothing; `credits` = billed; faces-cli 1.13.0+), `cost_usd`, and `endpoint`. Branch on `billing`, never on `provider`.
 Reference other faces inline: `${other-alias}` → [references/TEMPLATES.md](references/TEMPLATES.md).
 
@@ -746,7 +746,7 @@ one bills.
 | `409 already_compiled` | The source is compiled and unchanged; nothing was charged. Edit it or `compile:*:reset` it to compile again |
 | status "failed" | If `finishing` is `true` the server is still retrying: wait and offer nothing. Otherwise it is out of attempts; `stall_reason` says why, so do not re-run without fixing it |
 | `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1; `--card pm_…` for a card other than the default). If no card on file: `faces billing:card-setup` first. Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
-| `422 oauth_rejected` | Subscription Connect only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
+| `422 oauth_rejected` | Connect and Pro only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
 | `429` naming an allowance | A Connect or Pro allowance (reasoning over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is: it names the allowance and the reset. Wait, or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
 | `429 Rate limit: N requests per minute` | The account's per-minute limit on routes that run a model or a compile (per plan; `GET /v1/rates` lists them under `limits.requests_per_minute`). Nothing was charged. faces-cli 1.19.0+ waits the `Retry-After` once and asks again, printing the wait. Refused again: wait the seconds the message names. Never retry in a loop, and remember that parallel agents share one account's limit |
 | `422 oauth_only_unavailable` | Pay-per-token (Free) runs on credits, so it cannot be OAuth-only. Nothing was charged. Drop `--oauth-only`, or subscribe to Connect to use a linked ChatGPT account |

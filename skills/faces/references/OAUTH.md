@@ -1,6 +1,6 @@
-# OAuth — Connect ChatGPT (Subscription Connect plan only)
+# OAuth — Connect ChatGPT (Connect and Pro plans)
 
-Subscription Connect users can link their own ChatGPT Plus/Pro account to use select OpenAI models at no extra cost for both compiling and chatting with faces.
+Subscription Connect and Pro users can link their own ChatGPT Plus/Pro account to use select OpenAI models at no extra cost for both compiling and chatting with faces. Pro routes exactly as Connect does; everything below that says Connect applies to Pro too.
 
 **The human approves once in their browser. After that, tokens are stored server-side and the agent never asks again.** No browser extension and no localhost server are required — connection uses the OAuth 2.0 Device Authorization Grant, so it works over SSH, in containers, and headless.
 
@@ -52,14 +52,14 @@ Once connected, OAuth routing is transparent — no flag needed on inference com
 
 ## If `auth:connect` errors
 
-- **`Connecting ChatGPT requires the Subscription Connect plan`** — the account isn't on connect. Subscribe with `faces billing:subscribe --plan connect` (or `--plan pro`).
+- **`Connecting ChatGPT requires the Subscription Connect plan`** — the account is on neither Connect nor Pro (the message names Connect only). Subscribe with `faces billing:subscribe --plan connect` (or `--plan pro`).
 - **`Device-code authorization is not enabled on your ChatGPT account yet`** — the enable-setting gate above; have the human flip the setting, then rerun.
 - **`Your Faces session is missing or expired`** — run `faces auth:login` and retry.
 - **`The code expired…`** — they took longer than 15 minutes; just rerun `faces auth:connect openai` for a fresh code.
 
-## Fallback behavior (Subscription Connect only)
+## Fallback behavior (Connect and Pro)
 
-All OAuth and fallback settings (`api_fallback`, `--oauth-only`) apply only to Subscription Connect users with a linked ChatGPT account. Pay-per-token users do not route through OAuth. On pay-per-token (Free), `--oauth-only` is refused with a `422` (`error_code: "oauth_only_unavailable"`, nothing charged), setting `api_fallback` to `false` is refused with a `422`, and `api_fallback` reads `true`.
+All OAuth and fallback settings (`api_fallback`, `--oauth-only`) apply only to Connect and Pro users with a linked ChatGPT account. Pay-per-token users do not route through OAuth. On pay-per-token (Free), `--oauth-only` is refused with a `422` (`error_code: "oauth_only_unavailable"`, nothing charged), setting `api_fallback` to `false` is refused with a `422`, and `api_fallback` reads `true`.
 
 By default, `api_fallback` is `false` — if OAuth fails (token revoked, model unsupported, rate limit), the request returns a **422** error instead of silently falling back to paid system keys.
 
@@ -78,7 +78,7 @@ faces account:preferences api_fallback true
 faces chat:chat alice -m "hello" --oauth-only    # force OAuth, no fallback (even if api_fallback is true)
 ```
 
-The `--oauth-only` flag is available on `chat:chat`, `chat:messages`, `chat:responses`, `compile:thread:create`, and `compile:thread:message`.
+The `--oauth-only` flag is available on `chat:chat`, `chat:messages`, `chat:responses`, `chat:thread`, `compile:thread:create`, and `compile:thread:message`.
 
 ## A reply that stops partway (`502 oauth_incomplete`)
 
@@ -88,9 +88,9 @@ also stops short, `api_fallback` decides: **on**, it is answered on the paid rou
 rule covers compile interviews and style captures; a style capture that is free-only never
 falls back, it retries and then fails.
 
-## Subscription Connect onboarding
+## Connect and Pro onboarding
 
-A new Subscription Connect user who hasn't linked OAuth will get 422 errors when using select OpenAI models until they either:
+A new Connect or Pro user who hasn't linked OAuth will get 422 errors when using select OpenAI models until they either:
 1. Link their OpenAI account: `faces auth:connect openai`
 2. Enable paid fallback: `faces account:preferences api_fallback true`
 3. Pass `--oauth-only` explicitly (to diagnose which requests use OAuth)
