@@ -766,6 +766,12 @@ profile_token_count: 1024
 ---
 ```
 
+`component_counts` here is a single number, the **sum** of the list the API returns
+(`face:get --json` gives a list such as `[12, 40, 31, 4, 50, 3]`). Attributes count toward
+it, so a non-zero value does not mean anything has compiled: ask the server with
+`faces face:sources <alias>`. `profile_token_count` appears once the face has a compiled
+profile.
+
 Agent/user-managed fields (preserved by CLI, never overwritten): `role`, `source_type`, and any other keys not listed above. The markdown body after the frontmatter is always preserved.
 
 All fields in FACE.md reflect the server state. The API returns `basic_facts` but the CLI renames it to `attributes` everywhere.

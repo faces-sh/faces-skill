@@ -56,12 +56,15 @@ Then register with the chosen plan:
 ```bash
 # Free plan
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --json)
-echo "$RESULT" | jq -r '.activation_checkout_url'
+echo "$RESULT" | jq -r '.checkout_url'
 
 # Connect or Pro plan
 RESULT=$(faces auth:register --email USER_EMAIL --password 'USER_PASSWORD' --username USERNAME --plan connect --json)   # or --plan pro
-echo "$RESULT" | jq -r '.activation_checkout_url'
+echo "$RESULT" | jq -r '.checkout_url'
 ```
+
+`--json` returns `status`, `user_id`, `plan`, `amount` and `checkout_url`. If the
+checkout link could not be fetched, `checkout_url` is missing and `checkout_error` says why.
 
 Tell the human to open the checkout URL in their browser and complete payment.
 Wait for confirmation, then verify:
@@ -92,7 +95,7 @@ faces face:create --name "Alice Smith" --alias alice \
   --json
 ```
 
-Save the face `id` (alias) — you'll need it for the next steps.
+Keep the **alias** (`alias` in the `--json` output, `alice` here): every command after this takes it. The response also has a `uid`, which no command in this guide needs.
 
 ## 4. Add source material
 
@@ -144,7 +147,7 @@ If `--type thread` fails with 422, retry with `--type document`.
 
 **Raw text:**
 ```bash
-DOC_ID=$(faces compile:doc:create alice --label "Notes" --medium essay --content "Text here..." --json | jq -r '.id')
+DOC_ID=$(faces compile:doc:create alice --label "Notes" --medium essay --content "Text here..." --json | jq -r '.document_id')
 ```
 
 ## 5. Compile
@@ -190,12 +193,18 @@ faces chat:chat alice --llm claude-sonnet-4-6 -m "What matters most to you?"
 ## 7. Verify it worked
 
 ```bash
-faces face:get alice --json | jq '{name, component_counts}'
+faces face:sources alice
+faces face:sources alice --json | jq '[.documents[], .threads[]] | map({label, status, synced})'
 ```
 
-`component_counts` is an array of numbers — one per component, positions stable, and it may
-grow over time. Sum it or check for any non-zero entry; a Face that has never compiled comes
-back as all zeros. If anything is above zero, the Face is compiled and ready.
+Every source should read `synced` in the STATUS column (`"synced": true` in `--json`). A
+source still `queued` or `compiling` is not done yet; `not compiled` means its compile was
+never started; `cannot compile: ...` says why it never will. The face is ready once a source
+reads `synced`.
+
+Do not use `component_counts` from `face:get` for this. It is a list of numbers, one per
+component, and the attributes you set at `face:create` already count, so a face with four
+attributes and nothing compiled returns something like `[0, 0, 0, 4, 0, 0]`.
 
 ## What's next
 
