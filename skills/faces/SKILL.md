@@ -260,7 +260,7 @@ used to be a `202` followed by silence; the CLI prints the repair for the first 
 | `empty` | no text to compile | add content before compiling |
 | `no_user_messages` | nothing the subject wrote | a fresh interview holds only the interviewer's question; it becomes compilable on the first answer |
 | `too_short` | under the minimum length: `word_count` is below `compile_min_words` (50) | add text, or merge it into a longer source; compiling it as it is gives a `400` |
-| `corpus_room` | a bulk upload for style capture | capture a style with `faces style:make`, or upload the same material with `--kind thread` to compile it |
+| `corpus_thread` (or `corpus_room`, the same reason) | a bulk upload for style capture | capture a style with `faces style:make`, or upload the same material with `--kind thread` to compile it |
 
 Treat an unknown code as "cannot be compiled". The set is not closed.
 
@@ -423,8 +423,8 @@ Error: HTTP 409: This document is read-only and cannot be edited.
 
 (threads say `This corpus is read-only…`). Don't retry the write — surface that
 the item is frozen. Labelling and reading-as corrections are not content and are
-accepted on a frozen corpus room: `compile:thread:edit ID --label`, `--medium` and
-`--clear-medium` all succeed, which is how an `unknown` room gets its medium (see §3).
+accepted on a frozen corpus thread: `compile:thread:edit ID --label`, `--medium` and
+`--clear-medium` all succeed, which is how an `unknown` thread gets its medium (see §3).
 Today only style **corpus** uploads (`style:upload`) produce
 locked threads; nothing locks individual documents. There is no per-item toggle for
 these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
@@ -443,9 +443,9 @@ writing *about* someone teaches the wrong writer.
 # Load a corpus. Stores only — nothing compiles, nothing is billed.
 faces style:upload alias ./mail.jsonl
 
-# Find the rooms it made, then capture from them by id.
+# Find the threads it made, then capture from them by id.
 faces face:sources alias --type thread --json | jq -r '.threads[] | "\(.id)  \(.medium)  \(.label)"'
-faces style:make alias --source ROOM_ID_1 --source ROOM_ID_2 --no-wait --json
+faces style:make alias --source THREAD_ID_1 --source THREAD_ID_2 --no-wait --json
 faces style:status --face alias          # recover the job id if you lose it
 ```
 
@@ -475,7 +475,7 @@ faces style:make alias --all --medium email        # fills in ONLY where nothing
 ```
 
 `--medium` never overrides a source that already declares one; it only fills gaps, and a
-source that already declares one is left to the server to resolve. An imported corpus room
+source that already declares one is left to the server to resolve. An imported corpus thread
 whose messages declared nothing reads as `unknown`, which is not a medium and contributes
 **no style** — correct it with `faces compile:thread:edit THREAD_ID --medium lecture`,
 which sticks. A wrong declaration is
@@ -485,12 +485,14 @@ afterwards says it happened.
 **Quote `ID:MEDIUM` when the id is a shell variable.** In zsh `$DOC_ID:essay` is read as
 a history modifier and silently becomes `ssay`. Use `"$DOC_ID:essay"`.
 
-**Do not switch models to fix an auth failure.** The default model runs on the user's own
-linked ChatGPT account for free; a billing model is refused rather than warned about. If a
-capture fails on authentication, no ChatGPT account is linked or the link has expired: check
-with `faces auth:connections`, then `faces auth:connect openai`. From faces-cli 1.21.0
-`style:make` refuses a free capture up front when nothing is linked ("Nothing was started"),
-and a failed job's `CHATGPT_AUTH` error says which of the two it is. Use `--allow-paid` only
+**Leave out `--model` unless there is a reason.** Without it a build uses the server's default
+route: on Connect or Pro with ChatGPT linked it runs through the link at no charge, and if the
+link fails it carries on with Faces' own route, which a paid plan also covers. On Free a style
+build is paid from credits, so it needs `--allow-paid`, and without it the CLI says so and
+starts nothing. The build report's `served by:` line (`report.served_by` in `--json`) says
+which route ran. A named model that is not `codex_eligible` is refused without
+`--allow-paid`, rather than warned about. **Do not switch models to fix an auth failure**:
+check with `faces auth:connections`, then `faces auth:connect openai`. Use `--allow-paid` only
 when the user has said they want to pay.
 
 **A failed capture exits 1** from `style:status`, with `--wait` or without, `--json` or not
@@ -505,26 +507,24 @@ faces style:versions alias                      # REVERTABLE says whether revert
 faces style:revert alias --medium essay --yes   # a toggle; run again to return
 ```
 
-**Capturing does not apply it.** Prefix the alias with `+` to use the captured style;
-without the `+` the face answers in its ordinary voice:
+**Building does not apply it.** Ask for the style per request with `--style` and the medium
+(`chat:chat`, `chat:thread`, `chat:responses`, `chat:messages`); without it the face answers
+in its ordinary voice:
 
 ```bash
-faces chat:chat +alias -m "..." --medium email
+faces chat:chat alias --style email -m "..."
 ```
 
-A `+` on a face with no style is a 409, not a fallback.
-
-`--medium` picks WHICH captured style. A face holds one per medium, and `deepself` lists
-the ones it has: `face:list --has-style` shows them (`[style: email, lecture]`).
-
-A **plain alias accepts any medium** — declaring one replaces the classifier's guess and
-nothing else. **`+alias` with a medium the face has no style for is a 400**, not a
-fallback, so check `deepself` before offering the choice.
-
-To see which faces already have one, without a call per face:
+A face holds one style per medium, and its `styles` field lists the media it has built (`[]`
+for none): `face:get` prints them, `face:list` marks them (`[style: email, lecture]`), and
+`face:list --has-style` filters to them. **`--style` with a medium not in `styles` is a
+`400`** naming the ones it has (or saying it has none yet), not a fallback, so check `styles`
+before offering the choice. `--style` needs one face and a model. `--medium` on the chat
+commands is a deprecated alias of `--style`; a `+alias` is refused, asking for `--style`.
 
 ```bash
-faces face:list --has-style          # marked [style] in the normal listing too
+faces face:list --has-style
+faces face:list --json | jq '[.data[] | select(.styles | length > 0) | .alias]'
 ```
 
 **Styles can also capture themselves.** Once a face has enough of its **own** writing in a
@@ -553,6 +553,25 @@ rather than retrying. A finished capture can warn that it **left out third-perso
 or rests on a **thin sample** for a medium; it installed anyway, so pass those on to the user.
 
 See [REFERENCE.md → Style](references/REFERENCE.md#style-how-a-face-writes-style).
+
+**Does it sound like them?** (*faces-cli 1.21.0+*, on a face you own) Two ways to measure it:
+
+- **Fidelity runs** (`faces fidelity:*`): ten blind turns scored out of 10. Each turn the
+  owner sends a message, reads answers `a` and `b` (one the face, one a competitor model given
+  the face's own writing, in random order), and picks the one that sounds more like the
+  person, accepting it or correcting it. The score is saved on the face (`face:get` shows
+  `fidelity:`), and a new run replaces it. **The picks and corrections must be the person's
+  own: show both answers and pass on the choice you are given. Never pick.** `fidelity:run`
+  plays it in a terminal for the person; from an agent, use `fidelity:start`, `fidelity:turn`
+  and `fidelity:pick`. `fidelity:save-thread` keeps the finished conversation as a thread to
+  compile.
+- **Benchmarks** (`faces benchmark:*`): the face against a reference model on its own
+  material over many rounds, with the winner, the gap and how sure. Needs something compiled
+  and a built style. **Paid from credits**: run `faces benchmark:start alias --dry-run` for the
+  estimate, set `--max-spend`, and get the user's go-ahead before a real run.
+
+See [REFERENCE.md → Fidelity runs](references/REFERENCE.md#fidelity-runs-fidelity) and
+[Benchmarks](references/REFERENCE.md#benchmarks-benchmark).
 
 ### 4. Chat
 
@@ -597,7 +616,7 @@ and that can take a while. A streamed request waits for it as long as it takes; 
 not streamed gets 35s, then a `503` with `Retry-After` while the models warm from a cold
 start. So every `chat:*` command streams by default. `--no-stream` and `--json` are not
 streamed, and on that `503` the CLI waits the seconds named and asks once more by itself; do
-not add your own retry loop. `--best-of` is never streamed.
+not add your own retry loop. A `--style` chat streams like any other.
 
 Refusals of a face chat end "Nothing was charged." and tell you what to do:
 
@@ -765,10 +784,10 @@ faces catalog:restore --compile          # restore then compile all
 faces catalog:restore /path/to/file.json # specific backup file
 ```
 
-From faces-cli 1.21.0 the backup includes uploaded threads and style corpus rooms, and restore
+From faces-cli 1.21.0 the backup includes uploaded threads and style corpus threads, and restore
 recreates each thread from its saved messages without starting a paid interview, restores each
-face's specialty and `profile_addendum`, and skips a team that already exists. Corpus rooms are
-**not** restored (as threads they would be compiled as knowledge): restore lists them, to load
+face's specialty and `profile_addendum`, and skips a team that already exists. Corpus threads are
+**not** restored (as ordinary threads they would be compiled as knowledge): restore lists them, to load
 again with `faces style:upload`. Anything it could not restore is listed and the command exits
 non-zero, so read that list before reporting the restore done. Before 1.21.0 restore started an
 interview per thread, which an empty balance refused while the summary still counted it, and
@@ -825,8 +844,16 @@ Under `--json`, read the status from `.error.status` and the code from `.error.e
 | `422 empty_composite` | The formula's result is empty (an intersection with nothing in common, say). Show the message as it is and use a formula whose result is not empty |
 | `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry. With `api_fallback` on it would have finished on the paid route instead |
 | `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
+| `400` on `--style` | The face has no style in that medium (the message names the ones it has), or the value is not one of the eleven media. Leave out `--style` for the ordinary voice, or build one with `faces style:make` |
+| `409 fidelity_choice_pending` | The open fidelity turn has no pick yet. Ask the person, then `faces fidelity:pick RUN a\|b` |
+| `409 fidelity_run_finished` / `409 fidelity_run_open` | The run is done (read it with `fidelity:get`), or `save-thread` came before the tenth turn |
+| `422 fidelity_nothing_compiled` / `422 benchmark_no_compiled_corpus` | The face has nothing compiled. Add and compile a source first |
+| `422 benchmark_no_style` | A benchmark needs a built style: `faces style:make <alias> --all` |
+| `422 fidelity_unknown_model`, `400` naming a model on `benchmark:start` | Not a model the run can use. Pick one from `faces billing:llm-costs` |
+| `402 fidelity_insufficient_credit` / `402 benchmark_insufficient_credit` | Not enough credit for the run. For a benchmark, lower `--rounds` or `--max-spend`; otherwise top up once the user agrees |
+| `404 fidelity_run_not_found` | No such run. Run ids are printed by `fidelity:start` |
 | `422` on thread import | Retry with `--type document` |
-| `409` read-only on edit | The document/thread content is frozen (`This document/corpus is read-only…`). Don't retry; surface that it's read-only. You can still read or delete it, and a corpus room still takes `compile:thread:edit --label/--medium/--clear-medium`. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
+| `409` read-only on edit | The document/thread content is frozen (`This document/corpus is read-only…`). Don't retry; surface that it's read-only. You can still read or delete it, and a corpus thread still takes `compile:thread:edit --label/--medium/--clear-medium`. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
 | Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID` — pause is a request, so wait for `status: "paused"` before reading results (the CLI waits for you unless you pass `--no-wait`). Then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 
 ## Related skills

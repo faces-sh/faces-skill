@@ -31,7 +31,9 @@ faces face:list         [--has-style]  [--tag TAG...]  [--team TEAM_ID...]  [--i
                                                        # compose. A face reachable both directly and via a workspace appears ONCE with
                                                        # both routes — never deduplicate. Faces you do not own print as owner:alias.
 faces face:get          <alias | owner:alias>  [--include tags,teams,profile,sharing,avatar,usage]  [--full]
-                                                       # prints `style: installed` when the face has a captured style.
+                                                       # prints `styles:    email, essay  (ask for one with --style)` when the face
+                                                       # has built styles, and, to its owner, `fidelity:  7.4 out of 10 against
+                                                       # <competitor>, <date>` once a fidelity run has finished.
                                                        # owner:alias is looked up through the LISTING, which is the only route that
                                                        # serves other accounts' faces. The listing can lag the resolver, so a miss
                                                        # is not proof of absence: a published face may answer chat before it is
@@ -111,27 +113,28 @@ faces face:tag:remove   <alias>  (<tag> | --tag TAG)   # --tag like add and set 
 faces face:tag:all
 faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
 
-faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--no-stream]  [--medium KIND]  [--best-of N]  [--reasoning | --reasoning-only]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
+faces chat:chat         <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--no-stream]  [--style MEDIUM]  [--reasoning | --reasoning-only]   # owner:alias@model for a published face, e.g. head:socrates@gpt-5.4
                                                        # --reasoning: the face's reasoning to stderr before the reply.
                                                        # --reasoning-only: that alone, no reply (1.13.0+).
                                                        # --cause TEXT | --cause-file PATH: supply the face's reasoning yourself;
                                                        # it answers on that, free of the reasoning charge (1.15.0+). Needs a model.
                                                        # Streamed by default (1.14.0+); --no-stream and --json are not, and
                                                        # wait out a warm-up 503 once by themselves. See "Streaming face chats".
-                                                       # PREFIX THE ALIAS WITH + to answer in the style the face captured. Without it
-                                                       # the face uses its ordinary voice; both are valid and the caller chooses per
-                                                       # request. --medium selects WHICH captured style, since a face holds one per
-                                                       # medium. + on a face with no style is a 409, not a fallback. Check
-                                                       # with face:list --has-style, or drop the +.
-                                                       # --best-of N (1-5) writes N replies and serves the closest to the style.
-                                                       # It multiplies the cost by N, needs a + alias, and is never streamed.
+                                                       # --style MEDIUM answers in the style the face built for that medium. Without
+                                                       # it the face uses its ordinary voice; both are valid and the caller chooses
+                                                       # per request. A face holds one style per medium; --style naming one it has
+                                                       # not built is a 400 naming the ones it has, not a fallback. Check `styles`
+                                                       # on face:get / face:list, or leave out --style. Needs one face and a model
+                                                       # (not a formula, not --reasoning-only). --medium is a deprecated alias of
+                                                       # --style. A `+alias` is refused, asking for --style <medium>; with --style
+                                                       # the + is dropped.
                         [--max-tokens N]  [--temperature F]  [--file PATH]  [--responses]  [--oauth-only]
                                                        # --max-tokens is at least 1 (1.21.0+; before, 0 went out as no cap).
                                                        # --temperature is 0 to 2, checked before sending (1.21.0+; before, a
                                                        # value that was not a number was silently dropped).
                                                        # A streamed reply the model refused is reported as an error, not
                                                        # printed as an empty reply with exit 0 (1.21.0+).
-                                                       # --medium declares WHAT THE WRITING IS so the reply is shaped for the occasion.
+                                                       # --style takes one of the media, which say WHAT THE WRITING IS.
                                                        # ELEVEN VALUES, SPELLED EXACTLY: email, text message, social post, essay,
                                                        # academic paper, blog post, legal document, thread reply, conversation,
                                                        # lecture, other. It is NOT tone or style.
@@ -143,18 +146,17 @@ faces chat:chat         <[+]alias | owner:alias>  -m MSG  [--llm MODEL]  [--syst
                                                        # other 32 aliases used to fold and are each a 422 on compile now.
                                                        # OMIT IT IF YOU DO NOT KNOW — never infer it from the text. A wrong
                                                        # declaration is worse than none, because a declaration is trusted.
-                                                       # On CHAT the medium picks WHICH CAPTURED STYLE answers, so it does nothing
-                                                       # without a `+` alias; with one, a medium the face has no style for is
-                                                       # refused naming the ones it has. Omitting it classifies one from the text.
-                                                       # On COMPILE it is required and the spelling is held to exactly.
-faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--no-stream]  [--max-tokens N]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT | --cause-file PATH]
-faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--max-tokens N]  [--temperature F]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT | --cause-file PATH]
+                                                       # On CHAT the medium picks WHICH BUILT STYLE answers (--style); a medium the
+                                                       # face has no style for is refused naming the ones it has.
+                                                       # On COMPILE (--medium) it is required and the spelling is held to exactly.
+faces chat:messages     <alias@model | owner:alias@model | model>  -m MSG  [--system]  [--no-stream]  [--max-tokens N]  [--style MEDIUM]  [--oauth-only]  [--reasoning]  [--cause TEXT | --cause-file PATH]
+faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--instructions]  [--max-tokens N]  [--temperature F]  [--no-stream]  [--style MEDIUM]  [--oauth-only]  [--reasoning]  [--cause TEXT | --cause-file PATH]
                                                        # --max-tokens (at least 16) and --temperature from 1.21.0.
                                                        # These two send the model as typed. A bare alias gets the face's
                                                        # reasoning only, no reply (printed in its place, with a note).
-faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--no-stream]  [--medium KIND]  [--oauth-only]  [--reasoning]  [--cause TEXT]   # start a new thread
-                                                       # --medium is per REQUEST, not per thread: send it on each turn you want shaped.
-faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--no-stream]  [--oauth-only]  [--reasoning]  [--cause TEXT]  # resume a thread
+faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [--max-tokens N]  [--temperature F]  [--no-stream]  [--style MEDIUM]  [--oauth-only]  [--reasoning]  [--cause TEXT]   # start a new thread
+                                                       # --style is per TURN, not per thread: send it on each turn you want styled.
+faces chat:thread       --id THREAD_ID  -m MSG  [--max-tokens N]  [--temperature F]  [--no-stream]  [--style MEDIUM]  [--oauth-only]  [--reasoning]  [--cause TEXT]  # resume a thread
 faces chat:thread       --list                                                                                                                    # list saved threads
 faces chat:thread       --id THREAD_ID  (--show | --delete [--yes])                                                                                # show transcript / delete
 
@@ -205,7 +207,7 @@ faces compile:thread:get      <thread_id>  [--status-only]  # --status-only leav
                                                        # every message, 120KB in one measurement. Poll with it.
 faces compile:thread:edit     <thread_id>  [--label TEXT]  [--medium KIND | --clear-medium]  [--face-speaker NAME]
                                                        # --medium corrects what a thread is READ as, and sticks. Use it on an imported
-                                                       # corpus room whose messages declared nothing (it shows as medium `unknown`,
+                                                       # corpus thread whose messages declared nothing (it shows as medium `unknown`,
                                                        # which is not a medium and contributes no style). --clear-medium removes the
                                                        # correction. What the corpus arrived as is never overwritten.
 faces compile:thread:replace  <thread_id>  --file PATH  [--face-speaker NAME]
@@ -230,18 +232,18 @@ faces compile:thread:pause    <thread_id>  [--no-wait]  [--timeout N]
 faces compile:thread:reset    <thread_id>  [--yes]
 faces compile:thread:delete   <thread_id>  [--yes]
 
-faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json]  [--messages-per-room N]  [--strict]
+faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json]  [--messages-per-thread N]  [--strict]
                                                        # load a corpus of the person's OWN writing (mail, messages, anything with
                                                        # one JSON object per line: author, sender, date, snippet; see "Corpus
                                                        # line format" below). Stores only: nothing compiled, nothing billed.
                                                        # Invalid rows are skipped and reported; --strict refuses the whole file.
-                                                       # UPLOAD ONE MEDIUM PER FILE. The output line `medium:` is what the rooms
+                                                       # UPLOAD ONE MEDIUM PER FILE. The output line `medium:` is what the threads
                                                        # were actually stamped with; `none` means they teach NO writing rules and
                                                        # cannot be asked for by medium later. Check it, do not assume it.
-                                                       # --messages-per-room sets the ROOM size, and a room is the unit a style is
+                                                       # --messages-per-thread sets the THREAD size, and a thread is the unit a style is
                                                        # learned from. Set it ABOVE the length of a conversation you want kept
                                                        # whole; the default 50 slices a long one into arbitrary fragments.
-faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KIND]  [--model MODEL]  [--allow-paid]  [--no-compile]  [--best-of N]  [--timeout N]  [--no-wait]
+faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KIND]  [--model MODEL]  [--allow-paid]  [--no-compile]  [--timeout N]  [--no-wait]
                                                        # capture how the face writes and install it. --all takes every document and
                                                        # every thread that is ready, INTERVIEW THREADS INCLUDED, and --medium stamps
                                                        # any of them that declare none; live threads still compiling are skipped and
@@ -249,6 +251,10 @@ faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium KI
                                                        # writing in one medium. Each medium is analysed separately, so an essay never teaches a rule
                                                        # about email. A source that does not declare a medium is REFUSED, not
                                                        # guessed — declare it with --medium (all) or --source ID:MEDIUM (one).
+                                                       # Without --model it runs on the server's default route: on Connect or Pro
+                                                       # with ChatGPT linked, through the link at no charge, falling back to Faces'
+                                                       # own route (also covered) if the link fails. On Free it bills credits, so it
+                                                       # needs --allow-paid. The report's `served by:` line says which route ran.
 faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--timeout N]
                                                        # exits 1 for a failed job (1.21.0+; before, --wait exited 0 on one).
                                                        # read one build, or list a face's builds. Listing is how you recover a job id.
@@ -274,9 +280,30 @@ faces style:delete      <alias>  [--medium KIND | --all]  [--yes]
                                                        # text use compile:doc:delete; to withdraw a source from the face while
                                                        # KEEPING it, use compile:doc:reset / compile:thread:reset.
 
+faces fidelity:start      <alias>  [--competitor MODEL]  [--model MODEL]
+                                                       # 1.21.0+, a face you own. Ten blind turns scored out of 10. Prints the run id.
+                                                       # --competitor defaults to the cheapest chat model a ChatGPT plan can run;
+                                                       # --model to the face's own default model. See "Fidelity runs".
+faces fidelity:turn       <run>  (-m MSG | --file PATH) # the turn's message; prints answers a and b in random order
+faces fidelity:pick       <run>  a|b  [--correction TEXT | --correction-file PATH]  [--turn N]
+                                                       # THE PERSON'S PICK, never an agent's. A correction says what the person would
+                                                       # have said, and lowers that turn's score by how much it changes the answer.
+faces fidelity:get        <run>                        # progress, turns, and once finished the score and which answer was the face
+faces fidelity:save-thread <run>                       # a finished run's conversation as a thread; then compile:thread:make <thread_id>
+faces fidelity:run        <alias>  [--run ID | --competitor MODEL | --model MODEL]
+                                                       # the same, played in a terminal. Needs a person at the keyboard.
+
+faces benchmark:start     <alias>  [--model MODEL]  [--reference-model MODEL]  [--rounds 1-300]  [--seed N]  [--max-spend USD]  [--dry-run]  [--wait]
+                                                       # 1.21.0+, a face you own with something compiled and a built style.
+                                                       # Defaults: --model and --reference-model gpt-5.6-terra, 100 rounds.
+                                                       # PAID. --dry-run prints the estimate and starts nothing; --max-spend is a hard
+                                                       # ceiling. --seed draws the same rounds as an earlier run. See "Benchmarks".
+faces benchmark:get       <run>  [--wait]              # status, progress, and once done the result. A failed run exits 1.
+faces benchmark:list      [--face ALIAS]  [--limit N]  # newest first; --limit 1-100, default 20
+
 faces catalog:doctor      [--fix]  [--generate]
 faces catalog:list
-faces catalog:backup                                   # uploaded threads and style corpus rooms included (1.21.0+)
+faces catalog:backup                                   # uploaded threads and style corpus threads included (1.21.0+)
 faces catalog:restore     [FILE]  [--compile]          # exits non-zero listing anything it could not restore, and says
                                                        # when FILE is not a backup (1.21.0+)
 faces catalog:manyfaced   [--skill NAME]  [--install NAME --skills-dir PATH]  [--refresh]
@@ -564,7 +591,8 @@ How long a request may wait for it depends on whether it is streamed:
   once.
 
 From faces-cli 1.14.0 every `chat:*` command streams by default. `--json` is never streamed
-(it returns the whole body with `_meta`), nor is `--best-of`; `--no-stream` turns it off. When
+(it returns the whole body with `_meta`); `--no-stream` turns it off. A `--style` chat streams
+like any other. When
 not streamed, the CLI waits out a warm-up `503` and asks once more by itself, saying so on
 stderr. Do not wrap it in a retry loop of your own.
 
@@ -691,7 +719,7 @@ string, an object or an array. The old `{instructions, options}` shape is a `422
   your questions over the situation and the face's reasoning, as opposed to a generative model
   that writes text. On the wire this is `face@decision-model`, e.g. `alice@clef-flash`. Call
   these "decision models" when talking to a user. The face can be a saved composite or a
-  formula (`"(a | b)"`, sent as `(a | b)@jev-latest`), priced like one face; never a `+` alias.
+  formula (`"(a | b)"`, sent as `(a | b)@jev-latest`), priced like one face; never a `+` alias (a `400`).
   `faces-latest` is no longer a decision model: the API answers it with a `400`.
 - **`--baseline`** asks the decision model alone (no-face baseline): exactly what Jev would say,
   in about a second, costing only the decision model. It is the number to compare a face's
@@ -904,7 +932,7 @@ separately:
 
 | surface | no `--medium` | what it does |
 |---|---|---|
-| `chat:*` | fine — one is classified from the request text | picks which captured style answers. Only does anything on a `+` alias; with one, a medium the face has no style for is refused naming the ones it has. So `other` on chat needs an `other` style captured, and is not a form-neutral fallback. |
+| `chat:*` (`--style`) | the face's ordinary voice | picks which built style answers. A medium the face has no style for is refused naming the ones it has. So `other` on chat needs an `other` style built, and is not a form-neutral fallback. `--medium` there is a deprecated alias of `--style`. |
 | `compile:doc`, `compile:doc:create`, `compile:upload --kind document`, `compile:import --type document` | refused: the document cannot be saved without one | decides how the writing is read, and the spelling is held to exactly. It can be changed later, never cleared |
 
 Output:
@@ -958,61 +986,52 @@ mail, their messages, their essays. It is learned from first-person material onl
 # 1. Load material. Stores only — nothing is compiled, nothing is billed.
 faces style:upload alice ./mail.jsonl
 
-# 2. Capture from the rooms that upload made, named by id.
+# 2. Capture from the threads that upload made, named by id.
 faces face:sources alice --type thread --json | jq -r '.threads[] | "\(.id)  \(.medium)  \(.label)"'
-faces style:make alice --source ROOM_ID_1 --source ROOM_ID_2
+faces style:make alice --source THREAD_ID_1 --source THREAD_ID_2
 
 # 3. Check what happened
 faces style:versions alice
 faces chat:chat alice -m "Write a short reply declining the meeting."
 ```
 
-**Using a captured style.** Capturing does not apply it. Prefix the alias with `+`:
+**Using a built style.** Building does not apply it. Ask for it per request with `--style`
+and the medium, on `chat:chat`, `chat:thread`, `chat:responses` and `chat:messages`:
 
 ```bash
 faces style:make alice --all --medium email
-faces chat:chat +alice -m "Reply to the note below." --medium email   # captured style
-faces chat:chat alice  -m "Reply to the note below."                  # ordinary voice
+faces chat:chat alice -m "Reply to the note below." --style email   # the email style
+faces chat:chat alice -m "Reply to the note below."                 # ordinary voice
 ```
 
-`--medium` selects which captured style, since a face holds one per medium. A `+` on a
-face with no style is a **409, not a fallback** — check first with `face:list --has-style`,
-or drop the `+`. `--best-of N` (1-5) writes N replies and serves the one closest to the
-style; it multiplies cost by N and cannot be streamed.
+A face holds one style per medium, and `--style` names which. It needs one face and a model:
+not a formula, and not a bare face asking for `--reasoning-only`. `--medium` on those four
+commands is a deprecated alias of `--style` (oclif prints a warning). A `+alias` is refused
+by the CLI, asking for `--style <medium>`; typed with `--style`, the `+` is dropped.
 
 **Which faces have a style, and which media it covers.** `face:list` marks them
-`[style: email, lecture]` and `--has-style` filters to them; `face:get` prints the media
-too. In `--json` the field is `deepself`, an **object**:
+`[style: email, lecture]` and `--has-style` filters to them; `face:get` prints
+`styles:    email, essay  (ask for one with --style)`. In `--json` the field is `styles`, the
+list of media with a built style, `[]` when there is none.
 
-| value | means |
-|---|---|
-| `null` | no style |
-| `{"style": []}` | has a style, but no media recorded; naming one will be refused |
-| `{"style": ["email"]}` | a style, and the media you may ask for with `--medium` |
-
-**Test the KEY, not the length of its value** — `{"style": []}` is a face whose style
-predates media-stamping, and reading it as "no style" is wrong. It was a plain list
-(`["style"]`) before 2026-08-31.
-
-`deepself.style` enumerates the **`+` set**: the media with a captured style behind them.
-
-**A plain alias accepts any medium.** Declaring one there replaces the classifier's guess
-and nothing else — a medium the face has no material for simply contributes nothing, and
-costs nothing. So a picker can offer the whole vocabulary plain, and offer `+` only for
-what is in `deepself`.
-
-**`+alias` with a medium not in that set is a `400`** (`style_medium_unavailable`), not a
-fallback to the ordinary voice: `+` promises a captured voice and a style is per medium,
-so there is nothing to speak in. Read `deepself` first to avoid the round trip. This is
-the cheap bulk answer — no per-face call.
+**`--style` with a medium not in `styles` is a `400`**, not a fallback to the ordinary voice:
+`'alice' has no styles yet.`, or `This face has no email style. Its styles: essay, lecture`.
+The CLI adds `Build one: faces style:make alice --all` and `Or leave out --style for alice's
+ordinary voice.` A value that is not one of the eleven media is a `400` listing them. Read
+`styles` first to avoid the round trip; it is the cheap bulk answer, with no per-face call.
 
 ```bash
 faces face:list --has-style
-faces face:list --json | jq '[.data[] | select(.deepself) | .alias]'
-faces face:list --json | jq '.data[] | {alias, media: (.deepself.style // [])}'
+faces face:list --json | jq '[.data[] | select(.styles | length > 0) | .alias]'
+faces face:list --json | jq '.data[] | {alias, styles}'
 ```
 
-**Correcting a thread's medium.** An imported corpus room whose messages declared nothing
+**On the API**, send `"style": "<medium>"` on `/v1/chat/completions`, `/v1/responses` or
+`/v1/messages` with `"model": "face@model"`. It sets the request's `medium`, and a `medium`
+that disagrees with it is a `400`. A `+alias` model is refused (`400`) on `/v1/causes`,
+`/v1/decisions`, `/v1/systemone` and the bare-face route.
+
+**Correcting a thread's medium.** An imported corpus thread whose messages declared nothing
 shows as `unknown`. That is not a medium and contributes **no style**, which is
 deliberate: no style beats the wrong style. Correct it, and the correction sticks:
 
@@ -1024,19 +1043,20 @@ faces compile:thread:edit THREAD_ID --clear-medium
 What the corpus arrived as is kept underneath and never overwritten.
 
 **Uploading a corpus: one medium per file.** The upload response reports the medium the
-rooms were stamped with, derived from the messages rather than anything you send:
+threads were stamped with, derived from the messages rather than anything you send:
 
 ```bash
-faces style:upload alice ./messages.jsonl --messages-per-room 500
+faces style:upload alice ./messages.jsonl --messages-per-thread 500
+# threads:  4
 # medium:   text message      <- assert this
 ```
 
-`medium: none` means the file mixed media, or its messages declared none. Those rooms
+`medium: none` means the file mixed media, or its messages declared none. Those threads
 **teach no writing rules and cannot be asked for by medium at inference** — the upload
 succeeds and the face quietly learns nothing about how its subject writes. It is the one
 silent failure on this path, so check the line rather than assuming it.
 
-Set `--messages-per-room` above the length of a conversation you want kept whole: a room
+Set `--messages-per-thread` above the length of a conversation you want kept whole: a thread
 is the unit a style is learned from, and the default of 50 cuts a long conversation into
 arbitrary slices.
 
@@ -1053,14 +1073,14 @@ invalid, skipped and reported (or, with `--strict`, the whole file is refused).
 ```
 
 **`--all` with `--medium` stamps every undeclared source, interview threads too.** `--all`
-takes every ready document and thread on the face, not only corpus rooms. On a face that
+takes every ready document and thread on the face, not only corpus threads. On a face that
 also has an interview thread, `style:make alice --all --medium email` stamps that thread
 `email` and learns from the interview transcript as if it were mail. Use `--all` only when
 everything on the face is the subject's own writing in one medium; otherwise pick sources:
 
 ```bash
 faces face:sources alice                                   # every source, with its id and medium
-faces style:make alice --source ROOM_ID --source "$DOC_ID:essay"
+faces style:make alice --source THREAD_ID --source "$DOC_ID:essay"
 ```
 
 **Declare the medium.** Each medium is analysed on its own, so an essay never teaches a
@@ -1083,19 +1103,33 @@ A wrong declaration is worse than a missing one. A mislabelled source teaches th
 voice for that medium and nothing afterwards says it happened.
 
 **Cost.** The analyst model runs the whole capture, which makes it the most expensive call
-in the product. The default model runs on your own linked ChatGPT account and costs
-nothing. A model that would bill is **refused**, not warned about:
+in the product. Without `--model` a build uses the server's **default route**: on Connect or
+Pro with ChatGPT linked it runs through the link at no charge, and if the link fails it
+carries on with Faces' own route, which a paid plan also covers. On Free a style build is
+paid from credits, so it needs `--allow-paid`; without it the CLI shows the server's `422` and
+"On the Free plan a style build is paid from credits. Re-run with --allow-paid to pay, or
+subscribe to Connect or Pro". The CLI always sends `oauth_only` (true unless `--allow-paid`),
+so a build never bills unasked.
+
+The report says which route ran, in a `served by:` line (`your linked ChatGPT account
+(gpt-5.6-terra)`, or `Faces (mercury-3), after the ChatGPT link failed`), and `--json` has
+`report.served_by: {route: "chatgpt" | "faces", model, fell_back}`.
+
+`--model` is optional. A named model that is not `codex_eligible` would bill, so it is
+**refused** without `--allow-paid`, not warned about:
 
 ```bash
-faces style:make alice --all --medium email --model gpt-5.6-luna
-# Error: 'gpt-5.6-luna' is not on the free tier, so this build would bill you.
+faces style:make alice --all --medium email --model gpt-5.4
+# Error: 'gpt-5.4' is not on the free tier, so this build would bill you.
 ```
 
-If a capture fails on authentication, no ChatGPT account is linked or the link has expired.
-Check with `faces auth:connections`, then link or reconnect with `faces auth:connect openai`.
-From faces-cli 1.21.0 `style:make` checks for a link before queuing a free capture and refuses
-with none ("Nothing was started"; link one, or `--allow-paid`). Do not switch to a paid model, which turns a fixable login
-into a permanent bill. Pass `--allow-paid` only when you mean to pay.
+A named free-tier model runs on the linked ChatGPT account, so with none linked `style:make`
+refuses it up front ("Nothing was started"; link one, or `--allow-paid`). If a capture on a
+named model fails on authentication, the link is missing or expired: check with `faces
+auth:connections`, then `faces auth:connect openai`. Do not switch to a paid model, which turns
+a fixable login into a permanent bill. Pass `--allow-paid` only when you mean to pay.
+
+After a build, `style:make` prints how to use it: `faces chat:chat alice --style email -m "..."`.
 
 **One style per medium.** A face does not have "a style", it has one per medium. An email
 style and an essay style are separate and do not replace each other, so `style:versions`
@@ -1167,7 +1201,7 @@ JOB_ID --wait` to follow it. Nothing was started or charged. Do not retry in a l
 - `thin_corpus`: `{medium: {words, threshold}}` for each medium captured from less writing
   than the automatic threshold. It installed anyway; a manual capture has no minimum.
 
-**When the free route refuses** (the default, with no `--allow-paid`), a failed job names its
+**When the free route refuses** (no `--allow-paid`), a failed job names its
 code in `error_code` (older jobs only start `error` with it), and each has its own fix. A build
 that can only run through ChatGPT, started with none linked, is refused up front instead: a
 `409 chatgpt_not_linked`, with nothing started. Link one with `faces auth:connect openai`, or
@@ -1175,8 +1209,9 @@ pass `--allow-paid`.
 
 | Code | Meaning | Fix |
 |---|---|---|
+| `422 oauth_only_unavailable` (at start) | On Free, where a style build is paid from credits. Nothing was started | `--allow-paid` if the user agrees, or subscribe to Connect or Pro |
 | `CONNECT_REQUIRED` | Not on Subscription Connect, so there is no free route | `--allow-paid` to pay from credits, if the user agrees |
-| `MODEL_NOT_FREE` | That model has no free ChatGPT route | Use the default model, or `--allow-paid` |
+| `MODEL_NOT_FREE` | That model has no free ChatGPT route | Leave out `--model` for the default route, or `--allow-paid` |
 | `CHATGPT_AUTH` | No ChatGPT account is linked, or the link expired. 1.21.0+ says which ("No ChatGPT account is linked", or "most likely expired" when one is); when it cannot tell, it names `faces auth:connections` | `faces auth:connect openai`, then capture again |
 
 **Automatic captures** (*faces-cli 1.13.0+ to see and control them*). The server captures a
@@ -1197,6 +1232,91 @@ pay-per-token they are off by default and bill per token when on. Control them w
 
 A capture after a revert keeps the version you reverted **to** as its previous one, so
 reverting and then capturing again never loses the style you chose.
+
+
+## Fidelity runs (`fidelity:*`)
+
+*Requires faces-cli 1.21.0 or newer.* Owner only.
+
+A fidelity run asks the person whether the face sounds like them. Ten blind turns, scored out
+of 10: each turn the owner sends a message, reads two answers labelled `a` and `b` (one is the
+face, one a competitor model given the face's own writing, in random order), and picks the
+one that sounds more like the person, accepting it as it is or correcting it. A correction
+says what the person would actually have said, and how much it changes the face's answer
+lowers that turn's score. The score is saved on the face, and a new run replaces it.
+
+**The picks and corrections must be the person's own.** An agent shows both answers in full
+and passes on the choice it is given. It never picks, never suggests a pick, and never writes
+a correction the person did not give.
+
+```bash
+faces fidelity:start alice                          # prints the run id
+faces fidelity:turn RUN -m "How was the trip?"      # answers a and b
+faces fidelity:pick RUN a                           # the person's pick, accepted as it is
+faces fidelity:pick RUN b --correction "Fine, thanks. Long drive."
+faces fidelity:get RUN                              # progress; once finished, the score and which was the face
+faces fidelity:save-thread RUN                      # after the tenth turn: the conversation as a thread
+faces compile:thread:make THREAD_ID                 # compile it like any thread
+faces fidelity:run alice                            # the same, played in a terminal by the person
+```
+
+`--competitor` names the chat model to compare with (default: the cheapest chat model a ChatGPT
+plan can run), and `--model` the model the face answers on (default: its own default model).
+`fidelity:pick --turn N` picks for a turn other than the open one. `fidelity:save-thread`
+keeps each turn as the person's message and the reply they settled on (their correction, or
+the answer they accepted); saving again returns the same thread. `fidelity:run` needs a
+terminal; without one, drive `fidelity:start`, `fidelity:turn` and `fidelity:pick`.
+
+`face:get` shows the latest score to the owner: `fidelity:  7.4 out of 10 against
+<competitor>, <date>`; the JSON fields are `fidelity`, `fidelity_at` and `fidelity_competitor`.
+
+**Cost.** On a ChatGPT-linked Connect or Pro account the answers run on the user's ChatGPT
+where the model allows; the rest is paid from credits, and grading a correction always bills
+credits.
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `402 fidelity_insufficient_credit` | Not enough credit for the run | Top up, once the user agrees |
+| `422 fidelity_nothing_compiled` | The face has nothing compiled | Add and compile a source first |
+| `422 fidelity_unknown_model` | `--competitor` or `--model` is not a chat model | Pick one from `faces billing:llm-costs` |
+| `409 fidelity_choice_pending` | The open turn has no pick yet | `faces fidelity:pick RUN a\|b` with the person's choice |
+| `409 fidelity_run_finished` | All ten turns are done | Read it with `fidelity:get`; start another with `fidelity:start` |
+| `409 fidelity_run_open` | `save-thread` before the tenth turn | Finish the run first |
+| `404 fidelity_run_not_found` | No such run | Run ids are printed by `fidelity:start` |
+
+## Benchmarks (`benchmark:*`)
+
+*Requires faces-cli 1.21.0 or newer.*
+
+A benchmark compares a face you own against a reference model on the face's own material,
+over many rounds: which sounds more like the person, by how much, and how sure. The face needs
+something compiled and a built style.
+
+```bash
+faces benchmark:start alice --dry-run                      # the estimated price; starts nothing
+faces benchmark:start alice --rounds 50 --max-spend 5 --wait
+faces benchmark:get RUN --wait
+faces benchmark:list --face alice
+```
+
+`--model` (the face's) and `--reference-model` default to `gpt-5.6-terra`; `--rounds` is 1 to
+300, default 100. `--seed N` draws the same rounds as an earlier run, so the two compare.
+`--max-spend` is a hard ceiling in USD: when it is reached the run stops and reports what it
+scored. `benchmark:get` prints status and progress and, once done, the winner (face,
+reference or neither), the gap with its 95% interval, both scores, rounds fought of those
+requested, spend against the cap, the seed, the same by length and by medium, and any
+warnings. A failed run exits 1.
+
+**Cost.** Paid from credits; on Connect or Pro with ChatGPT linked, calls to ChatGPT-eligible
+models run on the user's ChatGPT. Run `--dry-run` first, set `--max-spend`, and get the
+user's go-ahead before a paid run.
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `422 benchmark_no_compiled_corpus` | Nothing compiled on the face | Add and compile a source first |
+| `422 benchmark_no_style` | No built style | `faces style:make <alias> --all` |
+| `402 benchmark_insufficient_credit` | Not enough credit for the run | Lower `--rounds` or `--max-spend`, or top up once the user agrees |
+| `400` naming a model | A model the benchmark does not support | Pick another; `faces billing:llm-costs` lists them |
 
 
 ## Compile state: read `finishing` first
@@ -1363,7 +1483,8 @@ Every source row and detail response carries:
 ```
 
 `compile_blocked_reason` is a short stable code (`empty`, `no_medium`,
-`no_user_messages`, `corpus_room`, `too_short`), and you write the sentence.
+`no_user_messages`, `corpus_thread`, `too_short`), and you write the sentence. `corpus_room`
+is the same reason as `corpus_thread`: treat the two alike.
 
 `too_short` is a document under the minimum length: it carries `word_count` and
 `compile_min_words` (50 today), and a compile of it is a `400`. Add text or merge it into
@@ -1380,7 +1501,7 @@ and offering an action, and on `compilable` to decide whether the action exists:
 | `false` | `false` | say why from `compile_blocked_reason`; never offer a compile |
 
 **Never offer to compile a source the server will refuse.** On a real account 33 of 70
-documents are `no_medium` and 202 of 208 threads are `corpus_room`, so this is the common
+documents are `no_medium` and 202 of 208 threads are `corpus_thread`, so this is the common
 case, not the edge. `faces compile:all` skips them from 1.10.0 and reports the counts by
 reason.
 
@@ -1420,7 +1541,7 @@ Error: HTTP 409: This document is read-only and cannot be edited.
 (before faces-cli 1.21.0 it read `Error: Error (409): ...`)
 
 Threads phrase it `This corpus is read-only…`. On a 409, don't retry the write —
-surface that the item is frozen. Metadata is not content: on a frozen corpus room,
+surface that the item is frozen. Metadata is not content: on a frozen corpus thread,
 `compile:thread:edit --label`, `--medium` and `--clear-medium` are accepted, so the
 medium correction under Style works there. Today only style **corpus** uploads
 (`style:upload`) produce locked threads; nothing locks individual documents. There is no per-item toggle
@@ -1450,8 +1571,8 @@ The CLI maintains a local catalog at `~/.faces/catalog/` with a `FACE.md` file p
 - `faces catalog:doctor` — diagnose missing, stale, or orphaned catalog entries
 - `faces catalog:doctor --fix`: rebuild catalog from API (syncs FACE.md descriptions/tags/attributes and TEAM.md files). It rewrites the frontmatter of **every** FACE.md and the whole of every TEAM.md from the server, but `Fixed N` counts only entries that were missing or renamed, so `Fixed 0` does not mean nothing changed. It does not add a missing description; that is `--generate`. A FACE.md body is kept. Frontmatter keys the CLI does not write are kept as written from faces-cli 1.21.0 and dropped before it (see the FACE.md schema in SKILL.md)
 - `faces catalog:doctor --generate` — fix + generate descriptions via LLM (syncs back to server)
-- `faces catalog:backup`: snapshot all faces (with descriptions, tags), teams, documents (with each one's medium, from 1.16.0), and threads to `~/.faces/backups/<timestamp>.json`. From 1.21.0 it also takes uploaded threads and style corpus rooms, each thread's medium and source, and each face's specialty and `profile_addendum`
-- `faces catalog:restore [FILE]`: restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload. A document the backup records no medium for (an older backup, or a document saved before a medium was required) is refused by the server; restore names it, and it needs creating again with `compile:doc:create --medium`. Never guess the medium. From 1.21.0: threads are recreated from their backed-up messages without starting a paid interview (before, each one started one, and on an empty balance every thread was refused while the summary still counted it); style corpus rooms are **not** restored as threads, which would make them knowledge to compile, and are listed for you to load again with `style:upload`; a team that already exists is skipped rather than duplicated; specialty and `profile_addendum` are restored; and anything not restored is listed and the command exits non-zero. Before 1.21.0, read the summary rather than trusting exit 0.
+- `faces catalog:backup`: snapshot all faces (with descriptions, tags), teams, documents (with each one's medium, from 1.16.0), and threads to `~/.faces/backups/<timestamp>.json`. From 1.21.0 it also takes uploaded threads and style corpus threads, each thread's medium and source, and each face's specialty and `profile_addendum`
+- `faces catalog:restore [FILE]`: restore faces, tags, teams, and source material from a backup (defaults to most recent). `--compile` runs `compile:all` after upload. A document the backup records no medium for (an older backup, or a document saved before a medium was required) is refused by the server; restore names it, and it needs creating again with `compile:doc:create --medium`. Never guess the medium. From 1.21.0: threads are recreated from their backed-up messages without starting a paid interview (before, each one started one, and on an empty balance every thread was refused while the summary still counted it); style corpus threads are **not** restored as ordinary threads, which would make them knowledge to compile, and are listed for you to load again with `style:upload`; a team that already exists is skipped rather than duplicated; specialty and `profile_addendum` are restored; and anything not restored is listed and the command exits non-zero. Before 1.21.0, read the summary rather than trusting exit 0.
 - `faces catalog:list` — print catalog contents
 - `faces compile:all` — compile all uncompiled documents and threads across all faces (one at a time with progress)
 - `faces config:set catalog false` — disable catalog management
@@ -1564,7 +1685,7 @@ refusals, and the ones that arrive inside a stream, are under
 [Streaming face chats](#streaming-face-chats).
 
 Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_messages`,
-`corpus_room`, `too_short`); see the `compilable` section above. The CLI prints the repair for each.
+`corpus_thread` (or `corpus_room`, the same reason), `too_short`); see the `compilable` section above. The CLI prints the repair for each.
 Under `--json` it is in `.error.error_code`, with the status in `.error.status` (1.21.0+).
 
 **`may be out of date`** (1.16.0+): the CLI ends a refusal with `Your faces-cli (X) may be out
