@@ -313,7 +313,7 @@ Claude Sonnet. **If pay-per-token:** A is latest Claude Sonnet, B is latest GPT.
 |--------|----------|---------|-------|
 | A | Flagship (recommended) | `gpt-5.4` (Subscription Connect) or `claude-sonnet-4-6` (pay-per-token) | Subscription Connect: no extra cost via ChatGPT passthrough |
 | B | Flagship alternative | `claude-sonnet-4-6` (Subscription Connect) or `gpt-5.4` (pay-per-token) | High quality, different provider |
-| C | High-quality open source | `glm-4-32b` | Strong reasoning, open weights |
+| C | High-quality open source | `glm-5` | Strong reasoning, open weights |
 | D | Fast & cheap open source | `qwen3-next-80b` | Good for iteration, brainstorming, high-volume |
 
 Then ask the user:

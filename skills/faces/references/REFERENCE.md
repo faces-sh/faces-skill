@@ -3,7 +3,7 @@
 ```
 faces auth:login        --email  --password
 faces auth:logout
-faces auth:register     --email  --password  --username  [--plan free|connect]  [--invite-key]   # username: lowercase, numbers, dashes only
+faces auth:register     --email  --password  --username  [--plan free|connect|pro]  [--invite-key]   # username: lowercase, numbers, dashes only
 faces auth:whoami
 faces auth:refresh
 faces auth:connect      openai   # device-code flow: prints a code + URL, polls until approved
@@ -1253,7 +1253,11 @@ Every source row and detail response carries:
 ```
 
 `compile_blocked_reason` is a short stable code — `empty`, `no_medium`,
-`no_user_messages`, `corpus_room` — and you write the sentence.
+`no_user_messages`, `corpus_room`, `too_short` — and you write the sentence.
+
+`too_short` is a document under the minimum length: it carries `word_count` and
+`compile_min_words` (50 today), and a compile of it is a `400`. Add text or merge it into
+a longer source. faces-cli 1.20.0 prints the code as it is, with no repair line.
 
 **The two booleans compose.** Branch on `finishing` to decide between showing progress
 and offering an action, and on `compilable` to decide whether the action exists:
@@ -1292,20 +1296,20 @@ Do NOT warn users that components may persist after deletion — they don't.
 
 Documents and threads carry a `read_only` flag. When an item is frozen,
 `compile:doc:list`/`:get` and `compile:thread:list`/`:get` print a bare
-`read only` line; nothing is printed when it's writable (there is no
-`read_only: false`). Look for the literal `read only` marker to know an item is
-frozen.
+`read only` line; in human output nothing is printed when it's writable. In `--json`
+the field is always present, `"read_only": true` or `false`, so branch on it there.
 
-Frozen items are readable and can still be deleted, but any write —
-`compile:doc:edit`, `compile:thread:edit`, `compile:thread:message`, etc. — is
-refused:
+Frozen items are readable and can still be deleted. Writes to their content
+(`compile:thread:message`, `compile:thread:replace`, a content edit) are refused:
 
 ```
 Error (409): This document is read-only and cannot be edited.
 ```
 
 Threads phrase it `This corpus is read-only…`. On a 409, don't retry the write —
-surface that the item is frozen. Today only style **corpus** uploads
+surface that the item is frozen. Metadata is not content: on a frozen corpus room,
+`compile:thread:edit --label`, `--medium` and `--clear-medium` are accepted, so the
+medium correction under Style works there. Today only style **corpus** uploads
 (`style:upload`) produce locked threads; nothing locks individual documents. There is no per-item toggle
 for these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
 **Face locking** below).
@@ -1426,7 +1430,7 @@ refusals, and the ones that arrive inside a stream, are under
 [Streaming face chats](#streaming-face-chats).
 
 Compile refusals carry a stable `error_code` (`no_medium`, `empty`, `no_user_messages`,
-`corpus_room`); see the `compilable` section above. The CLI prints the repair for each.
+`corpus_room`, `too_short`); see the `compilable` section above. The CLI prints the repair for each.
 
 **`may be out of date`** (1.16.0+): the CLI ends a refusal with `Your faces-cli (X) may be out
 of date. Update with npm install -g faces-cli and try again.` when it looks like the API moved
@@ -1456,10 +1460,11 @@ Two refusals can come from almost any route, and the CLI adds what to do to both
 
 ## Global flags
 
-Any command accepts these flags:
+Any command accepts these flags. They go **after** the command name; before it they are
+read as the command (`faces --json face:list` fails with "command --json not found"):
 
 ```
-faces [--base-url URL] [--token JWT] [--api-key KEY] [--json | --toon] COMMAND
+faces COMMAND [ARGS] [--base-url URL] [--token JWT] [--api-key KEY] [--json | --toon]
 ```
 
 ## Environment variables

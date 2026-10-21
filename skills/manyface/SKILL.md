@@ -224,8 +224,9 @@ faces face:list --public --sort usage               # most used first — what o
 ```
 
 A published face is chatted as `owner:alias` and **requires an explicit
-`@model`**; it cannot join a team or be edited, so a role that needs either
-has to be its own face. From faces-cli 1.10.0 `faces face:get owner:alias`
+`@model`**. It can join a team by that same address (`faces team:add TEAM_ID
+--face owner:alias`), but it cannot be edited or compiled, so a role that needs
+its own sources or prompt has to be its own face. From faces-cli 1.10.0 `faces face:get owner:alias`
 and `faces face:neighbors owner:alias` work too, so you can read one before
 casting it.
 

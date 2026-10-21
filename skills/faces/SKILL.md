@@ -218,14 +218,16 @@ required can be without one: it is refused at compile, and needs `compile:doc:ed
 every case, and it is the difference between a face that writes like the person and one
 that does not. Do not infer it from the filename or the text.
 
-Every compile refusal names itself in `error_code`, which is what to branch on. All four
-used to be a `202` followed by silence; the CLI prints the repair for each:
+Every compile refusal names itself in `error_code`, which is what to branch on. These
+used to be a `202` followed by silence; the CLI prints the repair for the first four
+(faces-cli 1.20.0 shows `too_short` by its code alone):
 
 | `error_code` | what happened | what to tell the user |
 |---|---|---|
 | `no_medium` | never said what it is | declare one: `faces compile:doc:edit <id> --medium essay` |
 | `empty` | no text to compile | add content before compiling |
 | `no_user_messages` | nothing the subject wrote | a fresh interview holds only the interviewer's question; it becomes compilable on the first answer |
+| `too_short` | under the minimum length: `word_count` is below `compile_min_words` (50) | add text, or merge it into a longer source; compiling it as it is gives a `400` |
 | `corpus_room` | a bulk upload for style capture | capture a style with `faces style:make`, or upload the same material with `--kind thread` to compile it |
 
 Treat an unknown code as "cannot be compiled". The set is not closed.
@@ -376,17 +378,20 @@ audio/video, run `compile:thread:get <thread_id>` and confirm:
 
 **Read-only (frozen) documents & threads.** Some items come back locked. A
 `compile:doc:list`/`:get` or `compile:thread:list`/`:get` prints a bare `read
-only` line when the item is frozen (nothing is printed when it's writable — there
-is no `read_only: false`). Frozen items are fully readable and can still be
-deleted, but any write — `compile:doc:edit`, `compile:thread:edit`,
-`compile:thread:message`, etc. — is refused with:
+only` line when the item is frozen (in human output nothing is printed when it's
+writable; in `--json`, `read_only` is always there, `true` or `false`). Frozen items
+are fully readable and can still be deleted. A write to their **content**
+(`compile:thread:message`, `compile:thread:replace`, a content edit) is refused with:
 
 ```
 Error (409): This document is read-only and cannot be edited.
 ```
 
 (threads say `This corpus is read-only…`). Don't retry the write — surface that
-the item is frozen. Today only style **corpus** uploads (`style:upload`) produce
+the item is frozen. Labelling and reading-as corrections are not content and are
+accepted on a frozen corpus room: `compile:thread:edit ID --label`, `--medium` and
+`--clear-medium` all succeed, which is how an `unknown` room gets its medium (see §3).
+Today only style **corpus** uploads (`style:upload`) produce
 locked threads; nothing locks individual documents. There is no per-item toggle for
 these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
 [references/REFERENCE.md](references/REFERENCE.md#face-locking)).
@@ -748,7 +753,7 @@ one bills.
 | `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry. With `api_fallback` on it would have finished on the paid route instead |
 | `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
 | `422` on thread import | Retry with `--type document` |
-| `409` read-only on edit | The document/thread is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
+| `409` read-only on edit | The document/thread content is frozen (`This document/corpus is read-only…`). Don't retry — surface that it's read-only. You can still read or delete it, and a corpus room still takes `compile:thread:edit --label/--medium/--clear-medium`. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
 | Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID` — pause is a request, so wait for `status: "paused"` before reading results (the CLI waits for you unless you pass `--no-wait`). Then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
 
 ## Related skills
