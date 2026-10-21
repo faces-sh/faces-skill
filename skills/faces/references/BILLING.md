@@ -206,8 +206,7 @@ charged.
 | Audio/video transcription | ~$0.37/hour |
 | Compile, past an allowance or on Free | $25 per million source tokens |
 
-The compile price went from $28 to $25 per million source tokens on 2026-10-21. Quote the
-current one from `GET /v1/rates` (`compile.usd_per_million_source_tokens`) or
+Quote the current compile price from `GET /v1/rates` (`compile.usd_per_million_source_tokens`) or
 `faces billing:llm-costs`, never from memory.
 | A face's reasoning, past an allowance or on Free | $0.75 per million tokens, each turn's input tokens plus 1,500 |
 | The answering model | Varies by model; see `faces billing:llm-costs` |
