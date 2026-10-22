@@ -186,16 +186,35 @@ at once. `--rush` starts it now at the rush rate. Quote both rates from `faces c
 - Where a compile starts at once anyway, `--rush` changes nothing and costs nothing extra; the
   answer says `rush: false`.
 - A rush's extra charge appears in usage under `faces-compile-latest`, like the compile itself.
+- **A queued compile can be rushed.** `--rush` on `compile:doc:make` or `compile:thread:make`
+  for a compile already waiting for its scheduled start makes it start now, billed exactly as a
+  rush asked for up front. Without enough credit it is the same `402`, and the compile stays
+  queued, unchanged. Asking again on a compile that is already a rush never charges twice.
+- While a compile is queued, its status carries `rush_premium_usd`: what a rush would cost now,
+  from credit. It is `null` once the compile has started or is already a rush.
+- **Once a compile has started it is too late:** `409`, `error_code: "compile_already_started"`.
+  Nothing changes and nothing is charged.
+
+## Style builds
+
+On Connect or Pro with a linked ChatGPT account, a style build runs there at no charge.
+Anywhere else (Free, or Connect or Pro with no ChatGPT linked) it is charged to credits at the
+build model's listed price plus the markup, and appears in usage under that model. The CLI asks
+for `--allow-paid` before any build that would be charged; without it such a build is refused
+with `409 chatgpt_not_linked`. A build credit cannot cover is refused up front with `402
+insufficient_credit_for_style_build`, carrying `estimated_usd` and `balance_usd`; nothing is
+started or charged. Automatic builds follow the same rule. See
+[REFERENCE.md → Style](REFERENCE.md#style-how-a-face-writes-style).
 
 ## Model prices
 
 ```bash
 faces billing:llm-costs --json
-faces billing:llm-costs --provider openai
+faces billing:llm-costs --lab openai
 ```
 
 Lists the models with their per-token prices, one row per model under the id its lab gives it.
-`--provider` filters by that **lab** (openai, anthropic, xai, qwen, z-ai, moonshot, and so on).
+`--lab` filters by that **lab** (openai, anthropic, xai, qwen, z-ai, moonshot, and so on).
 Prices are listed before the markup; each row carries `markup_rate` (`0.05` is 5%). A model's
 price is the same whichever way it is served, so read it here rather than quoting one from
 memory. Transcription is priced per hour, in the same list.
@@ -215,6 +234,13 @@ and compiling as `faces-compile-latest`. COST is what you were charged.
 **402 insufficient_credit_for_rush:** a `--rush` compile within the allowance, without the
 credit for its premium. Show `rush_premium_usd`, then top up, or compile without `--rush` to
 start at the scheduled time.
+
+**402 insufficient_credit_for_style_build:** a style build charged to credits, without the
+credit for it. Show `estimated_usd` and `balance_usd`, then top up, or on Connect or Pro link
+ChatGPT (`faces auth:connect openai`) to build there at no charge.
+
+**409 compile_already_started:** `--rush` on a compile that has already started. It carries on
+as it is; nothing was charged.
 
 **402:** no credit for the request. `faces billing:balance --json` to confirm, then
 `faces billing:topup --amount <USD>` (with no card saved, `faces billing:card-setup` first),

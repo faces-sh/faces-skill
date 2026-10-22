@@ -57,7 +57,8 @@ intersection between these two faces is null"). See
 [REFERENCE.md → Run-time composite faces](REFERENCE.md#run-time-composite-faces).
 
 Compiled faces are also **comparable**: `face:diff` scores how alike two faces are, from `-1` to
-`1`, and `face:neighbors` finds the most and least similar faces to one face.
+`1`, and `face:neighbors` finds the most and least similar faces to one face. When either face
+is not yours, the similarity is rounded to one decimal place.
 
 ## Style
 
