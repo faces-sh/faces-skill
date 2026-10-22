@@ -114,12 +114,14 @@ faces face:create --name "Name" --alias slug --default-model MODEL \
 
 ### 2. Add source material
 
-> **Thread or document? Decide this first.** Any source with more than one speaker (an
-> interview, podcast, conversation, Q&A, panel) is a **thread**: it keeps who said what, and
-> `--face-speaker` names the face's own lines. Only single-voice material (an essay, article,
-> solo talk, the person's own writing) is a **document**. Compiling a multi-speaker source as a
-> document reads every speaker as the face, so if two or more people are talking, it is a
-> thread.
+> **Document or thread? Decide this first.** A **document** is the face's own writing: an
+> essay, letter, paper, book, poem or notes. It has one author, and every word in it is read as
+> the face's. An **interview, transcript, dialogue, podcast, Q&A, panel or any other exchange
+> between speakers is a thread**: upload it with `--kind thread` (`--type thread` on
+> `compile:import`) and `--face-speaker` naming the face, so only the face's turns are used. A
+> labelled dialogue uploaded as a document is read as entirely the face's own words, other
+> speakers included. Writing *about* the face by someone else (a biography, a profile) can
+> still be a document, with `--perspective third-person`.
 
 > **Check the speaker mapping of every thread with `compile:thread:get` before you compile
 > it**, text transcripts as much as audio and video. See **Verify speaker attribution** below.
@@ -138,11 +140,12 @@ faces face:create --name "Name" --alias slug --default-model MODEL \
 with the user, save the transcript, upload and compile. See
 [references/INTERVIEWS.md](references/INTERVIEWS.md).
 
-**Document (single voice):**
+**Document (the face's own writing):**
 ```bash
-# Text you already have (a transcript in hand, a draft, anything not on disk).
-# Pass it verbatim: do NOT retype or summarise it.
-faces compile:doc alias --content "<text>" --label "Interview" --medium conversation --perspective first-person --no-wait --json
+# Text the subject wrote that you already have (a draft, notes, anything not on disk).
+# Pass it verbatim: do NOT retype or summarise it. A transcript in hand is NOT a document:
+# save it as "Speaker: text" lines and upload it as a thread (see "A local file" below).
+faces compile:doc alias --content "<text>" --label "Notes" --medium essay --perspective first-person --no-wait --json
 # By the subject (their own essay or notes)
 faces compile:doc alias --file document.txt --medium essay --perspective first-person --no-wait --json
 # Several at once: --file is repeatable and each file becomes its own document.
@@ -159,8 +162,9 @@ document without one, and never infers it. Eleven values, spelled exactly:
 `academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`, `legal document`,
 `other`, `social post`, `text message`, `thread reply`.
 
-Any other word is a `422` naming the eleven. `conversation` is dialogue (a transcript, an
-interview, a call); `lecture` is prepared speech nobody interrupts (a talk, a sermon, a
+Any other word is a `422` naming the eleven. `conversation` is the face speaking informally on
+their own (a voice memo, dictation); a conversation with anyone else is a thread, not a
+document. `lecture` is prepared speech nobody interrupts (a talk, a sermon, a
 keynote). **`other`** is for writing in none of the named forms, and it compiles; it is not a
 way to avoid asking. A letter, a diary entry and a memo have rules of their own, and filing them
 under `other` is the same mistake as filing them under `essay`. **Where the user has not said,
@@ -283,7 +287,7 @@ faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "A"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
-Use `--kind document --medium lecture` for a solo speaker.
+Use `--kind document --medium lecture` only when the face is the sole speaker.
 
 **`--face-speaker` labels:**
 - Audio or video: speakers are transcribed as `A`, `B`, `C`; use the label (`--face-speaker B`).
