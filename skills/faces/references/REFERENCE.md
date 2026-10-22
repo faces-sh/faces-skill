@@ -98,6 +98,7 @@ faces chat:responses    <alias@model | owner:alias@model | model>  -m MSG  [--in
                         [--style MEDIUM]  [--medium MEDIUM]  [--session ID]  [--compaction ID]  [--show-cause]  [--cause TEXT | --cause-file PATH]  [--oauth-only]
                                                        # These two send the model as typed: name the model. A face
                                                        # named alone returns its cause only, printed in place of a reply.
+                                                       # chat:responses takes --max-tokens of at least 16.
 faces chat:thread       <alias | owner:alias>  -m MSG  [--llm MODEL]  [--system]  [--file PATH]  [per-turn flags]   # start a thread
 faces chat:thread       --id THREAD_ID  -m MSG  [per-turn flags]                                                    # resume it
 faces chat:thread       --list
@@ -146,6 +147,8 @@ faces compile:doc          <alias>  (--content TEXT | --file PATH...)  --medium 
                                                        # Returns {"documents":[{file, document_id}...]} in input order; a
                                                        # bad file is reported in place and the rest still compile.
                                                        # Text only: for PDF, Word, audio or video use compile:upload.
+                                                       # A source that would cost $1 or more to compile on credits is noted,
+                                                       # with its price, before the compile starts (compile:doc:make too).
 faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  --medium MEDIUM  [--perspective first-person|third-person]
 faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
 faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
@@ -213,7 +216,11 @@ faces billing:subscription:activate  [--plan connect|pro]    # alias billing:sub
 faces billing:subscription:plan      <connect|pro>  [--yes]  # already subscribed: switch in place, prorated
 faces billing:subscription:cancel    [--yes]
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
-faces billing:topup      --amount F  [--card PM_ID]  [--yes]
+                                                       # a COVERED column (absorbed_cost_usd), when there is any, is what
+                                                       # Faces paid on your behalf, which you were not charged.
+faces billing:topup      --amount F  [--card PM_ID]  [--yes]  [--allow-duplicate]
+                                                       # a repeat of a recent top-up is a 409 duplicate_topup unless
+                                                       # --allow-duplicate is given. --yes does not imply it.
 faces billing:cards
 faces billing:card-setup [--no-default]                # alias billing:card:add: a Stripe link to save a card
 faces billing:card:default  <PM_ID>
@@ -1239,6 +1246,9 @@ people and changes. `503` is the status worth retrying; a `409` means busy or fr
 **`may be out of date`:** the CLI ends a refusal with `Your faces-cli (X) may be out of date.
 Update with npm install -g faces-cli and try again.` when the API looks to have moved under it.
 Update and retry; do not work around it.
+
+The CLI prints a refusal as `Error: HTTP <status>: <message>`, followed by a line saying what
+to do when there is one.
 
 Refusals that can come from many routes:
 

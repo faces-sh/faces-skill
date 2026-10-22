@@ -119,7 +119,9 @@ faces billing:topup --amount 5 --card pm_…   # charges another saved card
 ```
 
 The same amount again within two minutes is a `409 duplicate_topup`, and nothing is charged: it
-usually means the first went through. Check `faces billing:balance` before trying again.
+usually means the first went through. Check `faces billing:balance` before trying again, and
+repeat it only if the user confirms, with `--allow-duplicate` (`allow_duplicate: true` on the
+API). `--yes` does not imply it.
 
 Credits apply at once. A `402` anywhere means there is no credit for that request, including
 `faces decide` on Connect and Pro, whose decision model is always paid. Top up and retry.
@@ -184,6 +186,7 @@ faces billing:usage --group-by model --from 2026-03-01 --to 2026-03-31
 Group by `api_key`, `model`, `llm` or `date`. A face's causes appear as `faces-causes-latest`
 and compiling as `faces-compile-latest`. `absorbed_cost_usd` is cost the platform paid that was
 not billed per token, such as a compile, which is billed by its source tokens instead.
+`faces billing:usage` shows it as a COVERED column when there is any.
 
 ## What to do on
 
