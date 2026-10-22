@@ -531,7 +531,7 @@ the response starts `200` and carries `: keep-alive` comment lines until the ans
 `--no-stream` and `--json` are not streamed, and wait for the answer too. Past about 40 seconds
 the response starts `200` with `X-Faces-Held: 1`, then spaces, then the JSON. A refusal after
 that point comes back inside the `200` as `{"detail": ..., "error": {...}}` (Anthropic's error
-shape on `/v1/messages`), and the CLI reports its real status. A held response has no
+shape on `/v1/messages`), and the CLI reports its real status and code. A held response has no
 `X-Faces-Cost-USD`; the charge is in `usage`. Any face request still working after 300 seconds
 is stopped with a `504`. Do not wrap it in a retry loop.
 
@@ -660,7 +660,7 @@ decision model's versioned id (`alice@jev-1.13.0`).
 **Timing.** A face's answer takes about 10 to 20 seconds; a baseline about one. Allow at least
 300 seconds. Past about 40 seconds the server answers `200` with `X-Faces-Held: 1`, sends spaces
 to keep the connection open, then the JSON. A held call that fails still answers `200`, with
-`{"detail": ..., "error": {"status": ...}}` and no `answers`; the CLI reports the real status.
+`{"detail": ..., "error": {"code": ..., "status": ...}}` and no `answers`; the CLI reports the real status and code.
 A request still working after 300 seconds is stopped with a `504`; retry. A `503` means the
 decision model failed: retry, or try another `--model`. Do not add a retry loop.
 
