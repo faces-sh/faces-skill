@@ -418,7 +418,7 @@ face's cause, and never present the cause as what the face said.
 **Routing.** `chat:chat` sends each model to its endpoint in the model catalog. Codex-eligible
 models (`codex_eligible: true` in `GET /v1/models`) go to `/v1/responses`, where on Connect and
 Pro with ChatGPT linked they run on the ChatGPT plan; every other model is paid from credits at
-the provider's price plus 5%. Read `codex_eligible` from the catalog (`faces models:list
+the model's listed price plus 5%. Read `codex_eligible` from the catalog (`faces models:list
 --codex`) rather than keeping a list.
 `chat:messages` and `chat:responses` call one endpoint directly and need the model named
 (`alias@model`). See [REFERENCE.md → Chat routing](references/REFERENCE.md#chat-routing).

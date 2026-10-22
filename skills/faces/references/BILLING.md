@@ -14,7 +14,7 @@ output.
 A subscription is an **allowance**, not a fee per request. It covers compiling and a face's
 **cause** (in chat, `/v1/causes` and decisions), up to the limits below. The **answering
 model** (`alias@model`, or a decision model) is never part of it: on every plan it is paid at
-the provider's price plus 5%, unless it runs on the linked ChatGPT plan. So a Connect or Pro
+the model's listed price plus 5%, unless it runs on the linked ChatGPT plan. So a Connect or Pro
 user still needs credit for most chats, and always for `faces decide`.
 
 | allowance | Connect | Pro |
@@ -47,7 +47,7 @@ user still needs credit for most chats, and always for `faces decide`.
 | A cause (chat, causes, decisions) | $0.75 per million tokens: the tokens it read plus 1,500 |
 | Compile | $25 per million source tokens |
 | Rush compile (`--rush`) | the rush rate, `compile.rush_usd_per_million_source_tokens` in `GET /v1/rates` |
-| Any model you name (`@model`, a decision model) | the provider's price plus 5% |
+| Any model you name (`@model`, a decision model) | the model's listed price plus 5% |
 
 The live figures are public at `GET /v1/rates` (no key needed), and per model in the model
 catalog (`faces models:list`, or `GET /v1/models`): the cause model is `faces-causes-latest`

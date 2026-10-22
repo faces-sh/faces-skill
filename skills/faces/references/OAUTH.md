@@ -86,7 +86,7 @@ Once linked, nothing else is needed: `chat:chat` sends Codex-eligible models to
 | ChatGPT linked | a Codex-eligible model runs on the ChatGPT plan | `409 use_responses_for_free_oauth`: use `/v1/responses` |
 | Not linked | the model is paid from credits, plus 5% | the model is paid from credits, plus 5% |
 
-Every other model, on any endpoint, is paid from credits at the provider's price plus 5%.
+Every other model, on any endpoint, is paid from credits at the model's listed price plus 5%.
 `chat:chat` routes each model to its catalog endpoint, so Codex-eligible models go to
 `/v1/responses` without a flag.
 

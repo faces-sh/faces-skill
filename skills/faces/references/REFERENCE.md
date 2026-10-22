@@ -657,7 +657,7 @@ the `503`). Do not add a retry loop. A `503` with no `Retry-After`: retry, or tr
 
 **Cost.** The face's cause counts once per question (the situation plus that question, plus
 1,500), against a Connect or Pro allowance or paid on Free. The decision model is paid from
-credits at the provider's price plus 5% **on every plan**, so a decision needs credit even on
+credits at the model's listed price plus 5% **on every plan**, so a decision needs credit even on
 Connect and Pro: with none it is a `402` before any work. Nothing is charged for a request
 refused before work starts (`400`, `402`, `403`, `409`, `422`, `429`).
 
