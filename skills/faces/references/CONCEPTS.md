@@ -21,6 +21,16 @@ A wrapper takes `face@model`: the face's cause steers that model's answer, in on
 face named alone (`alice`, with no `@model`) returns the cause alone. In the CLI, `chat:*` and
 `faces decide` are the wrappers, and `faces causes alice -m "…"` returns the cause alone.
 
+A wrapper sends the answering model more than the cause: the face's name and the identity
+details relevant to the request. On the chat wrappers, `--style <medium>` also sends the face's
+built style for that medium, so the reply reads the way the face would write it there. Style
+applies only on the chat wrappers; causes and decisions do not use it.
+
+The same face can make different choices on similar prompts through chat and through decide.
+Chat is open-ended: the model writes its own answer. A decision is closed-ended: the model
+picks among the options or levels given, and returns typed answers. A style, which only chat
+uses, can also shift a reply.
+
 ## Compiled, not trained
 
 A face is compiled from unstructured text. There is no dataset to prepare and no training run,
@@ -56,7 +66,8 @@ Every source text has a **medium**: `email`, `text message`, `social post`, `ess
 `other`. A **style build** reads a face's own writing in one medium and installs a style for
 that medium, so the face writes better in it. A face holds a separate style per medium.
 
-A style is applied per request with `--style <medium>` on the chat commands, and adds roughly
+A style is applied per request with `--style <medium>` on the chat commands only (not on
+`faces causes` or `faces decide`), and adds roughly
 2,000 to 3,500 input tokens to each request that uses it. Most faces never need one; it is
 worth building when the face is a real person and you have their own writing. See
 [REFERENCE.md → Style](REFERENCE.md#style-how-a-face-writes-style).

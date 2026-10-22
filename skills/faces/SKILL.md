@@ -341,7 +341,8 @@ one is linked. On Free it is paid from credits, so the CLI asks for `--allow-pai
 when the user has said they want to pay. If a build fails on the ChatGPT link
 (`CHATGPT_AUTH`), the link has expired: `faces auth:connect openai`, then build again.
 
-**Building does not apply it.** Pass `--style <medium>` on a chat:
+**Building does not apply it.** Pass `--style <medium>` on a chat command. Style applies only
+on the chat commands; `faces causes` and `faces decide` do not use it:
 
 ```bash
 faces chat:chat alias -m "Reply to the note below." --style email
