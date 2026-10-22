@@ -875,7 +875,7 @@ faces chat:chat alice -m "Reply to the note below."                 # neither
 ```
 
 - A style adds roughly 2,000 to 3,500 input tokens to each request that uses it, billed as model
-  input (or nothing, on the linked ChatGPT plan).
+  input (or nothing, on the linked ChatGPT plan). The exact figure for each request is in its `usage`.
 - `--style` needs a single face and a model; it applies only on the chat commands, not to
   `decide` or the cause alone. It sets the medium too, so `--medium` is unnecessary with it
   (a different `--medium` is a `400`).
