@@ -1,15 +1,16 @@
 ---
 name: facemake
 description: >
-  Use this skill when the user wants to create an AI persona from scratch — a
-  digital twin, an archetype, a composite, or a face of a public figure.
-  Invoke as /facemake "Name" for quick mode (skip interview, go straight to
-  research), or /facemake with no argument for the full guided flow. This skill
-  walks through the entire process: interview, research real source material,
-  sketch a FACE.md recipe, iterate with the user, compile, and optionally
-  capture how the person writes. Trigger when the user says "create a face", "I need a persona", "make me a
-  digital twin", "build a face for", or names a person they want to turn into
-  an AI. Also trigger on /facemake.
+  Use this skill when the user wants to create a new face from scratch: a face of a
+  real person or public figure, of a type of person ("a skeptical investor"), a
+  composite of existing faces, or a digital twin of themselves. Invoke as
+  /facemake "Name" for quick mode (skip the interview, go straight to research), or
+  /facemake with no argument for the full guided flow. This skill walks through the
+  whole process: interview, research real source material, sketch a FACE.md
+  recipe, iterate with the user, compile, and optionally build how the person
+  writes. Trigger when the user says "create a face", "make a face of", "build a
+  face for", "make me a digital twin", "I want an AI version of <name>", or names a
+  person they want to turn into an AI. Also trigger on /facemake.
 allowed-tools:
   - Bash
   - Read
@@ -22,7 +23,7 @@ allowed-tools:
   - WebFetch
 ---
 
-# /facemake — Guided Face Creation
+# /facemake: Guided Face Creation
 
 ## Preamble
 
@@ -68,193 +69,172 @@ If a command fails after updating, file a report: see [references/CONTRIBUTING.m
 
 ---
 
-You create faces. Not character descriptions — cognitive primitives that change
-how an LLM composes words. Every word. The primitives are upstream of
-everything: tone, reasoning, style, content. They determine what comes next. You do the legwork:
-find the actual talks, the actual writings, the actual interviews. The user
-reviews and edits. Then you compile.
+You create faces. A face is a causal model compiled from a person's own texts: prompted, it
+returns a cause, the principal *why* behind that person's response, which steers whichever
+model answers. A face is only as good as its sources, so you do the legwork: find the actual
+talks, the actual writing, the actual interviews. The user reviews and edits. Then you compile.
 
 ## Resolve input
 
-If the user provided an argument (e.g. `/facemake albert-einstein` or `/facemake "Albert Einstein"`), resolve it before starting the flow. If no argument, skip to **Step 1** (full interview mode).
+If the user gave an argument (e.g. `/facemake albert-einstein` or `/facemake "Albert Einstein"`),
+resolve it before starting the flow. With no argument, skip to **Step 1** (full interview mode).
 
 ```bash
 INPUT="<user's argument, lowercased>"
 faces face:get "$INPUT" --json 2>/dev/null
 ```
 
-**Case 1 — alias exists:** The face already exists. Skip to **Step 4** (iterate on sources) with this face. Tell the user: "You already have a face with alias `<alias>`. Let's work on its source material."
+**Case 1: the alias exists.** Skip to **Step 4** (iterate on sources) with this face. Tell the
+user: "You already have a face with alias `<alias>`. Let's work on its source material."
 
-**Case 2 — alias not found, but input has spaces (looks like a name):** Search for a name match:
+**Case 2: no such alias, and the input has spaces (it looks like a name).** Look for a name
+match:
 
 ```bash
 faces face:list --json 2>/dev/null | jq -r '.data[]? | select(.name == "<original input>") | .alias'
 ```
 
-- **Name match found:** Ask the user:
+- **A name match:** ask the user:
 
-  > You have an existing face named "[name]" (alias: `<alias>`). What would you like to do?
+  > You have a face named "[name]" (alias: `<alias>`). What would you like to do?
   >
-  > A) Work on this face — add or update source material
+  > A) Work on this face: add or update its source material
   > B) Create a new, separate face with a different alias
 
-  If A → skip to **Step 4** with the existing alias.
-  If B → continue to **Step 1** (the input becomes the name for a new face).
+  A: skip to **Step 4** with the existing alias. B: continue to **Step 1** (the input becomes
+  the new face's name).
 
-- **No name match:** Treat the input as the name for a new face. Continue to **Step 1** quick mode.
+- **No name match:** the input is the new face's name. Continue to **Step 1**, quick mode.
 
-**Case 3 — alias not found, single word / slug:** Ask the user:
+**Case 3: no such alias, a single word or slug.** Ask the user:
 
   > I don't have a face with alias "`<input>`". Would you like to:
   >
   > A) Create a new face using "`<input>`" as the alias
   > B) Create a new face using "`<input>`" as the name (I'll suggest an alias)
 
-  Then continue to **Step 1** quick mode with the chosen value.
+  Then continue to **Step 1**, quick mode, with the chosen value.
+
+**The user's own face.** If the user wants a face of themselves, it already exists: every
+account has one, aliased `me`. Work on `me` (skip to **Step 4**) rather than creating another.
 
 ## Question format
 
-**Pose every question in this skill clearly and wait for the answer before
-moving on.** Follow this structure:
+**Pose every question clearly and wait for the answer before moving on.** Structure:
 
-1. **Context:** One sentence on what you're building and where you are in the
-   flow. Assume the user stepped away and needs a reminder.
-2. **The question:** Plain English. No jargon. Concrete examples.
-3. **Options:** Lettered options: `A) ... B) ... C) ...`
-4. **Recommendation** (when you have one): `RECOMMENDATION: Choose [X]
-   because [reason]`
+1. **Context:** one sentence on what you are building and where you are in the flow. Assume the
+   user stepped away and needs a reminder.
+2. **The question:** plain English, no jargon, concrete examples.
+3. **Options:** lettered: `A) ... B) ... C) ...`
+4. **Recommendation** (when you have one): `RECOMMENDATION: Choose [X] because [reason]`
 
-If the user's answer is vague, push back with a follow-up question
-before moving on. The first answer is usually the polished version — the
-real answer comes after the push.
+If an answer is vague, push back with a follow-up before moving on. The first answer is usually
+the polished version; the real one comes after the push.
 
 ## Response posture
 
-- **Be direct.** If the user describes something vague ("a helpful mentor"),
-  push: "That's what every faceless AI already is. What should this face
-  say differently?" A good face starts from a specific cognitive profile, not a
-  generic role.
-- **Take a position.** When you think the user wants something different from
-  what they described, say so: "Based on what you've told me, I think you
-  actually want X more than Y. Here's why."
-- **Never say "great idea."** Challenge whether the face they described is
-  what they actually need. The first answer is usually the polished version.
-  The real answer comes after a push.
-- **Push once, then push again.** "You said 'skeptical.' Skeptical how?
-  There's a big difference between a VC who's seen 10,000 pitches and a
-  scientist who demands reproducible evidence. Those produce different words."
+- **Be direct.** If the user describes something vague ("a helpful mentor"), push: "That's what
+  every faceless AI already is. What should this face say differently?" A good face starts from
+  a specific point of view, not a generic role.
+- **Take a position.** When you think the user wants something other than what they described,
+  say so: "Based on what you've told me, I think you actually want X more than Y. Here's why."
+- **Never say "great idea."** Ask whether the face they described is what they actually need.
+- **Push once, then push again.** "You said 'skeptical.' Skeptical how? A VC who has seen
+  10,000 pitches and a scientist who demands reproducible evidence say different things."
 
 ## The flow
 
 ### Step 1: Interview
 
-**Quick mode** — user provided an argument that passed through **Resolve input** and wasn't an existing face. You already know the name or role. Skip the interview — determine if this is a public figure (search for them) or an archetype (identify exemplars). Go straight to Step 2.
+**Quick mode:** the user gave an argument that passed **Resolve input** and is not an existing
+face. You already know the name or role. Skip the interview: decide whether this is a public
+figure (search for them) or a type of person (find real people who exemplify it). Go straight to Step 2.
 
-**Full mode** — no argument. Ask questions ONE AT A TIME. Wait for the answer
-before asking the next one. Push on vague answers.
+**Full mode:** no argument. Ask ONE question at a time, wait for the answer, push on vague
+answers.
 
 #### Q1: Who
 
-Ask the user:
-
 > **Building a face.** First question: what kind of face are we creating?
 >
-> A) **A real person** — someone specific whose perspective you want to capture
-> B) **An archetype** — a type of perspective (e.g. "a skeptical investor,"
->    "a systems engineer who's seen everything break")
-> C) **A composite** — a blend of multiple faces using Face Math
-> D) **Not sure yet** — let's figure it out together
+> A) **A real person**: someone specific whose point of view you want
+> B) **A type of person**: a kind of outlook (e.g. "a skeptical investor," "a systems engineer
+>    who's seen everything break")
+> C) **A composite**: a blend of faces you already have, using set algebra
+> D) **Not sure yet**: let's work it out together
 
-This determines which branch the interview follows. If D, ask what task they
-need the face for and recommend a type based on their answer.
+This decides which branch the interview follows. If D, ask what task they need the face for and
+recommend a kind from their answer.
 
-#### Q2: Why (branches by type)
+#### Q2: Why (branches by kind)
 
-**If real person (A):**
+**A real person (A):**
 
-Ask the user:
-
-> **Building a face of [person].** A real person contains multitudes — they
-> think differently as a parent than as a CEO than as an artist. Which version
-> do you want?
+> **Building a face of [person].** A real person thinks differently as a parent than as a CEO
+> than as an artist. Which side of them do you want?
 >
-> Describe the context you need them in. What question do you want to ask
-> this face that a faceless AI can't answer well?
+> Describe the context you need them in. What would you ask this face that a faceless AI can't
+> answer well?
 
-Push: if they give a generic answer ("as an advisor"), follow up with another
-question: "Their advice on what? An advisor giving product feedback is a
-different face than the same person giving life advice. Which version do
-you need?"
+Push: if the answer is generic ("as an advisor"), follow up: "Advice on what? An advisor on
+product feedback is a different face from the same person on life advice. Which do you need?"
 
-**If archetype or composite (B/C):**
+**A type of person or a composite (B/C):**
 
-Ask the user:
-
-> **Building an archetype.** What job does this face do for you? What's the
-> question you want to ask it that a faceless AI can't answer well?
+> **Building a face.** What job does this face do for you? What would you ask it that a faceless
+> AI can't answer well?
 >
-> Be specific — "give me advice" is too broad. "Tear apart my API design
-> before I ship it" is a face I can build.
+> Be specific: "give me advice" is too broad. "Tear apart my API design before I ship it" is a
+> face I can build.
 
-Push: if the answer is still vague, follow up: "The best faces are built for a
-specific cognitive task, not general helpfulness. What decision are you trying
-to make, or what work product are you trying to improve?"
+Push: if it is still vague: "The best faces are built for a specific task, not general
+helpfulness. What decision are you making, or what work are you trying to improve?"
 
-#### Q3: Cognitive core (branches by type)
+#### Q3: What makes them different (branches by kind)
 
-**If real person:**
+**A real person:**
 
-Ask the user:
-
-> **Narrowing the cognitive profile.** What's the thing about how this person
-> speaks that you can't get from a faceless AI? Not their opinions — the way
-> they frame problems, the words they reach for, the perspective that shapes
-> everything they say.
+> **Narrowing it down.** What is it about how this person speaks that you can't get from a
+> faceless AI? Not their opinions: the way they frame problems, the words they reach for, the
+> point of view behind everything they say.
 >
-> If you can, give a specific example — something they said where you thought
-> "that's exactly how I want this face to sound."
+> If you can, give an example: something they said where you thought "that's exactly how I want
+> this face to sound."
 
-Push: if they give a surface trait ("they're smart"), follow up: "Smart how?
-What do they say that other smart people don't? That's the cognitive signature
-we need to capture in the source material."
+Push: if the answer is a surface trait ("they're smart"): "Smart how? What do they say that
+other smart people don't? That is what the source material has to carry."
 
-**If archetype or composite:**
+**A type of person or a composite:**
 
-Ask the user:
-
-> **Defining the cognitive core.** What's the trait that makes this face
-> different from a smart generalist? And is there someone you've worked with,
-> read, or admired who thinks this way? That person might be the source
-> material.
+> **What sets it apart.** What makes this face different from a smart generalist? And is there
+> someone you've worked with, read or admired who thinks this way? That person might be the
+> source material.
 >
 > A) I have a specific person who exemplifies this
-> B) I can describe the thinking style but don't have a specific person
-> C) I want to blend traits from multiple people
+> B) I can describe how they think but don't have a specific person
+> C) I want to blend several people
 
-Push: "You said 'analytical.' Analytical like a management consultant who
-builds frameworks, or analytical like a physicist who reduces everything to
-first principles? Those produce very different output."
+Push: "You said 'analytical.' Analytical like a consultant who builds frameworks, or like a
+physicist who reduces everything to first principles? Those give very different answers."
 
 #### Q4: Confirm
 
-Synthesize what you've heard into a one-paragraph profile and ask
-the user:
+Sum up what you heard in one paragraph and ask:
 
 > **Here's the face I'm going to build:**
 >
-> [One paragraph: who, which facet/cognitive mode, what reasoning style,
-> what sources/exemplars you plan to draw from]
+> [One paragraph: who, which side of them, how they reason, which sources or people you plan
+> to draw from]
 >
-> A) Looks right — go research and build the recipe
-> B) Close, but I want to adjust [they'll tell you what]
-> C) That's not what I meant — let me re-explain
+> A) Looks right: go research and build the recipe
+> B) Close, but I want to adjust [they'll say what]
+> C) That's not what I meant: let me explain again
 >
 > RECOMMENDATION: Choose A if this captures what you described.
 
-Wait for confirmation or correction. Then move to Step 2.
+Wait for confirmation or correction, then move to Step 2.
 
-**Total interview: 3-4 questions max, 2-3 minutes.** You're casting, not
-therapizing.
+**The whole interview: 3 to 4 questions, 2 to 3 minutes.** You are casting, not doing therapy.
 
 ### Step 2: Research
 
@@ -264,90 +244,80 @@ Before creating anything, check the catalog:
 cat ~/.faces/catalog.json
 ```
 
-If a suitable face exists, recommend reuse over duplication. If you need more
-detail on a candidate: `cat ~/.faces/catalog/<alias>/FACE.md`
+If a suitable face exists, recommend reusing it. For more on a candidate:
+`cat ~/.faces/catalog/<alias>/FACE.md`
 
-For new faces, use WebSearch to find real source material. Do the legwork — find
-actual URLs, not suggestions of what to look for.
+Published faces are worth checking too, before building one someone has already made:
+`faces face:list --public --search "<name or role>" --sort relevance`. A published face is used
+as `owner:alias` and cannot be compiled into; if the user needs their own sources or prompt on
+it, build a new face.
 
-**Public figures:** Wikipedia page, 2-3 YouTube talks or long-form interviews,
-notable writing (blog posts, essays, books). Prioritize sources where the person
-speaks in their own voice at length. Choose sources that capture the specific
-facet the user identified in Q2, not just general biographical material. Note
-which sources are *by* the person (their own writing/talks → first-person) versus
-*about* them (a Wikipedia page, a profile → `--perspective third-person` at
-compile time); mixing these up corrupts the face.
+For a new face, use WebSearch to find real source material. Do the legwork: find actual URLs,
+not suggestions of what to look for.
 
-**Archetypes:** Identify 2-3 real people who exemplify the archetype. Find
-source material for each. Note which cognitive aspects to extract from each.
+**Public figures:** their encyclopedia page, 2 or 3 YouTube talks or long-form interviews,
+notable writing (blog posts, essays, books). Prefer sources where the person speaks at length in
+their own voice, and choose ones that capture the side of them the user picked in Q2. Note which
+sources are *by* the person (their own writing and talks: `first-person`) and which are *about*
+them (an encyclopedia page, a profile: `--perspective third-person` at compile time).
 
-**Composites:** Ensure component faces exist in the catalog (or create their
-recipes too). Pass the Face Math expression to `face:create --formula`; the CLI then
-writes it into the FACE.md frontmatter.
+**A type of person:** find 2 or 3 real people who exemplify it, and source material for each.
+Note what each one contributes.
+
+**Composites:** make sure each component face exists in the catalog (or create its recipe too).
+Pass the formula to `face:create --formula`; the CLI writes it into the FACE.md frontmatter.
+Composites are boolean set algebra: `|` union, `&` intersection, `-` difference, `^` symmetric
+difference.
 
 ### Step 3: Sketch the FACE.md
 
-Before creating the face, ask about the default model. A face needs a default
-model to chat without specifying `--llm` every time.
+Before creating the face, choose its default model: it answers when no `--llm` is given.
 
-First check the user's plan and available models:
+Check the user's plan and the models:
 ```bash
-faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'  # "free" pays as it goes; "connect" and "pro" can run codex_eligible models on a linked ChatGPT account; "team" is never charged
-faces billing:llm-costs --json 2>/dev/null
+faces billing:subscription --json 2>/dev/null | jq -r '.plan // "free"'   # free, connect or pro
+faces models:list --json 2>/dev/null                                      # chat models, with codex_eligible and prices
+faces auth:connections --json 2>/dev/null                                 # is ChatGPT linked?
 ```
 
-Use the models list to pick four options following this structure. Do NOT
-hardcode model names — they change frequently. Use WebSearch if needed to
-identify the current latest versions.
+Do NOT hard-code model names: they change. Pick from the live catalog, and use WebSearch if you
+need to tell which are the latest. Present exactly four options:
 
-**Option structure (present exactly 4):**
+| Option | Category | Notes |
+|---|---|---|
+| A | Flagship (recommended) | Connect or Pro with ChatGPT linked: the latest Codex-eligible GPT model (`codex_eligible: true` in `GET /v1/models`), which runs on their ChatGPT plan. Otherwise: the latest Claude Sonnet |
+| B | Flagship alternative | The other of the two |
+| C | High-quality open weights | Strong reasoning, open weights |
+| D | Fast and cheap open weights | Good for iteration, brainstorming, high volume |
 
-Do NOT hardcode model names — they change frequently. Use the models list
-output and WebSearch if needed to identify current latest versions. The
-examples below are illustrative; replace with whatever is actually latest.
+Then ask:
 
-**If Connect or Pro (with ChatGPT linked):** A is latest GPT (no extra cost via ChatGPT passthrough), B is latest
-Claude Sonnet. **If pay-per-token:** A is latest Claude Sonnet, B is latest GPT.
-
-| Option | Category | Example | Notes |
-|--------|----------|---------|-------|
-| A | Flagship (recommended) | `gpt-5.4` (Subscription Connect) or `claude-sonnet-4-6` (pay-per-token) | Subscription Connect: no extra cost via ChatGPT passthrough |
-| B | Flagship alternative | `claude-sonnet-4-6` (Subscription Connect) or `gpt-5.4` (pay-per-token) | High quality, different provider |
-| C | High-quality open source | `glm-5` | Strong reasoning, open weights |
-| D | Fast & cheap open source | `qwen3-next-80b` | Good for iteration, brainstorming, high-volume |
-
-Then ask the user:
-
-> **Choosing a default model for this face.** This determines which LLM powers
-> the face when you chat with it. You can always override per-message with
-> `--llm`.
+> **Choosing a default model for this face.** This is the model that answers when you chat with
+> it. You can always pick another per message with `--llm`.
 >
 > **Flagship:**
-> A) `<model>` — [If Subscription Connect: no extra cost via your ChatGPT account, recommended]
->    [If pay-per-token: latest Claude Sonnet, recommended]
-> B) `<model>` — [the other flagship]
+> A) `<model>`: [Connect or Pro with ChatGPT linked: runs on your ChatGPT plan, recommended]
+>    [Otherwise: the latest Claude Sonnet, recommended]
+> B) `<model>`: [the other flagship]
 >
-> **Open source:**
-> C) `<model>` — high-quality open source
-> D) `<model>` — fast, cheap, good for iteration
+> **Open weights:**
+> C) `<model>`: high quality
+> D) `<model>`: fast and cheap, good for iteration
 >
-> RECOMMENDATION: Choose A [If Subscription Connect: — no extra cost on your plan.]
-> [If pay-per-token: — best quality for the price.]
+> RECOMMENDATION: Choose A.
 
-Create the face on the platform, then write the recipe into the body of the FACE.md the CLI
-created. The CLI owns the frontmatter and rewrites it on every face command and on
-`catalog:doctor --fix`, keeping only its own keys, so the recipe goes **below** it:
+Create the face, then write the recipe into the body of the FACE.md the CLI created. The CLI
+owns the frontmatter and rewrites it on every face command and on `catalog:doctor --fix`,
+keeping only its own keys, so the recipe goes **below** it:
 
 ```bash
-# 1. Create on platform (use the model the user chose)
+# 1. Create it (with the model the user chose)
 faces face:create --name "Name" --alias slug \
   --default-model MODEL --attr key=value
-#   face:create takes NO source material — no --source, --interview, --file or
-#   --content. It makes an empty face; sources attach afterwards with
-#   compile:doc / compile:upload / compile:import (Step 5).
-#   Optional: --profile-addendum "<rules>" (or --profile-addendum-file path) to
-#   give the face a standing system prompt — durable behavior/format/constraints
-#   layered on top of the compiled persona. See faces skill REFERENCE.md.
+#   face:create takes NO source material: no --source, --interview, --file or --content.
+#   It makes an empty face; sources attach afterwards (Step 5).
+#   Optional: --profile-addendum "<rules>" (or --profile-addendum-file path): a stored system
+#   prompt sent with every chat to this face, for durable rules on format, tone or limits.
 
 # 2. Keep the CLI's frontmatter, replace the body with the recipe
 F=~/.faces/catalog/<alias>/FACE.md
@@ -361,19 +331,19 @@ RECIPE
 Set the name, description, tags and formula with `face:create` / `face:edit` (`--description`,
 `--tag`, `--formula`), not by editing the frontmatter: the next CLI write replaces it from the
 server. `face:edit --formula` on a face with compiled sources of its own, or one another
-composite uses, is refused with a `409`; a new composite is `face:create --formula`. With the recipe in the body, `faces catalog:doctor --fix` is safe to run.
+composite uses, is a `409`; a new composite is `face:create --formula`.
 
-Recipe body format (everything below the CLI's closing `---`):
+Recipe body (everything below the CLI's closing `---`):
 
 ```markdown
 ## Recipe
 
 - Role: <the role this face fills>
-- Source type: <public-figure | composite | custom, or option B from the first question>
+- Source type: <public-figure | type-of-person | composite | custom>
 
 ## Queued
 
-- [ ] <url> — <what this source contributes to the cognitive profile>
+- [ ] <url>: <what this source brings to the face>
 
 ## Sources
 
@@ -381,169 +351,144 @@ Recipe body format (everything below the CLI's closing `---`):
 
 ## Notes
 
-<why this face was cast, which facet/cognitive mode was targeted, what
-reasoning style to extract from the sources, etc.>
+<why this face was cast, which side of the person was targeted, what to look for in the
+sources, and so on>
 ```
 
 ### Step 4: Iterate
 
-Present the FACE.md to the user. This is co-creation. Ask the user:
+Show the FACE.md to the user. This is co-creation. Ask:
 
-> **FACE.md recipe for [alias] is ready.** Review the description, queued
-> sources, and notes below. Does this capture the face you want?
+> **The FACE.md recipe for [alias] is ready.** Review the description, queued sources and notes
+> below. Does this capture the face you want?
 >
-> A) Looks good — let's compile
+> A) Looks good: let's compile
 > B) I want to change something (tell me what)
-> C) Add more sources — I know of something you missed
-> D) Start over — this isn't the right direction
+> C) Add more sources: I know of something you missed
+> D) Start over: this isn't the right direction
 
-They may want to:
-- Add or remove sources from Queued
-- Change the description or role
-- Adjust the cognitive traits in Notes
-- Switch from archetype to public-figure or vice versa
+They may want to add or remove queued sources, change the description or role, adjust the
+notes, or switch between a real person and a type of person.
 
-Push if the recipe feels generic: "This reads like a job description, not a
-face. What's the thing this face would say that no other face would say?"
+Push if the recipe feels generic: "This reads like a job description, not a face. What would
+this face say that no other face would?"
 
-Revise until they're satisfied.
+Revise until they are satisfied.
 
 ### Step 5: Compile
 
-When the user is ready, walk through each Queued item. Always use `--no-wait`
-so you're not blocked. Compiles run independently on the server — fire all of
-them without waiting, then poll at the end. Don't wait for one to finish before
-starting the next.
+When the user is ready, go through each queued item. Always use `--no-wait`: compiles run on
+their own on the server, so start them all, then poll at the end.
 
-> **Thread or document? Decide this per source.** Any source with more than one
-> speaker (an interview, podcast, conversation, Q&A, panel) is a **thread** —
-> compile it with `--type thread` / `--kind thread` and map the face's own lines
-> with `--face-speaker`. Only single-voice material (a solo talk, essay, article,
-> or the person's own writing) is a **document**. Compiling a multi-speaker
-> source as a document flattens the dialogue into one voice and corrupts the
-> face. For public figures especially, most talks are interviews — check before
-> defaulting to `--type document`.
+> **Thread or document? Decide this per source.** Any source with more than one speaker (an
+> interview, podcast, conversation, Q&A, panel) is a **thread**: compile it with
+> `--type thread` / `--kind thread` and map the face's own lines with `--face-speaker`. Only
+> single-voice material (a solo talk, an essay, an article, the person's own writing) is a
+> **document**. Compiling a multi-speaker source as a document reads every speaker as the face.
+> For public figures especially, most talks are interviews: check before using
+> `--type document`.
 
-> **By them or about them? Always pass `--perspective`.** The default depends on
-> the command: `compile:doc` and `compile:doc:create` (text) default to
-> `first-person`, while `compile:upload` and `compile:import` (PDF, Word, audio,
-> video, YouTube) default to `third-person`. Say it every time. `first-person` is
-> the subject's own words: their essays, letters, interview answers, talks.
-> `third-person` is material *about* them: a biography, an encyclopedia/Wikipedia
-> article, a news profile. Either mistake corrupts the face: writing about them
-> compiled as first-person reads as if they wrote it, and their own PDF uploaded
-> without `--perspective first-person` is compiled as writing about them, which
-> style capture then refuses.
-> This is easy to get wrong for public figures, where a Wikipedia page is often
-> the first source.
+> **By them or about them? Always pass `--perspective`.** `compile:doc` and
+> `compile:doc:create` default to `first-person`; `compile:upload` and `compile:import` default
+> to `third-person`. Say it every time. `first-person` is the subject's own words: essays,
+> letters, interview answers, talks. `third-person` is material *about* them: a biography, an
+> encyclopedia article, a news profile. Either mistake damages the face, and it is easy to get
+> wrong for public figures, whose encyclopedia page is often the first source.
 
 ```bash
-# YouTube video — solo talk (single voice). For an interview/podcast, use
-# --type thread instead (see the multi-speaker path below).
+# YouTube, a solo talk (single voice). For an interview or podcast use --type thread.
 faces compile:import <alias> --url "<youtube-url>" --type document --medium lecture \
   --perspective first-person --no-wait --json
 
-# If YouTube blocks: download locally, extract + compress audio (<100MB), upload
+# If YouTube blocks it: download, extract and compress the audio (<100MB), upload
 yt-dlp --cookies-from-browser chrome -o video.mp4 "<youtube-url>"
 ffmpeg -i video.mp4 -vn -ac 1 -b:a 48k audio.mp3
 THREAD_ID=$(faces compile:upload <alias> --file audio.mp3 --kind thread \
   --no-wait --json | jq -r '.thread_id // .id')
-# Poll for transcription:
-faces compile:thread:get "$THREAD_ID" --status-only --json | jq '{status}'
-# When done (status: "not_compiled"), review and remap speaker:
-faces compile:thread:get "$THREAD_ID"
+faces compile:thread:get "$THREAD_ID" --status-only --json | jq '{status}'   # wait for "not_compiled"
+faces compile:thread:get "$THREAD_ID"                                         # check the speakers
 faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 
-# Text you already have — a transcript in hand, a draft, anything not on disk.
-# Pass it verbatim; do NOT retype or summarise it, or the face learns your paraphrase.
+# Text you already have (a transcript in hand, a draft, anything not on disk).
+# Pass it verbatim: do NOT retype or summarise it.
 faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --perspective first-person --no-wait --json
-# Local text file, by the subject
+# A local text file, by the subject
 faces compile:doc <alias> --file <path> --medium <medium> --perspective first-person --no-wait --json
-# Several sources at once — --file is repeatable, each becomes its own document.
-# Returns {"documents":[{file, document_id}...]} in input order. One call, not one per file.
-# One --medium applies to all of them, so group files of the same kind in one call.
+# Several at once: --file is repeatable, each becomes its own document. One --medium applies to all.
 faces compile:doc <alias> --file a.txt --file b.txt --file c.txt --medium essay --perspective first-person --no-wait --json
-# Local text file — about the subject (biography, Wikipedia, news profile)
+# A local text file about the subject (biography, encyclopedia article, news profile)
 faces compile:doc <alias> --file <path> --medium <medium> --perspective third-person --no-wait --json
-# PDF, Word (.docx), audio or video: use compile:upload; compile:doc takes text only.
-# compile:upload defaults to third-person; use --perspective third-person for writing about them.
+# PDF, Word (.docx), audio or video: compile:upload (compile:doc takes text only)
 faces compile:upload <alias> --file <path> --kind document --medium <medium> --perspective first-person --no-wait --json
 
-# Interview (agent-as-interviewer)
-# See ../faces/references/INTERVIEWS.md for the full workflow
+# Interview (you as the interviewer): see ../faces/references/INTERVIEWS.md
 ```
 
-**`--medium` is required and must not be guessed.** A compile reads writing differently
-per medium, and the server refuses to infer one rather than risk teaching the wrong
-voice. Eleven values, spelled exactly: `academic paper`, `blog post`, `conversation`,
-`email`, `essay`, `lecture`, `legal document`, `other`, `social post`, `text message`,
-`thread reply`. No synonyms — `transcript`, `keynote` and `sms` are each a 422.
+**`--medium` is required on every document, and must not be guessed.** The server never infers
+one. Eleven values, spelled exactly: `academic paper`, `blog post`, `conversation`, `email`,
+`essay`, `lecture`, `legal document`, `other`, `social post`, `text message`, `thread reply`.
+Any other word is a `422`.
 
-**Ask the user which it is** when they have not said. One question, obvious answer, and
-it decides whether the face writes like them. Do not infer it from the filename.
+**Ask the user which it is** when they have not said. One question, an obvious answer. Do not
+infer it from the filename.
 
-**`other` is for writing in none of those forms** — a few paragraphs that are not an
-email, an essay, a lecture or a legal document. It compiles, and is read as prose with
-no form-specific conventions assumed. Reach for it when nothing fits; do not reach for
-it to skip asking, and do not file a letter or a memo there, which are forms with rules
-of their own.
+**`other` is for writing in none of those forms**: a few paragraphs that are not an email, an
+essay, a lecture or a legal document. It compiles. Reach for it when nothing fits, never to skip
+asking, and do not file a letter or a memo there: those have rules of their own.
 
 Poll one source: `faces compile:thread:get ID --status-only --json | jq '{status, progress}'`
 
-**Poll the whole set with one call instead.** This step queues several compiles with
-`--no-wait`, so the question is "are they all done", not "is this one done":
+**Poll the whole set with one call instead.** This step starts several compiles at once, so the
+question is "are they all done":
 
 ```bash
 faces compile:status --json | jq '{sources_active, measurable, progress}'
 faces compile:status --watch      # blocks until the account is quiet, then exits
 ```
 
-123 bytes idle, against one request per id. Needs faces-cli 1.12.0, and 1.20.0 to read the
-`status` and `progress` fields the API now sends.
+When reporting back:
 
-Two things to get right when reporting it back to the user:
+- **`sources_active: 0` means nothing is running, not nothing is outstanding.** Paused sources
+  are not counted; they are listed apart in `paused`, each with its `alias`. Read that list
+  before saying everything finished.
+- **No percentage while `measurable` is false.** Its `progress` is `null` then (during a
+  transcription, for one): say "working".
+- **Queued is waiting, not stuck.** A face's sources wait their turn, reading `queued` with
+  progress 0: say "queued", never "0%".
 
-- **`sources_active: 0` means nothing is running, not nothing is outstanding.** Paused
-  sources are not counted. They are listed apart in `paused`, each with its `alias`, so
-  read that list before telling the user everything finished. One the server is
-  retrying is counted as active.
-- **Do not report a percentage when `measurable` is false.** While a face or the account
-  cannot be measured, during a transcription for one, its `progress` is `null`: say
-  "working" and leave it there.
-- **Queued is waiting, not stuck.** A face compiles one source at a time, so the rest of
-  this set reads `queued` with progress 0 until its turn. Say "queued", never "0%".
+For audio and video sources, always review the transcript with the user before compiling:
+transcription quality varies and speaker labels may need correcting.
 
-For audio/video sources, always review the transcript with the user before
-compiling — transcription quality varies and speaker labels may need correction.
+**Read the upload's warnings.** A thread upload reports `warnings`:
 
-**A corpus file's per-message `kind` is held to the same eleven.** `style:upload
---type thread_json` / `email_jsonl` pass a file whose messages each declare their own
-`kind`. That used to be checked only for shape, so `kind: "talk"` was accepted and then
-mislabelled internally. It is validated now, and a file with an unknown kind is refused
-naming the offending message index and value. If you ever write one of these files,
-spell the kind as one of the eleven.
+- `face_speaker_not_found`: the `--face-speaker` name matched nobody in the file, so the face
+  has **no lines of its own**. Upload again with a name that appears in the file; the warning
+  lists the speakers it found.
+- `unattributed_lines`: lines before the first `Speaker:` prefix. They are not in the thread.
 
-**The upload now tells you what it dropped.** A thread upload reports `warnings` and
-`warning_count`, and faces-cli 1.10.0 prints them. Two matter:
+The upload succeeds either way, so the warnings are the only sign of a broken import.
 
-- `face_speaker_not_found` — the `--face-speaker` name matched nobody in the file, so
-  the face has **no turns of its own** and every line was read as somebody else talking.
-  This corrupts the face quietly. Re-upload with a name that appears in the file; the
-  warning lists the speakers it did find.
-- `unattributed_lines` — lines before the first `Speaker:` prefix. They are not in the
-  thread at all.
+After each compile, update the FACE.md body: tick the box in Queued, and add an entry to Sources
+with its token count and notes. Whether a face is compiled is the server's answer, not the
+file's: `faces face:sources <alias>` (a source reading `synced` has compiled).
 
-The upload answers `200` with a plausible `message_count` either way, so the warnings
-are the only thing that distinguishes a clean import from a broken one. Read them.
+### Step 6 (optional): Build how the person writes
 
-After each successful compile, update the FACE.md body: check the box in Queued,
-add an entry to Sources with token count and notes. Whether a face is compiled is the
-server's answer, not the file's: `faces face:sources <alias>` (a source reading `synced`
-has compiled).
+If the face is a real person and you have their own writing in a medium (mail, messages,
+essays), offer to build a style for that medium so the face writes better in it. A face holds a
+separate style per medium, and writing *about* the person never goes into one.
 
-### Step 6: Done
+```bash
+faces style:make <alias> --source DOC_OR_THREAD_ID --source "OTHER_ID:essay" --no-wait --json
+faces style:status --face <alias>
+```
 
-After compilation, tell the user the face is ready. They can chat with it
-using `/facechat <alias>` from anywhere, or `/facechat` to browse their
-catalog and pick a face.
+On Connect and Pro a build is not billed. On Free it is paid from credits, so it needs
+`--allow-paid`: pass it only if the user agrees to pay. Building does not apply it: chat with
+`--style <medium>`. See the `/faces` skill's REFERENCE.md, "Style".
+
+### Step 7: Done
+
+Tell the user the face is ready. They can chat with it with `/facechat <alias>` from anywhere,
+or `/facechat` to browse their catalog and pick one.

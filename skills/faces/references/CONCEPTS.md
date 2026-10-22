@@ -1,43 +1,64 @@
-# What is Faces
+# What Faces is
 
-The Faces Platform is a compiler for the human mind.
+Faces are **causal models**. A face distills the essence of a particular author from
+unstructured source texts: essays, blog posts, emails, letters, interviews, talks. When
+prompted, a face returns a **cause**: the principal *why* that would motivate that author's
+response in the given context. Causes steer other AIs, so an agent keeps a consistent, specific
+point of view however long it runs.
 
-Feed it source material — documents, essays, interviews, conversations — and the compiler extracts the minimal set of cognitive primitives that define a persona. These primitives are the machine code of the mind. Like amino acids, this small formal vocabulary is sufficient to construct any human persona. The personas that result are coherent, consistent, complex, and contradictory — just like real people.
+Causes are upstream of reasons. A reason is what you tell a police officer when they ask why
+you did not stop at a red light; a cause is how you decided what to say.
 
-The output is a **Face**: a compressed cognitive instruction set stored as embedded semantic vectors. A Face has several principal components, each capturing a different resolution of cognition; `face` is their equal-weight composite. A Face reshapes any LLM into a new next-token predictor — not a model wearing a costume, but one whose probability distributions are fundamentally altered by the persona. This overcomes model collapse: instead of regression to the mean, you get a sharply individuated mind.
+## The Causes API and its wrappers
 
-Because the primitives are embedded, they are semantic objects. You can measure the distance between two Faces. You can find which Faces are nearest to or furthest from any other. This is the mathematics of the mind.
+| API | Endpoints | Compatible with | Returns |
+|---|---|---|---|
+| Causes | `/v1/causes` | | the `cause` alone |
+| Chat | `/v1/chat/completions`, `/v1/responses`, `/v1/messages` | OpenAI, Anthropic | the model's answer, with its `cause` |
+| Decisions | `/v1/decisions`, `/v1/systemone` | OpenAI, TypeSafe | typed `answers`, with a `cause` per question |
 
-You can also do boolean algebra on Faces. A **composite Face** is defined by a formula over concrete Faces using four operators:
+A wrapper takes `face@model`: the face's cause steers that model's answer, in one request. A
+face named alone (`alice`, with no `@model`) returns the cause alone. In the CLI, `chat:*` and
+`faces decide` are the wrappers, and `faces causes alice -m "…"` returns the cause alone.
 
-| Operator | Syntax | Meaning |
-|---|---|---|
-| Union | `a \| b` | All knowledge from both; `a` wins on conflicts |
-| Intersection | `a & b` | Only knowledge present in both |
-| Difference | `a - b` | Knowledge in `a` that is not in `b` |
-| Symmetric diff | `a ^ b` | Knowledge in exactly one, but not both |
+## Compiled, not trained
 
-Operators can be parenthesized: `(a | b) - c`. Composite Faces are live: if you compile new knowledge into a component Face, the composite reflects it automatically on the next inference request.
+A face is compiled from unstructured text. There is no dataset to prepare and no training run,
+and a face is not tied to any one model: pair it with any chat model in the catalog. Add a
+source and compile it; delete one and what it contributed goes with it. A face's cost per
+request does not depend on how much has been compiled into it.
 
-A composite can be **persisted** (`face:create --formula "a | b"`, giving it its own reusable name) or composed **at request time** by passing the formula straight into a chat call (`chat:chat "(a | b)@model"`). Both run the same merge — request-time composition just skips the create step. The one difference is identity: a persisted composite has its own name, while a request-time composite **inherits the name of its first operand** (`(a | b)` answers as `a`). See [REFERENCE.md → Run-time composite faces](REFERENCE.md#run-time-composite-faces).
+## Composable and comparable
 
-## Knowledge and style
+Faces combine with **boolean set algebra** into composites:
 
-A Face carries two different things, captured by two different acts.
+| Operator | Syntax |
+|---|---|
+| Union | `a \| b` |
+| Intersection | `a & b` |
+| Difference | `a - b` |
+| Symmetric difference | `a ^ b` |
 
-**Compiling** builds what a Face *knows* — the cognitive instruction set described above,
-extracted from source material of any kind.
+Parentheses group: `(a | b) - c`. A composite can be **persisted** as a named face
+(`face:create --formula "a | b"`) or composed **per request** by putting the formula where a
+face goes (`chat:chat "(a | b)@model"`). A per-request composite answers under the name of its
+first operand. A formula whose result is empty is refused with `422 empty_composite` ("the
+intersection between these two faces is null"). See
+[REFERENCE.md → Run-time composite faces](REFERENCE.md#run-time-composite-faces).
 
-**Style** captures how a person *writes* — learned from their own first-person writing, and
-kept per medium, because nobody writes an email the way they write an essay. It is optional,
-and it is only meaningful for a Face modelled on a real person whose writing you have.
+Compiled faces are also **comparable**: `face:diff` scores how alike two faces are, from `-1` to
+`1`, and `face:neighbors` finds the most and least similar faces to one face.
 
-The two are independent. A Face can be compiled and never styled, which is the common case.
-Styling without compiling produces a Face that sounds right and knows nothing. See
+## Style
+
+Every source text has a **medium**: `email`, `text message`, `social post`, `essay`,
+`academic paper`, `blog post`, `legal document`, `thread reply`, `conversation`, `lecture` or
+`other`. A **style build** reads a face's own writing in one medium and installs a style for
+that medium, so the face writes better in it. A face holds a separate style per medium.
+
+A style is applied per request with `--style <medium>` on the chat commands, and adds roughly
+2,000 to 3,500 input tokens to each request that uses it. Most faces never need one; it is
+worth building when the face is a real person and you have their own writing. See
 [REFERENCE.md → Style](REFERENCE.md#style-how-a-face-writes-style).
-
-## Value Proposition
-
-Programmable and composable plug-and-play personas as nuanced as a real human for fewer tokens than any other approach. More persona, less cost.
 
 For example use cases, see [USE_CASES.md](USE_CASES.md).

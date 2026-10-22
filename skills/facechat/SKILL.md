@@ -17,7 +17,7 @@ allowed-tools:
   - WebFetch
 ---
 
-# /facechat — Chat with a Face
+# /facechat: Chat with a Face
 
 ## Preamble
 
@@ -66,14 +66,14 @@ files. Always mask them (e.g. `sk-faces-...dN`).
 The argument string after `/facechat` is parsed as: first word is the alias,
 everything after it is the message. Examples:
 
-- `/facechat socrates How are you?` → alias=`socrates`, message=`How are you?`
-- `/facechat socrates` → alias=`socrates`, no message
-- `/facechat` → no alias, no message (browse catalog)
+- `/facechat socrates How are you?`: alias=`socrates`, message=`How are you?`
+- `/facechat socrates`: alias=`socrates`, no message
+- `/facechat`: no alias, no message (browse the catalog)
 
 ## Resolve the target
 
-The alias can refer to a **face** (single persona) or a **team** (multiple
-faces with a collaboration protocol). Check both.
+The alias can name a **face** or a **team** (several faces with a collaboration
+protocol). Check both.
 
 **If alias provided** (`/facechat socrates` or `/facechat socrates How are you?`):
 
@@ -87,9 +87,9 @@ SLUG=$(echo "$ALIAS" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/
 ls ~/.faces/teams/$SLUG/TEAM.md 2>/dev/null
 ```
 
-- If face found → single-face chat (see **Chat** section below).
-- If team found (by name in `team:list` or local TEAM.md) → team chat (see **Team Chat** section below).
-- If both found → face takes priority (teams should have distinct names).
+- A face found: single-face chat (see **Chat** below).
+- A team found (by name in `team:list`, or a local TEAM.md): team chat (see **Team Chat** below).
+- Both found: the face wins (teams should have distinct names).
 - If neither found, check for close matches:
 
 ```bash
@@ -133,7 +133,7 @@ conversation across turns (`chat:chat` is stateless and forgets each turn):
 faces chat:thread ALIAS -m "MESSAGE" --json
 ```
 
-Capture the `thread_id` from the response — you'll reuse it for every follow-up.
+Keep the `thread_id` from the response: every follow-up uses it.
 
 If the user didn't include a message with the alias, ask what they want to
 discuss. Ask the user:
@@ -169,10 +169,17 @@ faces chat:thread ALIAS -m "MESSAGE" --llm MODEL
 
 ### Bringing in another face
 
-`${other-alias}` in a message is plain text: the platform no longer expands it.
-To bring another face's view in, get its cause (its reasoning about the
-question) with `faces chat:chat OTHER -m "QUESTION" --reasoning-only`, and
-include that in the message.
+To bring another face's view into the conversation, get its cause on the
+question (the principal *why* behind its response) with
+`faces causes OTHER -m "QUESTION"`, and include it in the message.
+
+### Long conversations
+
+For a long conversation, keep the cost of each turn down with a session: open
+one with `faces session:create ALIAS`, pass `--session SESSION_ID` on each turn,
+and when it grows, `faces session:compact SESSION_ID` and continue with
+`--compaction COMPACTION_ID`. See the `/faces` skill's REFERENCE.md, "Sessions
+and compaction".
 
 ## Team Chat
 
@@ -189,40 +196,42 @@ Parse the YAML frontmatter for the `members:` list (the faces on the team).
 Then parse the mermaid flowchart: this is the entire execution spec, round
 limits included.
 
-If `members:` holds ids rather than aliases (faces-cli 1.20.0 writes ids after a
-`team:edit`), read the aliases with `faces team:members TEAM_ID`, or run
-`faces catalog:doctor --fix` to rewrite the file.
+If `members:` holds ids rather than aliases, read the aliases with
+`faces team:members TEAM_ID`, or run `faces catalog:doctor --fix` to rewrite
+the file.
 
 ### Walk the graph
 
 The mermaid diagram uses three shapes. Each has one rule:
 
-- `(alias)` **rounded rectangle** → call the face:
+- `(alias)` **rounded rectangle**: call the face:
   `faces chat:chat alias -m "INPUT"` where INPUT is the concatenated output
   from all incoming edges. Format each input clearly:
   ```
   [from Query]: <the user's original message>
   [from face-a]: <face-a's response>
   ```
-- `[text]` **sharp rectangle** → you (the orchestrating agent) execute the
+  A member you do not own is `owner:alias` and needs a model named:
+  `faces chat:chat owner:alias@MODEL -m "INPUT"`.
+- `[text]` **sharp rectangle**: you (the orchestrating agent) carry out the
   instruction described in the text. The text IS the instruction.
-- `{text}` **diamond** → you evaluate the condition described in the text
+- `{text}` **diamond**: you evaluate the condition described in the text
   and follow the matching outgoing edge. The text IS the condition.
 
 **Edge rule:** an edge from A to B means B receives A's output. If B has
-three incoming edges, B gets all three outputs as input. No implicit context
-— if there's no edge, that data doesn't flow.
+three incoming edges, B gets all three outputs as input. No implicit context:
+if there is no edge, that data does not flow.
 
 **Entry/exit:** the graph starts at the `[Query]` node (the user's message)
 and ends at the `[Response]` node (what you show the user).
 
 ### Execution loop
 
-1. Start at `[Query]` — seed it with the user's message.
+1. Start at `[Query]`: seed it with the user's message.
 2. Follow outgoing edges. For each node you reach:
-   - `(face)` → call `faces chat:chat` with the concatenated inputs.
-   - `[instruction]` → execute the instruction yourself.
-   - `{condition}` → evaluate and branch.
+   - `(face)`: call `faces chat:chat` with the concatenated inputs.
+   - `[instruction]`: carry out the instruction yourself.
+   - `{condition}`: evaluate and branch.
 3. If an edge loops back (e.g. round-robin), increment the round counter.
    Stop where the diamond's condition says to (e.g. "or this is round 3"). If
    the diagram names no limit, stop after 3 rounds.
@@ -246,11 +255,11 @@ the final face's response unless the user asks to see the full chain.
 ### Follow-up messages
 
 For follow-ups in a team conversation, re-run the full protocol with the new
-message. Each invocation is stateless — the protocol runs fresh each time.
+message. Each run is independent: the protocol starts fresh each time.
 The user can reference prior responses in their follow-up message naturally.
 
 ## Related skills
 
-- `/facemake` -- Guided face creation
-- `/faces` -- Core CLI for all platform operations
-- `/faceteam` -- Compose faces into teams
+- `/facemake`: guided face creation
+- `/faces`: the core CLI for every platform operation
+- `/faceteam`: compose faces into teams

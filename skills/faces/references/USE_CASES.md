@@ -1,29 +1,63 @@
 # Example Use Cases
 
-**1. Historical resurrection** — Feed the complete works of a thinker into a Face. Ask it questions they never answered. The responses emerge from their actual cognitive structure, not an LLM's pastiche of their reputation.
+**1. Historical thinkers.** Compile the complete works of a thinker into a face. Ask it the
+questions they never answered, and let its cause steer whichever model answers.
 
-**2. Customer panel from transcripts** — Upload 20 interview transcripts, one Face per participant. Run `face:diff` across the panel. Get a similarity matrix before reading a word. Cluster by centroid, not by manual theme-coding.
+**2. Customer panel from transcripts.** Upload 20 interview transcripts, one face per
+participant. Run `face:diff` across the panel to see who is alike before reading a word, then
+ask the whole panel the same question with `faces decide` and compare the numbers.
 
-**3. The board of minds** — Assemble a council of thinkers: a scientist, an artist, a pragmatist, a mystic. Route every major decision through all four. Surface the full range of internally consistent responses before choosing a direction.
+**3. A board of advisors.** Assemble a scientist, an artist, a pragmatist and a mystic. Route
+every major decision through all four, and see the full range of consistent answers before
+choosing a direction.
 
-**4. The shadow** — After building a Face from your own writing, find its furthest neighbor. That is the mind most unlike yours in the collection — the perspective you are least equipped to anticipate. Chat through it. Let it answer the same questions you posed to yourself. The gap between the two responses is the shape of your blindspot.
+**4. The opposite view.** After building a face from your own writing (your `me` face), find
+its furthest neighbor with `face:neighbors me --direction furthest`. That is the face least
+like yours in the collection. Ask it the questions you asked yourself; the gap between the two
+answers is where your blind spot is.
 
-**5. Character ensemble for fiction** — Build a cast from character backstory documents. Use `face:neighbors --direction furthest` to find natural antagonist pairs. Let the centroid geometry write the conflict structure.
+**5. A proxy for yourself.** Compile your own emails, notes, essays and voice memos into `me`.
+Share it through a scoped API key so collaborators can consult your point of view when you are
+unavailable.
 
-**6. Living proxy** — Compile your own writing: emails, notes, essays, voice memos. The Face becomes a 24/7 proxy for your thinking. Share it via a scoped API key so collaborators can consult your perspective when you're unavailable.
+**6. Drift over time.** Compile new material into a face every quarter, and compare it with
+`face:diff` against a face compiled from the earlier material, to see whether a person's or an
+organization's thinking is moving.
 
-**7. Ideological drift detection**: Compile new material into a Face quarterly. Compare centroid snapshots over time to detect whether a person's or organization's thinking is shifting, and in which direction.
+**7. Boolean composition.** You have a pragmatist and a visionary. Their union
+(`pragmatist | visionary`) holds both outlooks. Their intersection (`pragmatist & visionary`)
+keeps only the common ground. Their difference (`visionary - pragmatist`) is the visionary
+without the practical instinct. Each is a face you can chat with, and none needed another
+document compiled.
 
-**8. Boolean composition** — You have a pragmatist and a visionary. Their union (`pragmatist | visionary`) gives you someone who holds both worldviews. Their intersection (`pragmatist & visionary`) gives you only what they share — the narrow common ground. Their difference (`visionary - pragmatist`) gives you the visionary's thinking stripped of any practical instinct. Each is a real, chattable Face. None required a single additional document to compile.
+**8. Synthetic focus group.** Build faces for an early adopter, a skeptic, a pragmatist, a
+regulator and a loyalist. Run a product pitch or a policy change past each, with
+`faces decide` for numbers and `chat:chat` for prose.
 
-**9. Synthetic focus group** — Build Faces for archetypal personas: early adopter, skeptic, pragmatist, regulator, loyalist. Run a product pitch or policy change through each. Get distinct, internally consistent reactions without scheduling a single session.
+**9. Stress-testing an argument.** Compile a position into a face. Its nearest neighbors are
+who already agrees; its furthest is who opposes it most. Ask the furthest for the sharpest
+counter-argument.
 
-**10. Stress-testing an argument** — Compile a philosophical argument or policy position into a Face. Find its nearest neighbors — who already thinks this way. Find its furthest — who is most opposed. Use the furthest to generate the sharpest possible counter-argument, grounded in a real cognitive structure.
+**10. Your own writing voice.** Compile your posts, threads and captions into a face, then
+build a style for each medium you write in (`style:make`). Draft new copy with
+`chat:chat me --style "social post" -m "<brief>"`. Compiling new material over time keeps it
+current.
 
-**11. Your social media voice** — Compile your posts, threads, captions, and YouTube videos into a Face. The compiler distills your tone, cadence, and perspective into a cognitive instruction set. Now use it to draft new content: feed it a topic, a product, a link, or a brief and get copy that sounds like you — not like an LLM. Because the Face is live, compiling new material over time keeps it current as your voice evolves.
+**11. A deliberation pipeline.** Compile an `expert` face from domain literature. Make a
+`critic` as `expert - consensus`, and a `synthesizer` as `expert | critic`. Ask `expert` first,
+pass its answer to `critic`, then pass both to `synthesizer`. Each stage is one face; together
+they are a pipeline built from set algebra.
 
-**12. The cognitive circuit** — Build a deliberation pipeline from persona logic gates. Compile an `expert` Face from domain literature. Derive a `critic` as `expert - consensus` — the expert's knowledge minus received wisdom. Derive a `synthesizer` as `(expert | critic) - noise`. Route a question through all three in sequence: ask `expert` first, feed its response into `critic`, feed that into `synthesizer`. Each stage is a gate; together they are a circuit. You have just built a reasoning pipeline from persona primitives — the same way an FPGA builds computation from logic gates.
+**12. Debate between faces.** Get one face's cause on the question and hand it to another.
+`faces causes penrose -m 'What resolves the information paradox?'` prints
+Penrose's cause; then `faces chat:chat hawking --llm gpt-4o-mini -m 'Penrose holds: <the
+cause>. Defend your position against it.'` Alternate for as many rounds as the exchange needs.
 
-**13. Multi-face debate.** Get one Face's cause, its reasoning on the question, and hand it to another. `faces chat:chat penrose -m 'What resolves the information paradox?' --reasoning-only` prints Penrose's cause; then `faces chat:chat hawking --llm gpt-4o-mini -m 'Penrose reasons: <the cause>. Defend your position against it.'` Hawking is the voice, answering how Penrose actually reasons: not a generic debate, but one shaped by two specific cognitive structures. Alternate for as many rounds as the exchange needs.
+**13. Neutral analysis across faces.** Get each face's cause on the same question, then give
+them to a model with no face. `faces causes marx -m 'What drives history?'`
+and the same for `hayek`, then `faces chat:messages gpt-4o-mini -m 'Marx: <cause>. Hayek:
+<cause>. Where do they converge?'` The model compares both without taking either side.
 
-**14. Neutral analysis across minds.** Get each Face's cause on the same question, then give them to a bare model with no persona. `faces chat:chat marx -m 'What drives history?' --reasoning-only` and the same of `hayek`, then `faces chat:messages gpt-4o-mini -m 'Marx reasons: <cause>. Hayek reasons: <cause>. Where do they converge?'` The model acts as a neutral analyst over both minds' own reasoning. This is comparative cognition: let the LLM reason across multiple minds without privileging any one of them.
+**14. Steering your own pipeline.** Call `faces causes alias -m "…"` (the API's
+`POST /v1/causes`) for the cause alone, and put it in front of whatever model or agent you
+already run. You pay only for the cause.

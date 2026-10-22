@@ -2,34 +2,38 @@
 
 ## Registering a new account
 
-Registration requires a credit card payment to activate. The flow is:
+A new account starts with a $0 balance. Its first payment, made by the human in a browser,
+activates it.
 
-### Step 1 — Create the account
+### Step 1: Create the account
 
 Ask the user which plan they want, then register with `--plan`:
 
 ```bash
-# Free plan ($5 activation, then everything pays as it goes from credits)
+# Free: add $5 of credit to start, then everything is paid as it goes from credits
 faces auth:register \
   --email user@example.com \
-  --password 'SecurePass123!' \
+  --password 'SecurePass123' \
   --username alice \
   --json
 
-# Connect ($17/month) or Pro ($49/month): allowances for compiling and reasoning,
-# and chat free on a linked ChatGPT account for the models it serves
+# Connect ($17/month) or Pro ($49/month): monthly allowances for compiling and causes,
+# and Codex-eligible models run on a linked ChatGPT plan
 faces auth:register \
   --email user@example.com \
-  --password 'SecurePass123!' \
+  --password 'SecurePass123' \
   --username alice \
   --plan connect \
   --json
 ```
 
-`--plan` is `free` (the default), `connect` or `pro` (`pro` from faces-cli 1.17.0). Team is by
-promo code only, and Standard is retired.
+- `--plan` is `free` (the default), `connect` or `pro`.
+- `--username`: 1 to 32 characters, starting with a lowercase letter, then lowercase letters,
+  numbers or underscores (no dashes).
+- The password needs 8 to 64 characters, with at least one uppercase letter, one lowercase
+  letter and one digit.
 
-The response includes:
+The response:
 
 ```json
 {
@@ -45,180 +49,144 @@ On Connect or Pro, `checkout_url` is the subscription checkout and `amount` is `
 `$49/mo`. If the CLI could not fetch a checkout link, `checkout_url` is missing and
 `checkout_error` says why.
 
-The JWT is saved automatically. The account exists but is not yet active.
+The JWT is saved automatically. The account exists but is not active yet.
 
-### Step 2 — Activate via payment
+### Step 2: Activate with a payment
 
-The `checkout_url` is a Stripe Checkout page. The human must open it in a browser and complete payment.
+`checkout_url` is a Stripe Checkout page. Only the human can complete it, in a browser.
 
 Tell the user:
 
-> Paste this link into your browser and complete the payment. When you see the confirmation page, come back here and let me know it's done.
+> Paste this link into your browser and complete the payment. When you see the confirmation
+> page, come back here and let me know it's done.
 >
 > `<checkout_url>`
 
-Do **not** attempt to open the URL or complete payment programmatically. Only a human can do this step.
+Do **not** try to open the URL or complete payment programmatically.
 
-### Step 3 — Confirm activation
+### Step 3: Confirm activation
 
 Once the user says payment is done:
 
 ```bash
-faces billing:balance --json
-```
-
-Check that `is_active` is `true`. If not, tell the user the payment may not have gone through and ask them to try the link again.
-
-### Full example
-
-```bash
-# 1. Register (use --plan connect for Subscription Connect plan)
-RESULT=$(faces auth:register --email user@example.com --password 'SecurePass123!' --username alice --json)
-URL=$(echo "$RESULT" | jq -r '.checkout_url')
-
-# 2. Give URL to human, wait for them to confirm payment
-
-# 3. Verify
 faces billing:balance --json | jq '.is_active'
 ```
 
+If it is `false`, the payment may not have gone through: ask them to try the link again.
+
 ## Logging in
 
-For existing accounts:
-
 ```bash
-faces auth:login --email user@example.com --password 'SecurePass123!'
+faces auth:login --email user@example.com --password 'SecurePass123'
+faces auth:whoami     # verify
 ```
 
-The JWT is saved to `~/.faces/config.json` automatically.
+`--email` also accepts the username. The JWT is saved to `~/.faces/config.json` and lasts 24
+hours: `faces auth:refresh` exchanges a valid one for a fresh one, or log in again.
 
-To verify:
+## API keys
 
-```bash
-faces auth:whoami
-```
-
-## API key authentication
-
-For non-interactive use (scripts, deployed agents), API keys are preferred over JWT:
+For non-interactive use (scripts, deployed agents), prefer an API key:
 
 ```bash
-# Create a key (requires JWT). The new key is saved to
-# ~/.faces/config.json as api_key automatically — subsequent
-# faces commands authenticate with it immediately.
+# Create a key (needs a JWT). The new key is saved to ~/.faces/config.json as api_key,
+# so later faces commands use it at once.
 faces keys:create --name "my-agent" --budget 10.00 --expires-days 30
 
-# Already have a key from elsewhere? Set it directly:
+# A key from elsewhere:
 faces config:set api_key sk-faces-...
 
-# Or use the environment variable:
+# Or the environment:
 export FACES_API_KEY=sk-faces-...
 ```
 
-Pass `--no-save` to `keys:create` if you want to print the key without persisting it locally (e.g. minting a key for another machine or user):
+`--no-save` prints the key without saving it, for a key meant for another machine or person:
 
 ```bash
 faces keys:create --name "other-machine" --no-save
 ```
 
-API keys support optional restrictions:
-- `--face ALIAS` — restrict to specific faces (repeatable)
-- `--model NAME` — restrict to specific LLM models (repeatable)
-- `--budget F` — spending cap in USD
-- `--expires-days N` — auto-expiry
+Restrictions, all optional:
+
+- `--face ALIAS`: only chat with these faces (repeatable)
+- `--model NAME`: only use these models (repeatable)
+- `--budget F`: a lifetime spend cap in USD; past it, requests answer `402`
+- `--expires-days N`: expiry, 1 to 36500 days. Fixed when the key is made: to change it,
+  revoke the key and create another.
+
+A request with a face or model the key does not allow is a `403`.
 
 ### One-time secret
 
-The plaintext key is returned **only once** — in the `keys:create` response (JSON field: `key`). `faces keys:list`, `faces config:show`, and `faces auth:whoami` only ever show it truncated by design (the server stores a hash, not the secret). Never try to recover a usable key from those commands; mint a new one instead.
+The full key is returned **once**, in the `keys:create` response (`key`). `keys:list`,
+`config:show` and `auth:whoami` only ever show it shortened. To get a usable key again, create
+a new one.
 
-### Sandbox redaction (for agent operators)
-
-Some agent environments run a terminal security scanner that redacts `sk-`-prefixed strings from displayed output. This is purely cosmetic — the key is still valid, and with default-save it is already written to `~/.faces/config.json`. Don't conclude "the CLI masked the key" or try to bypass the CLI by hitting the API directly; the CLI returns the full key verbatim. The agent's job is to *use* the key (automatic with default-save), not to *read* it.
+Some agent environments redact `sk-`-prefixed strings from displayed output. The key is still
+valid, and with the default save it is already in `~/.faces/config.json`. Use it; do not try to
+read it back.
 
 ## Plans
 
-### Free
+| plan | price | what it includes |
+|---|---|---|
+| Free | $0 | Everything is paid as it goes from credits; start by adding $5 |
+| Connect | $17/month | Allowances for compiling and causes; Codex-eligible models run on a linked ChatGPT plan |
+| Pro | $49/month | Larger allowances, and the same ChatGPT route |
 
-- **Activation:** $5 minimum initial spend (added as API credits).
-- **Pricing:** everything pays as it goes from credits: a face's reasoning at $0.75 per million reasoning tokens (each turn's input tokens plus 1,500), compiling at $25 per million source tokens, the answering model at the provider's price plus 5%.
-- **No monthly fee.**
+Pay-as-you-go rates, on Free and past an allowance: a cause $0.75 per million tokens (the
+tokens it reads plus 1,500), compiling $25 per million source tokens, and any model you name
+at the provider's price plus 5%. Read the live figures from `GET /v1/rates`. Details in
+[BILLING.md](BILLING.md); the ChatGPT route in [OAUTH.md](OAUTH.md).
 
-### Connect ($17/month) and Pro ($49/month)
+On Connect and Pro, a ChatGPT failure or a used-up allowance is refused by default rather than
+billed. `faces account:preferences api_fallback true` lets it continue on credits.
 
-- **Allowances** for compiling and a face's reasoning: Connect 250k source tokens and 10M reasoning tokens a month, Pro 1M and 25M (with weekly and 5-hour limits too). See [BILLING.md](BILLING.md#plans).
-- **The answering model** is still paid at the provider's price plus 5%, except:
-- **ChatGPT passthrough:** Link your ChatGPT Plus or Pro account via `faces auth:connect openai` and the models marked `codex_eligible` (the gpt-5.6 and gpt-6 families today) run free on it. See [OAUTH.md](OAUTH.md) for supported models.
-- **Fallback:** By default, OAuth failures and a used-up allowance are refused, never silently billed. Enable fallback with `faces account:preferences api_fallback true`.
-
-### Team
-
-Comped: no limits, never charged. By promo code only.
-
-### Checking the current plan
+### Checking the plan
 
 ```bash
-faces billing:subscription --json   # plan, status, period end
+faces billing:subscription --json   # plan, status, period end, allowances
 faces billing:balance --json        # credit balance, is_active
-faces compile:stats --json          # this month's compile usage against the allowance (1.18.0+)
+faces compile:stats --json          # this month's compiling against the allowance
 ```
 
-### Subscribing, and switching plans
+### Subscribing, switching, canceling
 
 ```bash
-faces billing:subscribe --plan connect     # or --plan pro; alias of billing:subscription:activate
+faces billing:subscribe --plan connect     # or --plan pro; prints a Stripe Checkout URL
 faces billing:subscription:plan pro        # already subscribed: switch in place, prorated
+faces billing:subscription:cancel          # keeps the plan until the period ends
 ```
 
-`billing:subscribe` prints a Stripe Checkout URL (it takes a promo code). The human must open it in a browser to complete payment. If previously canceled, this reactivates the existing subscription. Already subscribed, use `billing:subscription:plan` instead. See [BILLING.md](BILLING.md).
+Only the human can complete a checkout. See [BILLING.md](BILLING.md).
 
-### Canceling
+## JWT or API key
 
-```bash
-faces billing:subscription:cancel
-```
-
-Soft cancel — keeps access until the current billing period ends.
-
-## JWT vs API key
-
-| Command group | Requires |
+| Command group | Needs |
 |---|---|
-| `faces auth:login`, `faces auth:register` | neither: they create the JWT |
-| `faces auth:whoami`, `faces auth:connections` | JWT **or** API key |
-| `faces auth:connect`, `faces auth:disconnect`, `faces auth:refresh`, `faces keys:*` | JWT: run `faces auth:login` first |
-| Everything else | JWT **or** API key |
+| `auth:login`, `auth:register` | neither: they create the JWT |
+| `auth:connect`, `auth:disconnect`, `auth:refresh`, `keys:*` | a JWT: run `faces auth:login` first |
+| everything else | a JWT or an API key |
 
 ## Credential storage
 
-Credentials are stored in `~/.faces/config.json`. The CLI reads from there automatically, or from environment variables:
+Credentials live in `~/.faces/config.json`, or come from the environment:
 
 | Variable | Purpose |
 |---|---|
-| `FACES_TOKEN` | JWT authentication token |
-| `FACES_API_KEY` | API key authentication |
+| `FACES_TOKEN` | JWT |
+| `FACES_API_KEY` | API key |
+| `FACES_BASE_URL` | API base URL (default `https://api.faces.sh`) |
 
 ## Account preferences
 
-Server-side settings stored on the user's account:
+Stored on the account, so they hold across machines:
 
 ```bash
-faces account:preferences                            # view current
-faces account:preferences default_model gpt-5.4      # set default model for new faces
-faces account:preferences api_fallback true           # allow paid fallback when OAuth fails
+faces account:preferences                                  # view
+faces account:preferences default_model gpt-5.4-mini       # model new faces inherit
+faces account:preferences api_fallback true                # allow credits when ChatGPT or an allowance refuses
 ```
 
-| Key | Values | Default | Effect |
-|---|---|---|---|
-| `api_fallback` | `true` / `false` | `false` | When false, OAuth failures return 422 instead of falling back to paid system keys |
-| `default_model` | any valid model | `gpt-5.4` | Model inherited by new faces that don't specify `--default-model` |
-
-Note: these are server-side preferences (not local config). They persist across devices and sessions.
-
-## Refreshing a token
-
-If a JWT expires:
-
-```bash
-faces auth:refresh    # refresh existing token
-faces auth:login ...  # or re-login
-```
+`auto_style` and `auto_style_thresholds` are covered in
+[REFERENCE.md → Account preferences](REFERENCE.md#account-preferences).

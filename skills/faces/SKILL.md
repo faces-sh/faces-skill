@@ -1,66 +1,48 @@
 ---
 name: faces
 description: >
-  Use this skill whenever someone wants to build an AI that thinks like, sounds
-  like, or acts like a specific person. This includes: turning interviews,
-  letters, videos, or documents into a chateable AI persona; creating customer
-  personas or focus groups you can actually talk to (not just static profiles);
-  replacing bloated SOUL.md / soul documents / system prompts with something
-  more token-efficient; giving agents in a multi-agent system distinct
-  personalities, behavioral modes, or points of view; creating a digital twin
-  or memorial AI; capturing how someone writes from their own emails or
-  messages so a persona writes in their voice; comparing how different people
-  think; composing new perspectives from existing ones; or sharing persona
-  access via scoped API keys. Also trigger when the user mentions the Faces Platform, the `faces`
-  CLI, cognitive primitives, mind arithmetic, or compile personality. Use even
-  if Faces is not yet installed — the skill covers setup. Do NOT use for
-  fine-tuning models, RAG/retrieval systems, creative writing (NPC backstories,
-  fiction), or thematic analysis of transcripts.
+  Use this skill whenever someone wants an AI that thinks, decides or writes like a
+  specific person or point of view. Faces are causal models compiled from a person's
+  own texts (essays, emails, interviews, videos); a face returns a cause that steers
+  any model. This includes: a face of a real person, a public figure, a type of
+  person or a digital twin; customer panels or focus groups you can question and
+  poll; distinct, consistent points of view for agents in a multi-agent system;
+  replacing a long SOUL.md or system prompt; writing in someone's own voice from
+  their emails or messages; asking what a person would decide; comparing faces or
+  composing them with boolean set algebra; sharing a face through scoped API keys.
+  Also trigger when the user mentions Faces, faces.sh, the `faces` CLI, causes or
+  causal models. Use even if Faces is not yet installed: the skill covers setup. Do
+  NOT use for fine-tuning models, RAG or retrieval systems, fiction writing, or
+  thematic analysis of transcripts.
 compatibility: Requires the faces CLI (npm install -g faces-cli@latest) and internet access to api.faces.sh.
 ---
 
 # Faces Skill
 
-The Faces Platform compiles source texts (documents and conversation transcripts) into a Face — a persona built of cognitive primitives that give an underlying LLM a complex perspective that is richer, more accurate, and uses far fewer tokens than prompt-stuffing approaches. Faces can be chatted with, compared, and composed.
+Faces are **causal models**. A face is compiled from an author's own texts (documents,
+interviews, conversation transcripts). When prompted, it returns a **cause**: the principal
+*why* that would motivate that author's response in the given context. The cause steers
+whichever model answers, so an agent keeps a consistent, specific point of view however long it
+runs. Faces can be chatted with, asked for decisions, compared, and composed.
 
-Without a Face, an LLM is **faceless** — generic, interchangeable, forgettable. A Face specializes it. Gives it perspective, coherence, and nuance that doesn't collapse back into LLM-speak on long threads.
+This skill and its references are the documentation: start with
+[references/QUICKSTART.md](references/QUICKSTART.md) and
+[references/REFERENCE.md](references/REFERENCE.md). The live API schema is at
+https://api.faces.sh/openapi.json.
 
-This skill and its references are the documentation: start with [references/QUICKSTART.md](references/QUICKSTART.md) and [references/REFERENCE.md](references/REFERENCE.md). The live API schema is at https://api.faces.sh/openapi.json.
+Use `--json` when you need values from a command's output, or **`--toon`**, which carries the
+same fields in fewer tokens and is the better choice when the output goes into a model's
+context.
 
-Always use `--json` when you need to extract values from command output — or **`--toon`**,
-which carries the same fields in about 40% fewer tokens and is the better choice when the
-output goes into a model's context. Requires faces-cli 1.9.0+.
-
-**The compile instructions in this skill need faces-cli 1.10.0 or newer.** Below that,
-`--medium` is optional where the server now requires it, `compile:thread:replace` is a
-422 on every call, `--status-only` does not exist, and nothing reads whether a compiled
-source is still current. The setup block below reports the installed version.
-
-**Which media are accepted is the server's rule, not the CLI's, so it holds at every
-version.** A CLI older than 1.10.1 prints a list of ten that omits `other` and still
-promises that synonyms fold; neither is true. Trust the eleven below over the `--medium`
-help text on an older install.
-
-Later additions have their own floors: `face:list --sort/--order/--search` needs
-**1.11.0**, `compile:status` needs **1.12.0**, the `auto_style` preferences need **1.13.0**,
-the billing commands for Pro, plan switching and saved cards need **1.17.0**, and
-`faces decide` needs **1.18.0**: the API moved it, so an older CLI's `decide` is refused, and
-**1.19.0** waits out a rate-limit `429` once, explains the pay-per-token OAuth-only refusal, and
-reads a held decision that failed as the error it is. Compiling needs **1.20.0**: the API
-replaced the progress fields, and an older CLI waits on fields that no longer arrive. From
-**1.16.0** every document save requires `--medium`, which the server now enforces at every
-version. Each is marked where it appears.
-
-**When the CLI says it may be out of date, update it.** From 1.16.0 the CLI ends a refusal
-that looks like the API has moved (a route that is gone, a field it relies on missing from a
-response) with `Your faces-cli (X) may be out of date. Update with npm install -g faces-cli
-and try again.` Do that, then retry; do not work around it.
+**When the CLI says it may be out of date, update it.** A refusal that ends `Your faces-cli (X)
+may be out of date. Update with npm install -g faces-cli and try again.` means the API has moved
+under this version. Update, then retry; do not work around it.
 
 ## Current config
 !`faces config:show 2>/dev/null || echo "(no config saved)"`
 
 ## Anything compiling right now
-!`faces compile:status 2>/dev/null || echo "(not signed in, or faces-cli older than 1.12.0)"`
+!`faces compile:status 2>/dev/null || echo "(not signed in)"`
 
 ## Setup
 
@@ -73,228 +55,178 @@ echo "EXIT:$?"
 [ -f ~/.faces/config.json ] && echo "HAS_CONFIG" || echo "NO_CONFIG"
 ```
 
-If `NOT_INSTALLED` (the auth check then prints `EXIT:127`, command not found): run `npm install -g faces-cli@latest` and re-run setup.
+If `NOT_INSTALLED` (the auth check then prints `EXIT:127`): run `npm install -g
+faces-cli@latest` and run setup again.
 
-If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`. Once auth triage below reaches `EXIT:0`, run `faces catalog:doctor --fix` to migrate local catalog files (FACE.md and TEAM.md) to the latest format. It needs a signed-in account, so before sign-in it fails with "Authentication required"; that is not a broken update.
-
-**If `faces --version` is below 1.20.0, update before any compile, even with no `UPDATE_AVAILABLE` line.** The API changed its compile calls and progress fields on 2026-10-20, so an older CLI's compile commands fail or wait on progress that never arrives. Tell the user that is why you are updating.
+If `UPDATE_AVAILABLE`: run `npm install -g faces-cli@latest`, and tell the user you are
+updating so the commands below match. Once auth triage reaches `EXIT:0`, run
+`faces catalog:doctor --fix` to bring the local FACE.md and TEAM.md files up to date. Before
+sign-in it fails with "Authentication required"; that is not a broken update.
 
 **Auth triage:**
 
-- `EXIT:0` → authenticated. Proceed.
-- `EXIT:127` → the CLI is not installed. Install it as above and re-run, before anything else.
-- `EXIT:1` + `HAS_CONFIG` → returning user. Read the whoami output to
-  understand what failed. Present the diagnosis to the user and help them
-  fix it. Do NOT walk through QUICKSTART or ask about plans.
-- `EXIT:1` + `NO_CONFIG` → new user. See
-  [references/QUICKSTART.md](references/QUICKSTART.md) for setup.
+- `EXIT:0`: signed in. Proceed.
+- `EXIT:127`: the CLI is not installed. Install it as above first.
+- `EXIT:1` + `HAS_CONFIG`: a returning user. Read the whoami output to see what failed, explain
+  it, and help fix it. Do NOT walk through QUICKSTART or ask about plans.
+- `EXIT:1` + `NO_CONFIG`: a new user. See [references/QUICKSTART.md](references/QUICKSTART.md).
 
-**Secret hygiene:** Never display API keys, tokens, or passwords from config
-files. Always mask them (e.g. `sk-faces-...dN`).
+**Secret hygiene:** never display API keys, tokens or passwords from config files. Mask them
+(`sk-faces-...dN`).
 
-Never run `faces config:clear` (wipes everything with no recovery).
+Never run `faces config:clear` (it wipes everything, with no recovery).
 
 ## Core workflows
 
-### 1. Create a Face
+### 1. Create a face
 
-`face:create` takes **no source material** — it makes an empty face. Sources attach afterwards
-(step 2), with `compile:doc` for text, `compile:upload` for files.
+Every account already has a face of its own, aliased **`me`**. To build the user's own face,
+compile into `me` rather than creating another. See
+[REFERENCE.md → The `me` face](references/REFERENCE.md#the-me-face).
+
+`face:create` takes **no source material**: it makes an empty face, and sources attach
+afterwards (step 2).
 
 ```bash
 faces face:create --name "Name" --alias slug --default-model MODEL \
   --description "Plain-text bio" \
-  --specialty "what this face is for" \
+  --specialty "what this face is known for" \
   --attr gender=man --attr age=34 --attr location="Portland, OR" \
   --attr occupation="Works as a nurse practitioner at a county clinic." \
   --tag research --tag physics
 ```
 
-`--description` is stored on the server (max 1500 chars) and synced to the local catalog.
-`--specialty` is the short line shown beside the name in listings and on the face's card —
-"tax law", "my own voice". Both are editable later with `face:edit`; an empty string
-clears the specialty.
-`--tag` adds lowercase labels for organization and search (repeatable, max 32 per face).
-
-`--attr` takes **twelve keys and no others**. Three are fields with a bare value: `age`
-(`"45"`), `gender` (`"woman"`), `location` (`"Lisbon, Portugal"`). Nine take a short
-sentence: `identity`, `education`, `occupation`, `religion`, `family`, `relationships`,
-`health`, `languages`, `background`. Anything else about the person goes in one of those as
-a sentence. Any other key is a `422` naming it, and **nothing in that request is saved**, so
-fix the key and send it all again. `faces face:attributes` lists them with what each holds.
-
-**Per-face system prompt (`--profile-addendum`).** Give a face a stored system prompt with `--profile-addendum "…"` (or `--profile-addendum-file path.txt` for long prompts; max 100,000 chars). At inference it sits **between** the auto-generated persona and any per-request `--system` prompt — use it for durable behavior rules (tone, format, hard constraints) that should apply to every chat. Edit it with `face:edit --profile-addendum …` and remove it with `face:edit --clear-profile-addendum`. `face:get` shows a preview + char count (`--full` dumps it); it's proprietary and only ever returned for your own faces. A run-time composite borrows its **first operand's** addendum; a persisted composite uses its own.
+- `--description` is a bio of up to 1,500 characters; `--specialty` the one line a card shows
+  under the name (80 characters). Both are metadata, editable with `face:edit`; an empty string
+  clears the specialty.
+- `--tag` adds lowercase labels (repeatable, at most 32 per face).
+- `--attr` takes **twelve keys and no others**. Three take a bare value: `age` (`"45"`),
+  `gender` (`"woman"`), `location` (`"Lisbon, Portugal"`). Nine take a short sentence:
+  `identity`, `education`, `occupation`, `religion`, `family`, `relationships`, `health`,
+  `languages`, `background`. Any other key is a `422` naming it, and **nothing in that request
+  is saved**: fix the key and send it all again. `faces face:attributes` lists them.
+- **`--profile-addendum "…"`** (or `--profile-addendum-file path.txt`, up to 100,000
+  characters) stores a system prompt fragment sent with every chat request to this face,
+  alongside any per-request `--system`. Use it for durable rules: tone, format, hard
+  constraints. Edit with `face:edit --profile-addendum …`, remove with `face:edit
+  --clear-profile-addendum`. Only the owner ever sees it.
 
 ### 2. Add source material
 
-> **Thread or document? Decide this first.** Any source with more than one
-> speaker (an interview, podcast, conversation, Q&A, panel) is a **thread**: it
-> preserves who said what, and you map the target person's own lines with
-> `--face-speaker`. Only single-voice material (an essay, article, solo talk, or
-> the person's own writing) is a **document**. Compiling a multi-speaker source
-> as a document flattens the dialogue into one voice and corrupts the face, so
-> when in doubt, if two or more people are talking, it is a thread.
+> **Thread or document? Decide this first.** Any source with more than one speaker (an
+> interview, podcast, conversation, Q&A, panel) is a **thread**: it keeps who said what, and
+> `--face-speaker` names the face's own lines. Only single-voice material (an essay, article,
+> solo talk, the person's own writing) is a **document**. Compiling a multi-speaker source as a
+> document reads every speaker as the face, so if two or more people are talking, it is a
+> thread.
 
-> **Uploading a thread is the failure-prone step: always inspect the speaker
-> mapping with `compile:thread:get` before you compile.** This holds for *every*
-> thread — a text transcript just as much as audio/video. Compiling before you
-> check bakes the wrong person into the face. See **Verify speaker attribution**
-> below.
+> **Check the speaker mapping of every thread with `compile:thread:get` before you compile
+> it**, text transcripts as much as audio and video. See **Verify speaker attribution** below.
 
-> **By them or about them? Always pass `--perspective`.** The default is not the
-> same everywhere: `compile:doc` and `compile:doc:create` default to
-> `first-person`, while `compile:upload` and `compile:import` default to
-> `third-person` (an uploaded file is as often someone else's writing). So say it
-> on every call.
-> - **First-person**: the person's own words: their essays, letters, interview
->   answers, talks, notes. Pass `--perspective first-person`, above all on
->   `compile:upload` and `compile:import`, or their own PDF is compiled as writing
->   *about* them and style capture refuses it.
-> - **Third-person**: material *about* the person: a biography, an
->   encyclopedia/Wikipedia article, a news profile, anyone else's writing about
->   them. Pass `--perspective third-person`, above all on `compile:doc`, or it is
->   compiled as if the subject wrote it and corrupts the face.
+> **By them or about them? Always pass `--perspective`.** `compile:doc` and
+> `compile:doc:create` default to `first-person`; `compile:upload` and `compile:import` default
+> to `third-person`. So say it on every call.
+> - **First-person**: the person's own words: essays, letters, interview answers, talks, notes.
+>   Above all on `compile:upload` and `compile:import`, or their own PDF is read as writing
+>   *about* them and never goes into a style.
+> - **Third-person**: material *about* them: a biography, an encyclopedia article, a news
+>   profile, anyone else's writing about them. Above all on `compile:doc`, or it is read as if
+>   the subject wrote it.
 
-**Interview** (no documents needed — best way to build a face from scratch):
-Run a Q&A interview with the user, save the transcript, upload and compile.
-See [references/INTERVIEWS.md](references/INTERVIEWS.md) for both modes (agent-as-interviewer recommended, built-in interviewer also available).
+**Interview** (no documents needed; the best way to build a face from scratch): run a Q&A
+with the user, save the transcript, upload and compile. See
+[references/INTERVIEWS.md](references/INTERVIEWS.md).
 
-**Document (single-voice — essay, notes):**
+**Document (single voice):**
 ```bash
-# Text you already have — a transcript in hand, a draft, anything not on disk.
-# Pass it verbatim; do NOT retype or summarise it, or the face learns your paraphrase.
+# Text you already have (a transcript in hand, a draft, anything not on disk).
+# Pass it verbatim: do NOT retype or summarise it.
 faces compile:doc alias --content "<text>" --label "Interview" --medium conversation --perspective first-person --no-wait --json
-# By the subject (their own essay/notes)
+# By the subject (their own essay or notes)
 faces compile:doc alias --file document.txt --medium essay --perspective first-person --no-wait --json
 # Several at once: --file is repeatable and each file becomes its own document.
-# Returns {"documents":[{file, document_id}...]} in input order — one call, not one per file.
-# One --medium applies to all of them, so group files of the same kind in one call.
+# Returns {"documents":[{file, document_id}...]} in input order. One --medium applies to all.
 faces compile:doc alias --file a.txt --file b.txt --file c.txt --medium essay --perspective first-person --no-wait --json
-# About the subject (biography, Wikipedia, news profile) — you MUST set third-person
+# About the subject (biography, encyclopedia article, news profile): third-person
 faces compile:doc alias --file biography.txt --medium essay --perspective third-person --no-wait --json
-# compile:doc takes TEXT only. For PDF, Word (.docx), audio or video use compile:upload instead.
-# Poll: faces compile:doc:get DOC_ID --status-only --json | jq '{status, progress}'
+# compile:doc takes TEXT only. For PDF, Word (.docx), audio or video use compile:upload.
 ```
 
-**Every compile must declare `--medium`, and you must not guess it.** A compile reads
-writing differently per medium and the server refuses to infer one, because a wrong
-medium teaches the wrong voice and nothing afterwards says it happened.
+**Every document declares a `--medium`, and you must not guess it.** The server will not save a
+document without one, and never infers it. Eleven values, spelled exactly:
 
-**Eleven values, spelled exactly.** There are no synonyms: `transcript`, `keynote`,
-`sms` and the other 32 aliases used to fold and are each a 422 now.
+`academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`, `legal document`,
+`other`, `social post`, `text message`, `thread reply`.
 
-`academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,
-`legal document`, `other`, `social post`, `text message`, `thread reply`.
+Any other word is a `422` naming the eleven. `conversation` is dialogue (a transcript, an
+interview, a call); `lecture` is prepared speech nobody interrupts (a talk, a sermon, a
+keynote). **`other`** is for writing in none of the named forms, and it compiles; it is not a
+way to avoid asking. A letter, a diary entry and a memo have rules of their own, and filing them
+under `other` is the same mistake as filing them under `essay`. **Where the user has not said,
+ask**: it is one question with an obvious answer. Do not infer it from the filename or the
+text. A medium can be changed later (`compile:doc:edit <id> --medium <medium>`), never cleared.
 
-`conversation` is dialogue — a transcript, an interview, a call. `lecture` is sustained
-speech nobody interrupts — a talk, a sermon, a keynote. Those are descriptions of which
-value to reach for, not spellings that work: send the value itself.
+A source that cannot be compiled says why in `compile_blocked_reason` (and a `/make` refusal
+carries the same code in `error_code`). Branch on the code:
 
-**`other` is the eleventh, and it is the answer when none of the forms fit** — a few
-paragraphs someone wrote that are not an email, an essay, a lecture or a legal
-document. It is a declaration by the author and it compiles. A source filed this way is
-read as prose with no form-specific conventions assumed, and its rules are stored under
-`other` and applied only to `other`, so nobody's email habits reach it and its habits
-reach nothing else.
-
-It is **not** a shrug and not a dumping ground. A letter, a diary entry and a memo are
-real forms with their own rules, and filing those under `other` is the same mistake as
-filing them under `essay`. Reaching for `other` because nothing fits is right; reaching
-for it to avoid asking is exactly what "do not guess" is about.
-
-**No document can be saved without one.** The server answers a create, an upload or a
-YouTube import of a document with no medium with a `422` naming the eleven, and faces-cli
-1.16.0+ refuses before sending anything (`compile:doc`, `compile:doc:create`,
-`compile:upload --kind document`, `compile:import --type document`), so there is nothing to
-clean up. A medium can be changed, never cleared. Only a document saved before this was
-required can be without one: it is refused at compile, and needs `compile:doc:edit <id>
---medium <medium>` first:
-
-```
-400 {"error_code": "no_medium", "message": "this document has not said what it is..."}
-```
-
-**Where the user has not said, ask.** It is one question with an obvious answer in almost
-every case, and it is the difference between a face that writes like the person and one
-that does not. Do not infer it from the filename or the text.
-
-Every compile refusal names itself in `error_code`, which is what to branch on. These
-used to be a `202` followed by silence; the CLI prints the repair for the first four
-(faces-cli 1.20.0 shows `too_short` by its code alone):
-
-| `error_code` | what happened | what to tell the user |
+| code | what happened | what to tell the user |
 |---|---|---|
-| `no_medium` | never said what it is | declare one: `faces compile:doc:edit <id> --medium essay` |
-| `empty` | no text to compile | add content before compiling |
-| `no_user_messages` | nothing the subject wrote | a fresh interview holds only the interviewer's question; it becomes compilable on the first answer |
-| `too_short` | under the minimum length: `word_count` is below `compile_min_words` (50) | add text, or merge it into a longer source; compiling it as it is gives a `400` |
-| `corpus_room` | a bulk upload for style capture | capture a style with `faces style:make`, or upload the same material with `--kind thread` to compile it |
+| `empty` | no text to compile | add content first |
+| `too_short` | under `compile_min_words` (50) words | add text, or merge it into a longer source |
+| `no_user_messages` | nothing the subject wrote | a fresh interview holds only the opening question; it becomes compilable on the first answer |
+| `corpus_thread` | uploaded material for a style | build a style from it with `faces style:make`, or upload the same material with `--kind thread` to compile it |
 
-Treat an unknown code as "cannot be compiled". The set is not closed.
+Treat an unknown code as "cannot be compiled". The set grows.
 
-**YouTube solo talk → document:**
+**YouTube, one speaker → document:**
 ```bash
 faces compile:import alias --url "URL" --type document --medium lecture --perspective first-person --no-wait --json
-# A talk nobody interrupts is a lecture; ask if it is something else. --medium is required here.
-# Returns doc_id immediately. Poll for transcription then compilation.
+# A talk nobody interrupts is a lecture; ask if it is something else.
 ```
 
-**YouTube multi-speaker → thread:**
+**YouTube, several speakers → thread:**
 ```bash
 faces compile:import alias --url "URL" --type thread --no-wait --json
-# Returns thread_id. After transcription completes, remap speaker:
+# When transcription finishes, check the speakers and map the face's:
+faces compile:thread:get THREAD_ID
 faces compile:thread:edit THREAD_ID --face-speaker "A"
 faces compile:thread:make THREAD_ID --no-wait --json
 ```
 
-**Upload a local file (text, PDF, Word .docx, audio, video):**
+**A local file (text, PDF, Word .docx, audio, video):**
 ```bash
-# Document (text, PDF, or Word .docx; text is extracted server-side).
-# compile:upload defaults to third-person: pass first-person for the subject's own writing.
+# Document. compile:upload defaults to third-person: pass first-person for the subject's own writing.
 DOC_ID=$(faces compile:upload alias --file report.pdf --kind document --medium <medium> --perspective first-person --no-wait --json | jq -r '.document_id // .id')
 faces compile:doc:make "$DOC_ID" --no-wait --json
 
-# Thread from text transcript (you know the speakers — pass --face-speaker)
+# Thread from a text transcript (you know the speakers: pass --face-speaker)
 THREAD_ID=$(faces compile:upload alias --file transcript.txt --kind thread --face-speaker "Name" --no-wait --json | jq -r '.thread_id // .id')
-faces compile:thread:get "$THREAD_ID"   # ALWAYS verify the mapping first (see below) — don't assume text is right
+faces compile:thread:get "$THREAD_ID"   # ALWAYS check the mapping first
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 
-# Thread from audio/video — DON'T pass --face-speaker at upload
+# Thread from audio or video: do NOT pass --face-speaker at upload
 THREAD_ID=$(faces compile:upload alias --file recording.mp4 --kind thread --no-wait --json | jq -r '.thread_id // .id')
-# Poll for transcription:
-faces compile:thread:get "$THREAD_ID" --status-only --json | jq '{status}'
-# When transcription is done (status: "not_compiled"), review and remap:
+faces compile:thread:get "$THREAD_ID" --status-only --json | jq '{status}'   # wait for "not_compiled"
 faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
 
-**Compilation auto-extracts attributes.** When source text contains biographical details (age, location, occupation, etc.), the compiler automatically populates the face's attributes. This is additive — it won't overwrite attributes set manually via `--attr`.
+**Compiling can fill in attributes.** Biographical details in a source (age, location,
+occupation and so on) can update the face's attributes. A value you set yourself replaces the
+current one, and a later compile can still refine it, so check them after a big upload.
 
-**Always use `--no-wait`** for compile and upload operations. Each operation
-runs independently on the server — you can fire multiple compiles in parallel
-without waiting for any to finish. Upload all sources, kick off all compiles,
-then poll them all at the end. Poll on your own schedule:
+**Always use `--no-wait`** for compiles and uploads. Each runs on its own on the server: upload
+every source, start every compile, then poll at the end.
+
+**Poll with `--status-only`**, which leaves the text out of every tick:
 ```bash
-faces compile:thread:get ID --status-only --json | jq '{status, progress}'
-faces compile:doc:get ID --status-only --json | jq '{status, progress}'
+faces compile:thread:get ID --status-only --json | jq '{status, progress, finishing}'
+faces compile:doc:get ID --status-only --json | jq '{status, progress, finishing}'
 ```
 
-**Always poll with `--status-only`.** Without it the whole source comes back on every
-tick, and for an agent the document's full text lands in context each time. The status
-response is a few hundred bytes where the full one was 21KB for a document and 120KB for
-a thread, and it grows with the source while this does not. The cheap response carries
-everything a poller needs, including `synced`, `version`, `synced_version` and
-`synced_at`.
-
-`--status-only` is a **per-item** thing. The account-wide `compile:doc:list` and
-`compile:thread:list` do not take it, and the underlying routes ignore
-`?status_only=true` entirely — asking for it there returns the full 2.1MB. To ask what
-is compiling across the whole account, use `compile:status` below rather than a list.
-
-**To ask whether anything is still compiling, use `faces compile:status`** rather than
-polling sources one by one. It answers for the whole account in one small call: 123
-bytes idle, against 2.1MB for the document list. Needs faces-cli 1.12.0.
+**To ask whether anything is still compiling, use `faces compile:status`**: the whole account
+in one small call.
 
 ```bash
 faces compile:status                 # what is in flight, grouped by face
@@ -302,290 +234,251 @@ faces compile:status --json          # sources_active is the field to branch on
 faces compile:status --watch         # poll until the account is quiet, then exit
 ```
 
-This is the question a resumed session cannot answer from its own memory. A compile
-started in an earlier turn, or by the user on another machine, is otherwise invisible,
-and the failure mode is reporting work finished when it is still running.
+A compile started in an earlier turn, or by the user on another machine, is otherwise
+invisible: check before reporting work finished.
 
-**`sources_active: 0` means nothing is RUNNING, not nothing is outstanding.** Running,
-queued and retried sources are counted. Paused ones are not: they are listed apart in
-`paused`, since they wait on you, and `--watch` does not wait for them. So if you paused a
-compile, look in `paused` before reporting that the work completed. faces-cli 1.20.0
-prints that list, with the command that resumes each one.
-
-**Branch on `measurable` before reporting a percentage.** Every source, every face and the
-account carry `progress`, from 0 to 1. On a face and on the account it is `null` while it
-cannot be measured, during a transcription for one, and `measurable` is false: say
-"working" rather than inventing a number. Read `sources_active` first: `measurable` is
-false on an idle account, which is neither true nor useful. A source that is `queued` has
-progress 0 and is waiting, not stuck: say "queued", never "0%" (faces-cli 1.20.0+ does).
-
-`faces` in that response is activity, not a roster. A face appears only while it has
-work, so it is never a listing of the account's faces.
-
-Status meanings (the `status` field, with `progress` from 0 to 1 beside it). These replaced
-`prepare_status`, `chunks_total` and `chunks_completed`, which the API no longer sends;
-faces-cli 1.20.0 is the first version that reads them, so update an older CLI before
-compiling.
+- **`sources_active: 0` means nothing is RUNNING, not nothing is outstanding.** Queued and
+  retrying sources count; paused ones do not. They are listed apart in `paused`, with the
+  command that resumes each, and `--watch` does not wait for them.
+- **Branch on `measurable` before reporting a percentage.** While a face or the account cannot
+  be measured (during a transcription, for one), `progress` is `null`: say "working". A `queued`
+  source has progress 0 and is waiting, not stuck: say "queued", never "0%".
 
 | Status | Meaning | Action |
-|--------|---------|--------|
-| `"not_compiled"` | Never compiled (or transcription finished) | Run `compile:thread:make` or `compile:doc:make` |
-| `"transcribing"` | Audio/video being transcribed | Keep polling |
-| `"queued"` | Waiting behind the face's other sources (a face compiles one source at a time), or interrupted and about to resume by itself | Keep polling; say "queued", never "0%" |
-| `"compiling"` | Running; `progress` says how far | Keep polling |
-| `"compiled"` | Done; `progress` is 1 | Compilation complete. The face's style update for it can finish up to about a minute later in the background; do not wait for it |
-| `"paused"` | Paused by you or the user; nothing moves until it is resumed | Resume with `compile:*:make` or reset with `compile:*:reset` |
-| `"failed"` | Finished without success | Read `finishing` first: `true` means the server is still retrying, so wait. Otherwise `stall_reason` and `error_code` say why |
+|---|---|---|
+| `not_compiled` | Never compiled (or transcription finished) | `compile:doc:make` or `compile:thread:make` |
+| `transcribing` | Audio or video being transcribed | Keep polling |
+| `queued` | Waiting behind the face's other sources, or about to resume by itself | Keep polling; say "queued" |
+| `compiling` | Running; `progress` says how far | Keep polling |
+| `compiled` | Done; `progress` is 1 | Finished. For a document, its writing style catches up within about a minute; do not wait for it |
+| `paused` | Paused; nothing moves until it is resumed | Resume with `compile:*:make`, or `compile:*:reset` |
+| `failed` | Ended without success | Read `finishing` first: `true` means the server is still on it, so wait. Otherwise `stall_reason` and `error_code` say why |
 
-Treat a status not in this table as `"compiling"`. `/make` is the only compile call:
-`/prepare` and `/sync` are gone, and so is `compile:thread:sync`. A second `/make` of an
-unchanged, compiled source is refused with `409` `error_code: "already_compiled"` and
-nothing is charged; to compile it again, edit it or `compile:*:reset` it first.
+Treat a status not in this table as `compiling`. `/make` is the only compile call. A second
+`/make` of an unchanged, compiled source is a `409 already_compiled`, and nothing is charged; to
+compile it again, edit it or `compile:*:reset` it first.
 
-**If YouTube blocks the download** ("Sign in to confirm you're not a bot"):
-Download locally with yt-dlp, extract and compress audio with ffmpeg, upload.
-Keep files under 100MB — large uploads can fail. For long recordings (1hr+),
-use mono 48kbps:
+**If YouTube blocks the download** ("Sign in to confirm you're not a bot"): download it locally
+with yt-dlp, extract and compress the audio with ffmpeg, and upload that. Keep files under
+100MB; for recordings over an hour, use mono 48kbps:
 ```bash
 yt-dlp --cookies-from-browser chrome -o episode.mp4 "https://youtube.com/watch?v=VIDEO_ID"
 ffmpeg -i episode.mp4 -vn -ac 1 -b:a 48k episode.mp3
 THREAD_ID=$(faces compile:upload alias --file episode.mp3 --kind thread --no-wait --json | jq -r '.thread_id // .id')
-# Poll for transcription, then review, remap, compile:
+# Wait for transcription, then check, remap, compile:
 faces compile:thread:get "$THREAD_ID"
 faces compile:thread:edit "$THREAD_ID" --face-speaker "A"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 ```
-Use `--kind document` for solo speakers.
+Use `--kind document --medium lecture` for a solo speaker.
 
-**`--face-speaker` label rules:**
-- Audio/video transcription: speakers are labeled `A`, `B`, `C` — use the short label (e.g. `--face-speaker B`)
-- Text transcript uploads: the label matches the speaker name in the file (e.g. `--face-speaker Troy`)
-- Match is case-insensitive but exact
+**`--face-speaker` labels:**
+- Audio or video: speakers are transcribed as `A`, `B`, `C`; use the label (`--face-speaker B`).
+- Text transcripts: use the speaker name as it appears in the file (`--face-speaker Troy`).
+- The match is case-insensitive but exact. If the upload warns `face_speaker_not_found`, the
+  name matched nobody and the face has no lines of its own: upload again with a name in the
+  file. `unattributed_lines` are lines before the first `Speaker:` prefix, and are not in the
+  thread.
 
-**Verify speaker attribution (every thread, before `compile:thread:make`).**
-An omitted or mismatched `--face-speaker`, fuzzy matching, or `A`/`B`/`C` labels
-can all put the wrong person's lines on the face. Whether the source was text or
-audio/video, run `compile:thread:get <thread_id>` and confirm:
+**Verify speaker attribution (every thread, before `compile:thread:make`).** Run
+`compile:thread:get <thread_id>` and confirm:
 
-1. **Roles are right** — the face's own speaker is `role=user`; everyone else
-   (interviewer, host, other guests) is `role=assistant`.
-2. **Spot-check, don't over-read** — check a few turns (first, middle, last) that
-   the `user` turns are actually the subject speaking. For a large transcript you
-   do not need to read every line; a smell-test is enough.
-3. **Fix and re-check if wrong** — `faces compile:thread:edit <thread_id>
-   --face-speaker …`, then `compile:thread:get` again. Only compile once the
-   mapping checks out.
+1. **Roles are right**: the face's own speaker is `role=user`; everyone else (interviewer,
+   host, other guests) is `role=assistant`.
+2. **Spot-check**: a few turns (first, middle, last) where `user` is really the subject
+   speaking. A smell test is enough; you do not need to read every line.
+3. **Fix and check again if wrong**: `faces compile:thread:edit <thread_id> --face-speaker …`,
+   then `compile:thread:get` again. Compile only once the mapping is right.
 
-**Read-only (frozen) documents & threads.** Some items come back locked. A
-`compile:doc:list`/`:get` or `compile:thread:list`/`:get` prints a bare `read
-only` line when the item is frozen (in human output nothing is printed when it's
-writable; in `--json`, `read_only` is always there, `true` or `false`). Frozen items
-are fully readable and can still be deleted. A write to their **content**
-(`compile:thread:message`, `compile:thread:replace`, a content edit) is refused with:
+**Read-only documents and threads.** Some come back with `read_only: true` (threads made by
+`style:upload`, for one). They can be read and deleted, but a write to their **content**
+(`compile:thread:message`, `compile:thread:replace`, a content edit) is a `409`: say it is
+read-only rather than retrying. Their label and medium can still be changed with
+`compile:thread:edit --label`, `--medium` and `--clear-medium`. To freeze or thaw a whole face,
+use `face:lock` / `face:unlock`.
 
-```
-Error (409): This document is read-only and cannot be edited.
-```
+### 3. Build a style (optional)
 
-(threads say `This corpus is read-only…`). Don't retry the write — surface that
-the item is frozen. Labelling and reading-as corrections are not content and are
-accepted on a frozen corpus room: `compile:thread:edit ID --label`, `--medium` and
-`--clear-medium` all succeed, which is how an `unknown` room gets its medium (see §3).
-Today only style **corpus** uploads (`style:upload`) produce
-locked threads; nothing locks individual documents. There is no per-item toggle for
-these; to freeze or thaw a whole face, use `face:lock` / `face:unlock` (see
-[references/REFERENCE.md](references/REFERENCE.md#face-locking)).
-
-### 3. Capture how it writes (optional)
-
-*Requires faces-cli 1.8.0 or newer.*
-
-Compiling teaches a face **what it knows**. Style teaches it **how it sounds**. They are
-separate acts and most faces only need the first. Capture style when the face is a real
-person and you have their own writing — mail, messages, essays. First-person material only:
-writing *about* someone teaches the wrong writer.
+Every source has a medium. A **style build** reads a face's own writing in one medium and
+installs a style for it, so the face writes better in that medium. A face holds a separate style
+per medium. Most faces only need compiling; build a style when the face is a real person and you
+have their own writing: mail, messages, essays. Writing *about* someone never goes into a style.
 
 ```bash
-# Load a corpus. Stores only — nothing compiles, nothing is billed.
+# Load a corpus of their own writing. Stores only: nothing compiled, nothing billed.
 faces style:upload alias ./mail.jsonl
 
-# Find the rooms it made, then capture from them by id.
+# Find the threads it made, then build from them by id.
 faces face:sources alias --type thread --json | jq -r '.threads[] | "\(.id)  \(.medium)  \(.label)"'
-faces style:make alias --source ROOM_ID_1 --source ROOM_ID_2 --no-wait --json
-faces style:status --face alias          # recover the job id if you lose it
+faces style:make alias --source THREAD_ID_1 --source THREAD_ID_2 --no-wait --json
+faces style:status --face alias          # find the job id if you lose it
 ```
 
-**The corpus file is one JSON object per line, one message each.** Four fields are
-required: `author` (`self` when the face's subject wrote it, `other` when someone else
-did), `sender`, `date` (ISO-8601) and the text in `snippet`. `kind`, if present, must be
-one of the eleven media. `body`, `content` and `role` are not accepted, and a line using
-them is skipped as invalid (`--strict` refuses the whole file). A working line:
+**The corpus file is one JSON object per line, one message each.** Each needs `author` (`self`
+when the face's subject wrote it, `other` when someone else did), `sender`, `date` (ISO-8601)
+and its text in `plaintextBody`, `htmlBody` or `snippet`. `kind`, if present, must be one of
+the eleven media. Upload **one medium per file**: a file that mixes media makes threads with no
+medium, which no style can be built from until one is set with `faces compile:thread:edit
+THREAD_ID --medium <medium>`.
 
 ```json
 {"author": "self", "sender": "alice@example.com", "date": "2026-03-14T09:12:00Z", "kind": "email", "snippet": "Friday works. I'll bring the draft and we can cut it down together."}
 ```
 
-**`--all` takes everything on the face, interview threads included.** With `--medium`,
-any source that declares no medium of its own is stamped with it, so on a face that also
-has an interview thread, `style:make alias --all --medium email` learns an "email" style
-partly from the interview transcript. Use `--all` only when every source on the face is the
-subject's own writing in that one medium. Otherwise name the sources: list them with
-`faces face:sources alias`, then pass each with `--source ID` (or `--source "ID:MEDIUM"`).
+**`--all` takes everything ready on the face, interview threads included.** With `--medium`,
+any source that declares no medium of its own is stamped with it, so on a face that also has an
+interview, `style:make alias --all --medium email` builds an email style partly from the
+interview. Use `--all` only when every source is the subject's own writing in one medium.
+Otherwise name the sources: `faces face:sources alias`, then `--source ID` (or
+`--source "ID:MEDIUM"`) for each.
 
-**Always declare the medium.** Each is analysed separately, so an essay never teaches a
-rule about email. A source that does not say what it is gets refused, not guessed:
+**Declare the medium.** `--medium` fills in only where a source declares none, and never
+overrides one that does. A source with no medium is refused, not guessed. **Quote `"ID:MEDIUM"`
+when the id is a shell variable**: in zsh `$DOC_ID:essay` silently becomes `ssay`.
+
+**Cost.** On Connect and Pro a build is not billed, and runs on the linked ChatGPT plan when
+one is linked. On Free it is paid from credits, so the CLI asks for `--allow-paid`: pass it only
+when the user has said they want to pay. If a build fails on the ChatGPT link
+(`CHATGPT_AUTH`), the link has expired: `faces auth:connect openai`, then build again.
+
+**Building does not apply it.** Pass `--style <medium>` on a chat:
 
 ```bash
-faces style:make alias --source "$DOC_ID:essay"    # one source, one medium
-faces style:make alias --all --medium email        # fills in ONLY where nothing is declared; see the --all warning above
+faces chat:chat alias -m "Reply to the note below." --style email
 ```
 
-`--medium` never overrides a source that already declares one; it only fills gaps, and a
-source that already declares one is left to the server to resolve. An imported corpus room
-whose messages declared nothing reads as `unknown`, which is not a medium and contributes
-**no style** — correct it with `faces compile:thread:edit THREAD_ID --medium lecture`,
-which sticks. A wrong declaration is
-worse than a missing one — a mislabelled source teaches the wrong voice and nothing
-afterwards says it happened.
+A style adds roughly 2,000 to 3,500 input tokens to each request that uses it. A medium the
+face has no style for is a `400` naming the ones it has. `--medium <medium>` is different: it
+says what the reply is, needs no build, and is never refused. Every face carries `styles`, the
+media it has a built style for: `face:get` prints them and `face:list --has-style` filters to
+faces with any. Read it before offering `--style`.
 
-**Quote `ID:MEDIUM` when the id is a shell variable.** In zsh `$DOC_ID:essay` is read as
-a history modifier and silently becomes `ssay`. Use `"$DOC_ID:essay"`.
-
-**Do not switch models to fix an auth failure.** The default model runs on the user's own
-linked ChatGPT account for free; a billing model is refused rather than warned about. If a
-capture fails on authentication the link has expired: `faces auth:connect openai`. Use
-`--allow-paid` only when the user has said they want to pay.
-
-A face holds one style **per medium**, so several can be in use at once and version
-numbers restart per medium:
+A face holds one style per medium, and version numbers count per medium:
 
 ```bash
 faces style:versions alias                      # REVERTABLE says whether revert will work
-faces style:revert alias --medium essay --yes   # a toggle; run again to return
+faces style:revert alias --medium essay --yes   # a toggle: run it again to return
+faces style:delete alias --medium email --yes   # forget one medium's style; sources are kept
 ```
 
-**Capturing does not apply it.** Prefix the alias with `+` to use the captured style;
-without the `+` the face answers in its ordinary voice:
-
-```bash
-faces chat:chat +alias -m "..." --medium email
-```
-
-A `+` on a face with no style is a 409, not a fallback.
-
-`--medium` picks WHICH captured style. A face holds one per medium, and `deepself` lists
-the ones it has: `face:list --has-style` shows them (`[style: email, lecture]`).
-
-A **plain alias accepts any medium** — declaring one replaces the classifier's guess and
-nothing else. **`+alias` with a medium the face has no style for is a 400**, not a
-fallback, so check `deepself` before offering the choice.
-
-To see which faces already have one, without a call per face:
-
-```bash
-faces face:list --has-style          # marked [style] in the normal listing too
-```
-
-**Styles can also capture themselves.** Once a face has enough of its **own** writing in a
-medium (10,000 words for essay, academic paper, blog post and legal document; 15,000 for the
-rest), the server captures that medium without being asked, and again at 2x and 3x the
-threshold. It installs at once, like a manual capture, and `style:revert` undoes it. Email
-and text message count only from uploaded message threads, and `other` is never captured
-this way. On Subscription Connect it is **on by default and free**; on pay-per-token it is
-**off by default and bills per token** when turned on. So after a large upload of the subject's own
-writing, a style may appear that nobody ran: `faces style:status --face alias` marks those
-`BY auto`. Change it only when the user asks (*faces-cli 1.13.0+*):
+**Styles also build themselves.** Once a face has enough of its **own** writing in a medium
+(10,000 words for essay, academic paper, blog post and legal document; 15,000 for the rest), a
+build runs for that medium without being asked, and again at 2x and 3x the threshold. It
+installs at once, and `style:revert` undoes it. On Connect and Pro this is **on by default and
+not billed**; on Free it is **off by default and bills per token** when on. `faces
+style:status --face alias` marks these `BY auto`. Change it only when the user asks:
 
 ```bash
 faces account:preferences                                # auto_style: on/off, and why
-faces account:preferences auto_style off                 # stop future automatic captures
+faces account:preferences auto_style off                 # stop future automatic builds
 faces account:preferences auto_style default             # back to the plan's default
-faces account:preferences auto_style on --allow-paid     # pay-per-token: refused without --allow-paid
+faces account:preferences auto_style on --allow-paid     # Free: refused without --allow-paid
 faces account:preferences auto_style_thresholds "email=25000,essay=default"
 ```
 
-Turning it off removes nothing already installed.
-
-**One capture per face and medium at a time.** Starting a second is a `409
-build_in_progress` naming the running job: follow it with `faces style:status JOB_ID --wait`
-rather than retrying. A finished capture can warn that it **left out third-person documents**
-or rests on a **thin sample** for a medium; it installed anyway, so pass those on to the user.
+**One build per face and medium at a time.** A second is a `409 build_in_progress` naming the
+running job: follow it with `faces style:status JOB_ID --wait`. A finished build can report that
+it **left out third-person documents** or rests on a **thin sample** for a medium; it installed
+anyway, so pass that on to the user.
 
 See [REFERENCE.md → Style](references/REFERENCE.md#style-how-a-face-writes-style).
 
 ### 4. Chat
 
 ```bash
-faces chat:chat alias -m "message"
+faces chat:chat alias -m "message"                     # on the face's default model
+faces chat:chat alias --llm claude-sonnet-4-6 -m "…"   # on another model
+faces chat:chat alias -m "…" --show-cause              # also print the cause, to stderr
+faces causes alias -m "…"                              # the cause alone: no model answers
 ```
 
-Auto-routes off the model catalog: `gpt-5.x`/codex → `/v1/responses` (free on a linked ChatGPT account only for models with `codex_eligible: true` in `GET /v1/models`, today `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-6-astra`, `gpt-6-luna` and `gpt-6.1-sol`; every other model is paid, including `gpt-5-mini`, the default on a new face, and `gpt-5.4`), `claude-*` → `/v1/messages`, everything else → `/v1/chat/completions`. Override the model with `--llm MODEL`. Each model is listed **once, under its lab's id** (`gpt-5.2`, `glm-5-3-flash`), and `faces billing:llm-costs` lists them; old host-prefixed ids such as `openai-gpt-52` still resolve, but do not offer them. See [references/REFERENCE.md](references/REFERENCE.md#chat-auto-routing).
-Connect and Pro users: add `--oauth-only` to guarantee nothing is charged for the reply: a request the ChatGPT route cannot serve is refused (`422 oauth_only_unavailable`) rather than billed.
-In `--json` mode, response includes `_meta` with `provider` (the model's **lab**, not who ran it), `billing` (`oauth` = the linked ChatGPT subscription paid, so it cost nothing; `credits` = billed; faces-cli 1.13.0+) and `cost_usd` (a string, e.g. `"0.000168"`); `chat:chat` adds `endpoint` and `model`. Branch on `billing`, never on `provider`. Branch on a refusal's status and `error_code`, never on its message text, which is written for people and changes.
-**No `${alias}` templates.** A `${...}` token in a prompt is plain text: the API stopped expanding
-it. To bring another face's view into a prompt, get that face's **cause**, its reasoning about
-the question, with `faces chat:chat bob -m "<question>" --reasoning-only` (the API's
-`POST /v1/causes`), and include it in your own prompt. Or chat a composite of both
-(`"(alice | bob)@model"`).
+**Every answer from a face comes with its cause**: the principal *why* behind the face's
+response in this context. `--show-cause` prints it to stderr ahead of the answer (stdout stays
+the answer). `faces causes` (or `chat:chat --cause-only`) asks for the cause alone (the Causes
+API, `POST /v1/causes`): no model is called and only the cause is charged. Use it to bring one
+face's view into another prompt, or to steer your own model or pipeline. It also takes a
+situation (`--state`) with questions, for one cause per question.
 
-**The face's reasoning** (*faces-cli 1.13.0+*): before it answers, a face reasons about the
-conversation in its own voice: its **cause**. `--reasoning` prints that to stderr ahead of the
-reply (stdout stays the reply alone); `--reasoning-only` on `chat:chat` asks for the cause and
-nothing else, with no model called to answer. In `--json` it is always marked as the face's:
-`message.cause` on chat completions (faces-cli 1.13.1+ reads it there), the `reasoning` item
-with id `rs_faces_…` on responses, the `thinking` block with signature `faces-reasoning` on
-messages. A reasoning model's own working (`reasoning_content`, its own reasoning items or
-signed thinking blocks) is separate: never present that as the face's. Treat the cause as
-reasoning, apart from the reply; never present it as what the face said. On the API a bare
-alias now returns **only** the cause, so `chat:chat` and `chat:thread` add the face's
-`default_model` for you; `chat:responses` and `chat:messages` send the model as typed, so name
-the model there (`alias@model`).
+In `--json` the cause is marked as the face's: `message.cause` on chat completions, the
+`reasoning` item with id `rs_faces_…` on responses, the `thinking` block with signature
+`faces-reasoning` on messages. A model's own reasoning is separate: never present it as the
+face's cause, and never present the cause as what the face said.
 
-**Supplying the cause yourself** (*faces-cli 1.15.0+*): `--cause "TEXT"` (or `--cause-file
-PATH`) on any `chat:*` command gives the face its reasoning for this turn, and it answers on that
-instead of working out its own. No reasoning runs, so **the cause is not charged for** (only the
-answering model is, or nothing on a linked ChatGPT subscription), and it is faster: about 5s
-instead of about 18. It needs a model named; with the face alone the CLI refuses before sending
-(the API answers `400`). The supplied cause comes back as the face's, and a thread keeps it like
-any other. A blank cause is ignored and the face reasons as usual. Use it when you, or the
-user, already know how the face reads the moment; otherwise let the face reason. On the API it is
-a top-level `"cause"` string, up to 30,000 tokens (over that, or not a string, is a `422`).
+**Routing.** `chat:chat` sends each model to its endpoint in the model catalog. Codex-eligible
+models (`codex_eligible: true` in `GET /v1/models`) go to `/v1/responses`, where on Connect and
+Pro with ChatGPT linked they run on the ChatGPT plan; every other model is paid from credits at
+the provider's price plus 5%. Read `codex_eligible` from the catalog (`faces models:list
+--codex`) rather than keeping a list.
+`chat:messages` and `chat:responses` call one endpoint directly and need the model named
+(`alias@model`). See [REFERENCE.md → Chat routing](references/REFERENCE.md#chat-routing).
 
-**Stream face chats** (*faces-cli 1.14.0+ does it for you*). A face reasons before it answers,
-and that can take a while. A streamed request waits for it as long as it takes; one that is
-not streamed gets 35s, then a `503` with `Retry-After` while the models warm from a cold
-start. So every `chat:*` command streams by default. `--no-stream` and `--json` are not
-streamed, and on that `503` the CLI waits the seconds named and asks once more by itself; do
-not add your own retry loop. `--best-of` is never streamed.
+In `--json`, `_meta` carries `provider` (the model's lab), `billing` (`oauth`: it ran on the
+linked ChatGPT plan; `credits`: paid from the balance) and `cost_usd`. **Branch on `billing`**,
+never on `provider`. Branch on a refusal's status and `error_code`, never on its message text.
+Connect and Pro users can add `--oauth-only` so the model's part is never paid from credits: a
+request the ChatGPT route cannot serve is refused (`422 oauth_only_unavailable`) instead.
 
-Refusals of a face chat end "Nothing was charged." and tell you what to do:
+**Supplying the cause yourself:** `--cause "TEXT"` (or `--cause-file PATH`) gives the face its
+cause for this turn, and the model answers on it. No cause is generated, so **none is charged**
+(only the answering model is), and it is faster. It needs a model named. Use it when you or the
+user already know how the face reads the moment.
+
+**Streaming.** Every `chat:*` command streams by default, and a streamed request waits for the
+cause however long it takes. `--no-stream` and `--json` are not streamed: if the server answers
+`503` with `Retry-After` while causes warm up, the CLI waits and asks once more by itself. Do
+not add your own retry loop.
+
+Refusals of a face chat end "Nothing was charged.":
 
 | code | meaning | do |
 |---|---|---|
-| `409` | Compiled before reasoning launched, or reasoning alone asked of a face with nothing compiled | Recompile (or give it a first source; for a composite, give each face in it one); do not retry |
+| `409` | The face has nothing compiled (asked for its cause) | Compile a source into it (for a composite, into each face); do not retry |
 | `422` | No message in the conversation for the face to answer | Fix the request; do not retry |
-| `503` + `Retry-After` | Warming up (requests that are not streamed only) | Wait that long, retry once |
-| `503` | A step of the reasoning failed | Retry |
+| `503` + `Retry-After` | Causes warming up (not streamed) | Wait that long, retry once |
+| `503` | The cause failed | Retry |
 
 A refusal can also arrive **inside** a stream that already started `200`: the CLI prints it and
-exits non-zero, the same as any refusal. A face with nothing compiled still chats, from its
-name, `profile_addendum` and attributes, with no cause.
+exits non-zero. A face with nothing compiled still answers a chat, from its name, profile
+addendum and attributes, with no cause.
 
-**Calling the API yourself instead of the CLI?** Send `"stream": true` for any chat with a
-face; if you cannot stream, honour `Retry-After` on a `503` exactly, then retry once. A
-hand-written SSE reader must skip lines starting with `:` (the server sends `: keep-alive`
-every 10s while the reasoning runs) and must treat an error event as a failure; the OpenAI
-and Anthropic SDKs do both already. The shapes are in
+**Calling the API yourself instead of the CLI?** Send `"stream": true` for any chat with a face;
+if you cannot stream, honour `Retry-After` on a `503`. A hand-written SSE reader must skip lines
+starting with `:` (keep-alives) and treat an error event as a failure. See
 [REFERENCE.md → Streaming](references/REFERENCE.md#streaming-face-chats).
 
-`chat:chat` is stateless (one turn, no memory). For a conversation the face remembers across turns, use `chat:thread` — history is stored locally and resumed by id (`--id`); set the model/system prompt once when starting. See [references/REFERENCE.md](references/REFERENCE.md#multi-turn-threads-chatthread).
+**Conversations.** `chat:chat` is a single turn. For a conversation, use `chat:thread`: the
+history is kept locally and resumed by id (`--id`); set the model and system prompt when
+starting. See [REFERENCE.md](references/REFERENCE.md#multi-turn-threads-chatthread).
 
-**System & published faces:** every account can chat a curated set of faces served under the `head` account, using an `owner:alias@model` handle (the `@model` is **required**) — e.g. `faces chat:chat head:socrates@gpt-5.4 -m "…"`. List them with `faces face:list --system` (or `--public` for all published faces). A bare alias only ever resolves your own faces; you pay inference at normal rates, the owner is never charged. From faces-cli 1.10.0 the same `owner:alias` handle works on `faces face:get` and `faces face:neighbors`, so a published face can be read before it is used. See [references/REFERENCE.md](references/REFERENCE.md#system--published-faces).
+**Sessions and compaction.** For a long conversation, open a session with the face, attach each
+turn, and compact it: the compaction is a summary of the face's position over the session, and
+a later request that names it reads the summary in place of the history you no longer send.
 
-**What it would decide, not what it would say** (*faces-cli 1.18.0+*): `faces decide` asks a
-face typed questions about a situation and returns numbers: a yes-or-no (`noul`), a pick
-between options (`choice`), or a place on a graded scale (`score`). Use it when you need a
-number to branch on, for routing, simulations or a panel of faces voting:
+```bash
+faces session:create alias                               # prints the session id (fs_...)
+faces chat:chat alias -m "…" --session fs_...            # each turn joins the session
+faces session:compact fs_...                             # prints a compaction id (fcmp_...)
+faces chat:chat alias -m "…" --compaction fcmp_...       # reads the summary instead of the history
+```
+
+`--session` and `--compaction` work on every `chat:*` command, `faces causes` and
+`faces decide`. Turns cost
+what they cost without a session; compacting is billed at the cause rate. Sessions expire 30
+days after their last turn. See
+[REFERENCE.md → Sessions](references/REFERENCE.md#sessions-and-compaction).
+
+**System and published faces:** every account can chat with a curated set of faces under the
+`head` account, and with any face published or shared with it, as `owner:alias@model`, for
+example `faces chat:chat head:socrates@gpt-5.6-terra -m "…"`. List them with
+`faces face:list --system` (`--public` for every published face, `--shared` for those shared
+with you). A bare alias only ever resolves your own faces. The caller pays for the answer; the
+owner is never charged. See
+[REFERENCE.md](references/REFERENCE.md#system--published-faces).
+
+**What it would decide, not what it would say:** `faces decide` asks a face typed questions
+about a situation and returns numbers: yes or no (`noul`), a pick between options (`choice`), or
+a place on a graded scale (`score`). Use it when you need a number to branch on: routing,
+simulations, a panel of faces voting.
 
 ```bash
 faces decide alias --state "A colleague asks you to sign a grant proposal you have not read, due in an hour." \
@@ -595,188 +488,177 @@ faces decide alias --state "A colleague asks you to sign a grant proposal you ha
 #   "probabilities": {"yes": 0.0, "no": 0.99, "later": 0.01}}}, "usage": {...}, "cause": "...", "causes": {"answer": "..."}}
 faces decide alias --state-file situation.txt --question "Is the speaker irritated?"            # noul
 faces decide alias --state-file situation.txt --question "How firm is the reply?" --level yields --level hedges --level firm   # score
-faces decide alias --state-file situation.txt --questions-file questions.json --json   # up to 32 questions
+faces decide alias --state-file situation.txt --questions-file questions.json --json   # up to 10 questions with a face
 faces decide --baseline --model clef-flash --state-file situation.txt --questions-file questions.json --json
-faces decide alias --state-file situation.txt          # no questions: the face's reasoning alone
+faces decide alias --state-file situation.txt          # no questions: the face's cause alone
 ```
 
 The type follows from the flags: `--option` makes a choice, `--level` a score, neither a noul.
-Criteria do the work, so make option descriptions specific and mutually exclusive. The answers
-come from a **decision model** (`--model`; `jev-latest`, `clef` or `clef-flash`; list them
-with `GET /v1/models?kind=decision`), which reads the situation plus the face's own reasoning about it. `--json`
-returns the API's shape exactly (`model`, `answers`, `usage`, `cause`, `causes`); it is
-TypeSafe's Jev API, so code written for Jev reads it. `cause` is the face's reasoning, and
-`causes` holds one per question, keyed by id, each read with that question in mind; with
-`--reasoning` the CLI prints each under its question when they differ. The API serves this at
-`POST /v1/systemone`; `POST /v1/decisions` now takes OpenAI's Decisions format and refuses this
-one with a `422`, which is why a CLI older than 1.18.0 cannot decide. A decision model is not a chat model: a chat naming one
-(`alias@jev-latest`) is refused before sending. A face's answer takes 10 to 20 seconds. A slow
-one is held open: past about 40 seconds the server answers `200` with `X-Faces-Held: 1`, sends
-spaces to keep the connection alive, then the JSON. Give `faces decide` with a face at least 60
-seconds before treating it as hung. A held call that fails still answers `200`, with
-`{detail, error: {status}}` and no `answers`; faces-cli 1.19.0+ reports it as that status. `--baseline`
-asks the decision model alone (no-face baseline), in about a second: the number to compare a
-face's answer against. After an idle spell the models start cold for about two minutes; the
-server answers `503` with a `Retry-After`, and the CLI waits exactly that and asks again by
-itself. Do not add your own retry loop. A `503` with no wait: retry, or try another `--model`.
-`faces-latest` is gone: the API answers it with a `400`. The face can be a saved composite or a
-formula (`faces decide "(alice | bob)" ...`), priced like one face. A `409` means the face needs
-recompiling: compile one of its sources again. The face's reasoning counts against a Connect or
-Pro allowance (or bills on Free), and the decision model is **always paid from credits**, on
-every plan: with no credit it is a `402`. See
+Make option descriptions specific and mutually exclusive. The face's cause for each question
+guides a **decision model** (`--model`: `jev-latest`, `clef` or `clef-flash`; `faces models:list
+--kind decision`), which gives the
+numbers; `--baseline` asks the decision model alone, the number to compare a face's answer
+against. `causes` holds one cause per question. `--format openai` uses OpenAI's Decisions format
+instead of TypeSafe's System One. A face's answer takes 10 to 20 seconds and a slow one is held
+open, so allow at least 60 seconds; the CLI waits out a warm-up `503` by itself. The cause counts
+against a Connect or Pro allowance (or is paid on Free), and the decision model is **always paid
+from credits**, on every plan: with no credit it is a `402`. See
 [REFERENCE.md → Decisions](references/REFERENCE.md#decisions-decide).
 
-**Run-time composites:** pass a Face Math formula in the face position to chat with an on-the-fly blend of your own faces — `faces chat:chat "(alice | bob)@claude-sonnet-4-6" -m "…"` (or `--formula "alice | bob" --llm …`). No pre-creation step. See [§4 Compare & compose](#4-compare--compose).
+**Run-time composites:** put a formula where the face goes to chat with a blend of faces, with no
+create step: `faces chat:chat "(alice | bob)@claude-sonnet-4-6" -m "…"` (or `--formula "alice |
+bob" --llm …`). See [§5](#5-compare--compose).
 
 ### 5. Compare & compose
 
 ```bash
-faces face:diff --face alice --face bob               # one overall similarity score per pair
+faces face:diff --face alice --face bob               # one overall similarity score per pair, -1 to 1
 faces face:neighbors alias --k 3                       # the 3 most SIMILAR faces (nearest, the default)
-faces face:neighbors alias --k 3 --direction furthest # the 3 most DIFFERENT / unlike / opposite faces
-faces face:create --alias new --formula "alice | bob"   # persist a composite
+faces face:neighbors alias --k 3 --direction furthest # the 3 most DIFFERENT faces
+faces face:create --name "Alice and Bob" --alias alice-and-bob --formula "alice | bob"   # persist a composite
 ```
 
-For "who is most **different / unlike / opposite**," add `--direction furthest`; the default (`nearest`) returns the most similar.
-Similarity is one overall score per face: the API no longer returns per-component scores, and
-`--component` takes only `face`. Both commands refuse a face with nothing compiled yet.
+For "who is most **different / unlike / opposite**", add `--direction furthest`. Both commands
+refuse a face with nothing compiled.
 
-Operators: `|` union, `&` intersection, `-` difference, `^` symmetric diff.
+Composites are **boolean set algebra** over faces: `|` union, `&` intersection, `-`
+difference, `^` symmetric difference, with parentheses to group. A formula whose result is
+empty is a `422 empty_composite` ("the intersection between these two faces is null"): show the
+message and pick a formula whose result is not empty.
 
-**A formula on a compiled face is refused.** Setting `--formula` on a face that has compiled
-sources of its own, or that another composite uses, is a `409`: make a new composite with
+**A formula on a face with sources of its own is refused.** Setting `--formula` on a face with
+compiled sources, or one another composite uses, is a `409`: make a new composite with
 `face:create --formula` instead.
 
-**Compose on the fly — no need to persist.** You can chat with a composite of your own faces built per-request, by putting the formula in the face position. An explicit `@model` is **required** (a run-time composite has no `default_model`):
+**Compose on the fly, without persisting:** put the formula where the face goes. An answer needs
+an explicit `@model` (a run-time composite has no default model); its cause alone does not:
 
 ```bash
 faces chat:chat "(alice | bob)@claude-sonnet-4-6" -m "What should we do?"
 faces chat:chat --formula "alice | bob" --llm claude-sonnet-4-6 -m "What should we do?"
 ```
 
-Same operators and merge semantics as a persisted composite (identical latency). A run-time composite **takes the name of its first operand** (`(alice | bob)` answers as *alice*); reach for `face:create --formula` when you want a reusable face with its own name. See [references/REFERENCE.md](references/REFERENCE.md#run-time-composite-faces).
+A run-time composite **answers under the name of its first operand** (`(alice | bob)` answers as
+alice); use `face:create --formula` for a reusable face with its own name. See
+[REFERENCE.md](references/REFERENCE.md#run-time-composite-faces).
 
-### 6. Pictures (optional)
+### 6. Benchmark (optional)
 
-A face can have a picture: generated from what it knows, or one you upload.
+`faces benchmark:start` puts a face you own against a reference model, round after round, on the
+face's own writing, and reports which sounds more like the person. The face needs something
+compiled and a built style. It is paid from credits, so always price it first:
 
 ```bash
-faces face:avatar:list alias                    # versions, which is served, which no longer match the face
+faces benchmark:start alias --dry-run                         # an estimate; starts nothing
+faces benchmark:start alias --rounds 50 --max-spend 5 --wait  # --max-spend is a hard ceiling
+faces benchmark:get RUN_ID
+```
+
+Report a `winner` only when `ci95.resolved` is `true`. See
+[REFERENCE.md → Benchmark](references/REFERENCE.md#benchmark-benchmark).
+
+### 7. Pictures (optional)
+
+A face can have a picture: generated from the face, or one you upload.
+
+```bash
+faces face:avatar:list alias                    # versions, which is served, which are stale
 faces face:avatar:get alias                     # FREE. Writes the image and says what arrived
 faces face:avatar:get alias --size lg --format svg --out ./face.svg
-faces face:avatar:upload alias --file photo.png # your own picture. Free, replaces any previous upload
+faces face:avatar:upload alias --file photo.png # your own picture. Free; replaces any earlier upload
 faces face:avatar:delete alias --yes            # removes only the UPLOAD; generated versions stay
 ```
 
-**Generating one costs money, so never run it unless the user has said they want to pay.**
-Same rule as `style:make`: `faces face:avatar:make alias --allow-paid`. Without the flag
-nothing is sent and nothing is charged. Reading an avatar is always free, so check
-`face:avatar:list` before offering to make one — the face may already have what is wanted.
+**Generating one can cost money, so never run it unless the user has said they want to pay:**
+`faces face:avatar:make alias --allow-paid`. Without the flag nothing is sent. Reading is always
+free, so check `face:avatar:list` before offering to make one.
 
-A version marked **stale** means the stored image no longer matches what the face knows,
-after later compiles. That is a reason to regenerate only if the picture matters; it
-costs again.
+A **stale** version no longer matches the face after later compiles: a reason to regenerate only
+if the picture matters, and it costs again. An uploaded picture and a generated avatar are
+separate: `--prefer uploaded` serves the upload when there is one and falls back to the
+generated avatar; `organic` (the default) serves the generated one.
 
-An **uploaded** picture and a **generated** avatar are separate things. A face can have an
-uploaded picture and no generated avatar at all. `--prefer uploaded` serves the upload
-when there is one and falls back to the generated avatar; `organic` (the default) always
-serves the generated one.
+`faces face:list --include avatar` marks each face's avatar state, and `--include owner_follow`
+whether you follow the account that published it.
 
-`faces face:list --include avatar` marks each face with its avatar state, and
-`--include owner_follow` marks whether you follow the account that published it.
+### 8. Teams
 
-### 7. Teams
-
-Create named groups of faces with optional description, protocol (mermaid diagram), and tags:
+Named groups of faces, with an optional description, protocol (a mermaid diagram) and tags:
 ```bash
-# Create a team
 TEAM=$(faces team:create --name "Review Panel" --description "Research critique" --tag review --json)
 TEAM_ID=$(echo "$TEAM" | jq -r '.id')
-
-# Add faces as members
-faces team:add $TEAM_ID --face alice --face bob
-
-# Set a protocol (mermaid workflow diagram). The file is stored as written, so
-# pass the diagram alone, never TEAM.md with its frontmatter.
-faces team:edit $TEAM_ID --protocol-file workflow.mmd
-
-# List teams, members
+faces team:add $TEAM_ID --face alice --face bob          # owner:alias for a face you do not own
+faces team:edit $TEAM_ID --protocol-file workflow.mmd    # the diagram alone, never TEAM.md itself
 faces team:list
 faces team:members $TEAM_ID
 ```
 
-Teams have a local TEAM.md at `~/.faces/teams/<slug>/TEAM.md`, where `<slug>` is the name lowercased with each run of other characters turned into `-` ("Review Panel" is `review-panel`). It has YAML frontmatter (id, name, description, tags, members) and the protocol as the body. The CLI writes it; to push a protocol edited there, strip the frontmatter first: `sed '1,/^---$/d' TEAM.md > protocol.md`, then `team:edit --protocol-file protocol.md`.
+Teams have a local TEAM.md at `~/.faces/teams/<slug>/TEAM.md`, where `<slug>` is the name
+lowercased with each run of other characters turned into `-` ("Review Panel" is
+`review-panel`). It has YAML frontmatter (id, name, description, tags, members) and the protocol
+as the body. To push a protocol edited there, strip the frontmatter first: `sed '1,/^---$/d'
+TEAM.md > protocol.md`, then `team:edit --protocol-file protocol.md`.
 
-### 8. Backup & restore
+### 9. Backup & restore
 
-Snapshot all faces, teams, and source material for migration:
 ```bash
-faces catalog:backup
-# → ~/.faces/backups/2026-04-17T12-00-00-000Z.json
+faces catalog:backup                     # → ~/.faces/backups/<timestamp>.json
+faces catalog:restore                    # the newest backup: faces, teams, source material
+faces catalog:restore --compile          # restore, then compile everything
+faces catalog:restore /path/to/file.json
+faces compile:all                        # compile every uncompiled document and thread
 ```
 
-Restore from a backup (defaults to most recent):
+### 10. Account preferences
+
 ```bash
-faces catalog:restore                    # restore faces + source material
-faces catalog:restore --compile          # restore then compile all
-faces catalog:restore /path/to/file.json # specific backup file
+faces account:preferences                                # show
+faces account:preferences default_model gpt-5.4-mini     # the model new faces inherit
+faces account:preferences api_fallback true              # allow credits when ChatGPT or an allowance refuses
+faces account:preferences auto_style off                 # stop automatic style builds
 ```
 
-Compile all outstanding (uncompiled) docs and threads:
-```bash
-faces compile:all
-```
-
-### 9. Account preferences
-
-View or update server-side preferences:
-```bash
-faces account:preferences                            # show current
-faces account:preferences default_model gpt-5.4      # set default model for new faces
-faces account:preferences api_fallback true           # allow paid fallback when OAuth fails
-faces account:preferences auto_style off              # stop automatic style captures (1.13.0+)
-```
-
-`auto_style` and its thresholds are covered under [§3](#3-capture-how-it-writes-optional).
-Do not turn automatic captures on for a pay-per-token account unless the user asked: each
-one bills.
+Do not turn automatic style builds on for a Free account unless the user asked: each one bills.
 
 ## Important: never run `config:clear`
 
-`faces config:clear` wipes all stored credentials (API key, JWT, base URL) with no recovery. Never use it to troubleshoot auth issues. If auth fails, check `faces config:show` and fix the specific value with `faces config:set`.
+`faces config:clear` wipes all stored credentials (API key, JWT, base URL) with no recovery.
+Never use it to troubleshoot. If auth fails, check `faces config:show` and fix the one value
+with `faces config:set`.
 
 ## Common errors
 
 | Error | Fix |
 |---|---|
 | `faces: command not found` | `npm install -g faces-cli@latest` |
-| `may be out of date` | The API has moved under this version: `npm install -g faces-cli@latest`, then retry |
-| `401 Unauthorized` | `faces auth:login` or check `FACES_API_KEY` via `faces config:show` |
-| status "transcribing" | Audio/video transcription in progress — poll with `compile:thread:get ID --status-only --json` |
-| status "queued" or "compiling" | Compilation waiting or in progress. Poll with `compile:doc:get ID --status-only --json` or `compile:thread:get ID --status-only --json`, or `compile:status` for everything at once |
-| `409 already_compiled` | The source is compiled and unchanged; nothing was charged. Edit it or `compile:*:reset` it to compile again |
-| status "failed" | If `finishing` is `true` the server is still retrying: wait and offer nothing. Otherwise it is out of attempts; `stall_reason` says why, so do not re-run without fixing it |
-| `402` insufficient credits | Check balance: `faces billing:balance --json`. Top up: `faces billing:topup --amount <USD>` (min $1; `--card pm_…` for a card other than the default). If no card on file: `faces billing:card-setup` first. Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
-| `422 oauth_rejected` | Connect and Pro only: OAuth request failed and paid fallback is disabled. Enable fallback: `faces account:preferences api_fallback true`. If no credits: `faces billing:topup` first. See [OAUTH.md](references/OAUTH.md) |
-| `429` naming an allowance | A Connect or Pro allowance (reasoning over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is: it names the allowance and the reset. Wait, or, if the user agrees to pay from credits, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
-| `429 Rate limit: N requests per minute` | The account's per-minute limit on routes that run a model or a compile (per plan; `GET /v1/rates` lists them under `limits.requests_per_minute`). Nothing was charged. faces-cli 1.19.0+ waits the `Retry-After` once and asks again, printing the wait. Refused again: wait the seconds the message names. Never retry in a loop, and remember that parallel agents share one account's limit |
-| `422 oauth_only_unavailable` | The ChatGPT route cannot serve this request: always on pay-per-token (Free), and on Connect or Pro when the model or the link cannot. Nothing was charged. Drop `--oauth-only` to pay from credits, or, on Free, subscribe to Connect to use a linked ChatGPT account |
-| `409 duplicate_topup` | The same top-up went through moments ago; nothing was charged this time. Check `faces billing:balance` before trying again |
-| `409 cancellation_pending` | A plan change while the plan is set to cancel; nothing was charged. Keep the plan first: `faces billing:subscription:activate`, then switch |
-| `409 chatgpt_not_linked` | A style build that can only run through ChatGPT, with none linked. Nothing was started. `faces auth:connect openai`, or `--allow-paid` if the user agrees to pay |
-| `422 empty_composite` | The formula's result is empty (an intersection with nothing in common, say). Show the message as it is and use a formula whose result is not empty |
-| `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry. With `api_fallback` on it would have finished on the paid route instead |
-| `409 build_in_progress` | A style capture for that face and medium is already running. Follow the job it names with `faces style:status JOB_ID --wait`; do not start another |
-| `422` on thread import | Retry with `--type document` |
-| `409` read-only on edit | The document/thread content is frozen (`This document/corpus is read-only…`). Don't retry; surface that it's read-only. You can still read or delete it, and a corpus room still takes `compile:thread:edit --label/--medium/--clear-medium`. Corpus-frozen items have no per-item toggle; a whole face freezes/thaws with `face:lock`/`face:unlock`. |
-| Bad extraction results | Pause with `compile:thread:pause ID` or `compile:doc:pause ID` — pause is a request, so wait for `status: "paused"` before reading results (the CLI waits for you unless you pass `--no-wait`). Then either resume with `compile:*:make ID` or wipe and restart with `compile:*:reset ID` (keeps source content, removes extraction) |
+| `may be out of date` | `npm install -g faces-cli@latest`, then retry |
+| `401 Unauthorized` | `faces auth:login`, or check `FACES_API_KEY` with `faces config:show` |
+| status `transcribing` | Audio or video being transcribed: poll with `compile:thread:get ID --status-only --json` |
+| status `queued` or `compiling` | Poll with `compile:*:get ID --status-only --json`, or `compile:status` for everything |
+| `409 already_compiled` | Compiled and unchanged; nothing was charged. Edit it or `compile:*:reset` it to compile again |
+| status `failed` | If `finishing` is `true` the server is still on it: wait and offer nothing. Otherwise `stall_reason` says why; do not re-run without fixing it |
+| `402` | No credit. `faces billing:balance --json`, then `faces billing:topup --amount <USD>` (min $1; `--card pm_…` for a card other than the default; with no card, `faces billing:card-setup` first). Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
+| `422 oauth_rejected` | Connect and Pro: ChatGPT refused and fallback is off. `faces account:preferences api_fallback true` (top up first if needed). See [OAUTH.md](references/OAUTH.md) |
+| `429` naming an allowance | A Connect or Pro allowance (causes over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is. Wait, or, if the user agrees to pay, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
+| `429 Rate limit: N requests per minute` | The account's per-minute limit. Nothing was charged. The CLI waits `Retry-After` once; refused again, wait the seconds named. Never retry in a loop: parallel agents share one account's limit |
+| `422 oauth_only_unavailable` | The ChatGPT route cannot serve this request (always on Free; on Connect or Pro when the model or link cannot). Nothing was charged. Drop `--oauth-only` to pay from credits |
+| `409 duplicate_topup` | The same top-up went through moments ago; nothing was charged this time. Check `faces billing:balance` first |
+| `409 cancellation_pending` | A plan change while the plan is set to cancel; nothing was charged. `faces billing:subscription:activate` first |
+| `409 chatgpt_not_linked` | A style build that can only run on ChatGPT, with none linked. Nothing was started. `faces auth:connect openai`, or `--allow-paid` if the user agrees to pay |
+| `409 build_in_progress` | A style build for that face and medium is running. `faces style:status JOB_ID --wait`; do not start another |
+| `422 empty_composite` | The formula's result is empty. Show the message; use a formula whose result is not empty |
+| `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry |
+| `404` on a session or compaction | Unknown, expired, closed, or another face's. Nothing was charged. Open a new session |
+| `422` on a thread import | Retry with `--type document` |
+| `409` read-only on edit | The content is read-only. Do not retry; say so. It can still be read or deleted, and `compile:thread:edit --label/--medium/--clear-medium` still work |
+| A compile you want to stop | `compile:thread:pause ID` or `compile:doc:pause ID`, then wait for `status: "paused"` (the CLI waits unless `--no-wait`). Resume with `compile:*:make ID`, or `compile:*:reset ID` to withdraw it from the face while keeping the source |
 
 ## Related skills
 
-- `/facemake` — Guided face creation (interview, research, sketch, compile)
-- `/facechat` — Chat with any face in your catalog
-- `/faceteam` — Compose faces into teams with collaboration protocols
-- `/manyface` — Transform a skill into a multi-persona version
+- `/facemake`: guided face creation (interview, research, sketch, compile)
+- `/facechat`: chat with any face or team in your catalog
+- `/faceteam`: compose faces into teams with collaboration protocols
+- `/manyface`: turn a skill into one where each step is run by the right face
 
 ## Filesystem
 
@@ -784,23 +666,21 @@ one bills.
 ~/.faces/
   config.json           # credentials, base_url, local settings
   catalog.json          # auto-generated index
-  catalog/<alias>/      # individual FACE.md files
-  backups/              # timestamped JSON backup snapshots (v2: faces + teams)
-  teams/<team-slug>/    # TEAM.md files, one folder per team, named by a slug of the team name
+  catalog/<alias>/      # one FACE.md per face
+  backups/              # timestamped JSON backups (faces and teams)
+  teams/<team-slug>/    # one TEAM.md per team, in a folder named by a slug of the team name
   threads/              # chat:thread conversation history
   models-cache.json     # cached model catalog for chat routing
 ```
 
 ## FACE.md schema
 
-**The CLI owns the frontmatter; you own the body.** That is the whole rule. `face:create`,
-`face:edit`, the `face:tag:*` commands, `catalog:restore` and `catalog:doctor --fix` all
-rewrite the frontmatter from the server, and keep only the keys below. Any other key
-(`role`, `source_type`, `sources_compiled`, anything you add) is dropped. A frontmatter
-without both `name` and `alias` cannot be read at all, so the CLI writes a new block on top
-and the old one survives only as text in the body. The markdown body after the frontmatter
-is kept as it is, so put recipe notes, queued sources and anything else of yours there, and
-`catalog:doctor --fix` is then safe to run.
+**The CLI owns the frontmatter; you own the body.** `face:create`, `face:edit`, the
+`face:tag:*` commands, `catalog:restore` and `catalog:doctor --fix` all rewrite the frontmatter
+from the server and keep only the keys below; any other key is dropped. A frontmatter without
+both `name` and `alias` cannot be read, so the CLI writes a new block on top. The markdown body
+after the frontmatter is kept as it is: put recipe notes, queued sources and anything else of
+yours there, and `catalog:doctor --fix` is safe to run.
 
 Fields the CLI writes:
 ```yaml
@@ -817,21 +697,15 @@ tags: [research, mathematics]
 formula: null
 component_counts: 140
 compiled_tokens: 47200
-profile_token_count: 1024
 ---
 ```
 
-`component_counts` here is a single number, the **sum** of the list the API returns
-(`face:get --json` gives a list such as `[12, 40, 31, 4, 50, 3]`). Attributes count toward
-it, so a non-zero value does not mean anything has compiled: ask the server with
-`faces face:sources <alias>`. `profile_token_count` appears once the face has a compiled
-profile.
+`component_counts` is a single total, written by the CLI. It is not a test of whether a face is
+compiled. `compiled_tokens` is the source tokens currently compiled into the face. To know
+whether a face is compiled, ask the server: `faces face:sources <alias>` (a source reading
+`synced` has compiled).
 
-`compiled_tokens` is written only when the server reports tokens saved for the face, and is
-usually absent, so it says nothing about whether a face is compiled. To know that, ask the
-server: `faces face:sources <alias>` (a source reading `synced` has compiled).
-
-All fields in FACE.md reflect the server state. The API returns `basic_facts` but the CLI renames it to `attributes` everywhere.
+The API calls attributes `basic_facts`; the CLI shows them as `attributes` everywhere.
 
 ## TEAM.md schema
 
@@ -845,18 +719,21 @@ members: [ada, einstein, skeptic]
 ---
 ```
 
-The body after the frontmatter is the protocol (typically a mermaid diagram). Written by `team:create`, updated by `team:edit`/`team:add`/`team:remove`. Synced from server by `catalog:doctor --fix`.
+The body after the frontmatter is the protocol (usually a mermaid diagram). Written by
+`team:create`, updated by `team:edit`, `team:add` and `team:remove`, synced from the server by
+`catalog:doctor --fix`. If `members:` holds ids rather than aliases, read the aliases with
+`faces team:members TEAM_ID`, or run `faces catalog:doctor --fix`.
 
 ## References
 
-- [QUICKSTART.md](references/QUICKSTART.md) — First-time setup end-to-end
-- [REFERENCE.md](references/REFERENCE.md) — Full CLI command reference
-- [AUTH.md](references/AUTH.md) — Registration, login, API keys, plans
-- [INTERVIEWS.md](references/INTERVIEWS.md) — Interview & conversation workflows
-- [CONCEPTS.md](references/CONCEPTS.md) — What Faces is, cognitive primitives
-- [USE_CASES.md](references/USE_CASES.md) — 14 example applications
-- Accepted `--attr` keys → run `faces face:attributes`
-- [OAUTH.md](references/OAUTH.md) — ChatGPT account linking
-- [SCOPE.md](references/SCOPE.md) — Security boundaries
-- [BILLING.md](references/BILLING.md) — Balance, top-ups, payment methods, cost reference
-- [CONTRIBUTING.md](references/CONTRIBUTING.md) — File bug reports via `gh issue create`
+- [QUICKSTART.md](references/QUICKSTART.md): first-time setup, end to end
+- [REFERENCE.md](references/REFERENCE.md): every command
+- [AUTH.md](references/AUTH.md): registration, login, API keys, plans
+- [INTERVIEWS.md](references/INTERVIEWS.md): interview workflows
+- [CONCEPTS.md](references/CONCEPTS.md): causal models, causes, composites, style
+- [USE_CASES.md](references/USE_CASES.md): example applications
+- Accepted `--attr` keys: run `faces face:attributes`
+- [OAUTH.md](references/OAUTH.md): linking ChatGPT
+- [SCOPE.md](references/SCOPE.md): what the skills read, write and run
+- [BILLING.md](references/BILLING.md): balance, top-ups, cards, prices
+- [CONTRIBUTING.md](references/CONTRIBUTING.md): file bug reports with `gh issue create`
