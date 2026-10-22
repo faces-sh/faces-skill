@@ -527,7 +527,7 @@ guides a **decision model** (`--model`: `jev-latest`, `clef` or `clef-flash`; `f
 numbers; `--baseline` asks the decision model alone, the number to compare a face's answer
 against. `causes` holds one cause per question. `--format openai` uses OpenAI's Decisions format
 instead of TypeSafe's System One. A face's answer takes 10 to 20 seconds and a slow one is held
-open, so allow at least 300 seconds; the CLI waits out a decision model's warm-up `503` by itself. The cause counts
+open, so allow at least 300 seconds. The cause counts
 against a Connect or Pro allowance (or is paid on Free), and the decision model is **always paid
 from credits**, on every plan: with no credit it is a `402`. See
 [REFERENCE.md → Decisions](references/REFERENCE.md#decisions-decide).

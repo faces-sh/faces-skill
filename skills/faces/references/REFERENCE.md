@@ -661,10 +661,8 @@ decision model's versioned id (`alice@jev-1.13.0`).
 300 seconds. Past about 40 seconds the server answers `200` with `X-Faces-Held: 1`, sends spaces
 to keep the connection open, then the JSON. A held call that fails still answers `200`, with
 `{"detail": ..., "error": {"status": ...}}` and no `answers`; the CLI reports the real status.
-After an idle spell the decision models warm up for about two minutes: every request gets a
-`503` with `Retry-After`, and the CLI waits exactly that and asks again (`--no-retry` returns
-the `503`). Do not add a retry loop. A `503` with no `Retry-After`: retry, or try another
-`--model`.
+A request still working after 300 seconds is stopped with a `504`; retry. A `503` means the
+decision model failed: retry, or try another `--model`. Do not add a retry loop.
 
 **Cost.** The face's cause counts once per question (the situation plus that question, plus
 1,500), against a Connect or Pro allowance or paid on Free. The decision model is paid from
@@ -682,7 +680,6 @@ refused before work starts (`400`, `402`, `403`, `409`, `422`, `429`).
 | `422 empty_composite` | The formula's result is empty | Show `message`; use a formula whose result is not empty |
 | `429` naming an allowance | The cause allowance is used up and `api_fallback` is off | Wait for the reset, or turn on `api_fallback` |
 | `429 Rate limit` | The account's per-minute limit | The CLI waits `Retry-After` once; then wait the seconds named |
-| `503` + `Retry-After` | Warming up | The CLI waits it out |
 | `504` | The face did not finish within 300 seconds | Retry |
 | `503` | The cause failed, or the decision model is unavailable | Retry, or another `--model` |
 
