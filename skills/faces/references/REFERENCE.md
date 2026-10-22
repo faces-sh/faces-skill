@@ -53,7 +53,8 @@ faces face:diff         --face ALIAS  --face ALIAS  [--face ALIAS]...
                                                        # needs something compiled.
 faces face:neighbors    <alias | owner:alias>  [--k N]  [--direction nearest|furthest]
                                                        # nearest (default) = most SIMILAR; furthest = most DIFFERENT.
-                                                       # A face with nothing compiled is refused.
+                                                       # A face with nothing compiled is refused. Similarity is -1 to
+                                                       # 1, rounded to one decimal place when either face is not yours.
 
 faces face:avatar:list    <alias | owner:alias>          # versions, which one is served, which are stale
 faces face:avatar:get     <alias | owner:alias>  [--size sm|md|lg]  [--format png|svg]  [--width PX]  [--version N]  [--prefer organic|uploaded]  [--out PATH]
@@ -153,7 +154,9 @@ faces compile:doc:make     <doc_id>  [--timeout N]  [--rush]  [--no-wait]
                                                        # A compile may have a scheduled start: the answer's starts_at,
                                                        # null when it starts at once. Without --no-wait the CLI waits
                                                        # for it, and --timeout counts from the start. --rush starts it
-                                                       # now at the rush rate (rush: true); see compile:stats.
+                                                       # now at the rush rate (rush: true); see compile:stats. --rush
+                                                       # on a compile already queued starts it now; once it has
+                                                       # started: 409 compile_already_started, nothing changes.
 faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
 faces compile:doc:reset    <doc_id>  [--yes]       # withdraw it from the face, keep the document
 faces compile:doc:list     <alias>  [--verbose]    # text left out unless --verbose (--json always has it)
@@ -197,7 +200,8 @@ faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json] 
                                                        # compiled, nothing billed. ONE MEDIUM PER FILE.
 faces style:make        <alias>  (--all | --source ID[:MEDIUM]...)  [--medium MEDIUM]  [--model MODEL]  [--allow-paid]  [--no-compile]  [--timeout N]  [--no-wait]
                                                        # build a style per medium and install it. Building does not apply
-                                                       # it: chat with --style MEDIUM.
+                                                       # it: chat with --style MEDIUM. Charged to credits unless it runs
+                                                       # on a linked ChatGPT account (Connect or Pro): --allow-paid.
 faces style:status      [JOB_ID]  [--face ALIAS]  [--limit N]  [--wait]  [--timeout N]
                                                        # one build, or a face's recent builds (how to find a lost job id)
 faces style:versions    <alias>                        # the styles built, per medium, and which is in use
@@ -229,7 +233,7 @@ faces billing:cards
 faces billing:card-setup [--no-default]                # alias billing:card:add: a Stripe link to save a card
 faces billing:card:default  <PM_ID>
 faces billing:card:remove   <PM_ID>  [--yes]
-faces billing:llm-costs  [--provider LAB]              # one row per model, under its lab's id
+faces billing:llm-costs  [--lab LAB]                   # one row per model, under its lab's id
 
 faces team:create       --name  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]  [--tag TAG...]
 faces team:list
@@ -577,7 +581,7 @@ faces account:preferences api_fallback true     # allow paying from credits when
 faces account:preferences                                # view
 faces account:preferences auto_style off                 # stop future automatic builds
 faces account:preferences auto_style default             # back to the plan's default
-faces account:preferences auto_style on --allow-paid     # on Free every automatic build bills, so it needs --allow-paid
+faces account:preferences auto_style on --allow-paid     # needed unless ChatGPT is linked on Connect or Pro
 faces account:preferences auto_style_thresholds "email=25000,essay=default"
 ```
 
@@ -929,12 +933,25 @@ as `plaintextBody`). `kind`, if present, must be one of the eleven media.
 - By default, uncompiled sources are compiled first, billed as ordinary compiles;
   `--no-compile` builds from what is already compiled.
 
-**Cost.** On Connect and Pro a build is **not billed**: it runs on the linked ChatGPT plan when
-one is linked. On Free a build is paid from credits, so the CLI asks for `--allow-paid` and
-sends nothing without it. A named `--model` decides what a build costs; the CLI refuses one that
-would bill without `--allow-paid`. If a build fails with `CHATGPT_AUTH`, the ChatGPT link has
-expired: `faces auth:connect openai`, then build again. A build that can only run on ChatGPT,
-with none linked, is refused up front (`409 chatgpt_not_linked`).
+**Cost.** On Connect or Pro with a linked ChatGPT account, a build runs there at **no charge**.
+Anywhere else (Free, or Connect or Pro with no ChatGPT linked) it is **charged to credits** at
+the build model's listed price plus the published markup, and appears in `billing:usage` under
+that model.
+
+- **Without `--allow-paid`** the CLI asks for the linked ChatGPT account or nothing. A build that
+  cannot run there is refused up front with `409 chatgpt_not_linked` (on Free,
+  `422 oauth_only_unavailable`), and nothing starts. Link ChatGPT with `faces auth:connect
+  openai`, or pass `--allow-paid` if the user agrees to pay.
+- **With `--allow-paid`** a build credit cannot cover is refused up front with
+  `402 insufficient_credit_for_style_build`: `estimated_usd` is the most it is expected to cost,
+  `balance_usd` the balance. Nothing is started or charged. Top up with `faces billing:topup
+  --amount <USD>`.
+- **`--model`** is used only on the ChatGPT link, and only for a model that can run there
+  (`codex_eligible`). A build charged to credits runs on the default build model, whatever was
+  named; the CLI refuses a named model that cannot run on ChatGPT unless `--allow-paid` is given.
+- If a build fails with `CHATGPT_AUTH`, the ChatGPT link has expired: `faces auth:connect
+  openai`, then build again. A link that fails part-way under `--allow-paid` carries on charged
+  to credits for the rest.
 
 **Long builds.** `style:make` waits and prints progress; `--no-wait` returns a job id. To find a
 lost one, list the face's builds:
@@ -955,7 +972,8 @@ naming the running job: follow it with `faces style:status JOB_ID --wait`. Do no
   their own, fix it with `faces compile:doc:edit ID --perspective first-person` and build again.
 - `thin_corpus`: `{medium: {words, threshold}}` for each medium built from less writing than the
   automatic threshold. It installed anyway; a manual build has no minimum.
-- `served_by`: where it ran (`route` `chatgpt` or `faces`, `model`, `fell_back`).
+- `served_by`: where it ran (`route` `chatgpt`, at no charge, or `faces`, charged to credits;
+  `model`; `fell_back`).
 
 ### Versions, revert, delete
 
@@ -990,8 +1008,12 @@ messages in uploaded threads and first-person documents count; email and text me
 only from uploaded message threads; `other` never triggers one. It installs at once, like a
 manual build, and `style:revert` undoes it. `style:status --face` marks these rows `BY auto`.
 
-On Connect and Pro they are on by default and not billed. On Free they are off by default and
-bill per token when turned on. Control them with the `auto_style` preferences
+They are on by default on Connect and Pro, and off by default on Free. Each is paid like a manual
+build: at no charge on a linked ChatGPT account, otherwise charged to credits. One that credit
+cannot cover is not started: it shows in `style:status --face` as a failed build with
+`insufficient_credit_for_style_build` and is tried again later; top up to let it run. Turning
+them on with `account:preferences auto_style on` needs `--allow-paid` unless ChatGPT is linked
+on Connect or Pro. Control them with the `auto_style` preferences
 ([Account preferences](#account-preferences)); turning it off removes nothing already built.
 
 ## Compile state: read `finishing` first

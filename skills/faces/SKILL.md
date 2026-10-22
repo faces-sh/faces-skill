@@ -226,8 +226,11 @@ did). Until then it is `queued` and starts on its own, so say when it starts and
 wait as a stall. `--rush` (on `compile:doc`, `compile:doc:make`, `compile:thread:make` and
 `compile:all`) starts it now at the rush rate, and the answer says `rush: true`. Quote the rates
 from `faces compile:stats` or `GET /v1/rates`, and use `--rush` only when the user wants the
-compile now and accepts that rate. Where a compile starts at once anyway, `--rush` changes
-nothing and costs nothing extra.
+compile now and accepts that rate. `--rush` on `compile:doc:make` or `compile:thread:make` also
+works on a compile that is already queued: it starts now, billed as any rush. While a compile is
+queued, its status carries `rush_premium_usd`, what a rush would cost now from credit. Once a
+compile has started it is too late: `409 compile_already_started`, and nothing changes. Where a
+compile starts at once anyway, `--rush` changes nothing and costs nothing extra.
 
 **Poll with `--status-only`**, which leaves the text out of every tick:
 ```bash
@@ -346,9 +349,14 @@ Otherwise name the sources: `faces face:sources alias`, then `--source ID` (or
 overrides one that does. A source with no medium is refused, not guessed. **Quote `"ID:MEDIUM"`
 when the id is a shell variable**: in zsh `$DOC_ID:essay` silently becomes `ssay`.
 
-**Cost.** On Connect and Pro a build is not billed, and runs on the linked ChatGPT plan when
-one is linked. On Free it is paid from credits, so the CLI asks for `--allow-paid`: pass it only
-when the user has said they want to pay. If a build fails on the ChatGPT link
+**Cost.** On Connect or Pro with a linked ChatGPT account, a build runs there at no charge.
+Anywhere else (Free, or Connect or Pro with no ChatGPT linked) it is charged to credits at the
+build model's listed price, so the CLI asks for `--allow-paid`: pass it only when the user has
+said they want to pay. Without it, a build that cannot run on a linked ChatGPT account is
+refused (`409 chatgpt_not_linked`) and nothing starts. With it, a build credit cannot cover is
+refused up front (`402 insufficient_credit_for_style_build`, with `estimated_usd` and
+`balance_usd`), and nothing is charged. `--model` is used only on the ChatGPT link; a build
+charged to credits runs on the default build model. If a build fails on the ChatGPT link
 (`CHATGPT_AUTH`), the link has expired: `faces auth:connect openai`, then build again.
 
 **Building does not apply it.** Pass `--style <medium>` on a chat command. Style applies only
@@ -375,15 +383,18 @@ faces style:delete alias --medium email --yes   # forget one medium's style; sou
 **Styles also build themselves.** Once a face has enough of its **own** writing in a medium
 (10,000 words for essay, academic paper, blog post and legal document; 15,000 for the rest), a
 build runs for that medium without being asked, and again at 2x and 3x the threshold. It
-installs at once, and `style:revert` undoes it. On Connect and Pro this is **on by default and
-not billed**; on Free it is **off by default and bills per token** when on. `faces
-style:status --face alias` marks these `BY auto`. Change it only when the user asks:
+installs at once, and `style:revert` undoes it. It is **on by default on Connect and Pro** and
+**off by default on Free**. Each automatic build is paid like any build: at no charge on a
+linked ChatGPT account, otherwise **charged to credits**. One that credit cannot cover is not
+started; it shows as a failed build with `insufficient_credit_for_style_build` and is tried again
+later. `faces style:status --face alias` marks these `BY auto`. Change it only when the user
+asks:
 
 ```bash
 faces account:preferences                                # auto_style: on/off, and why
 faces account:preferences auto_style off                 # stop future automatic builds
 faces account:preferences auto_style default             # back to the plan's default
-faces account:preferences auto_style on --allow-paid     # Free: refused without --allow-paid
+faces account:preferences auto_style on --allow-paid     # needed unless ChatGPT is linked on Connect or Pro
 faces account:preferences auto_style_thresholds "email=25000,essay=default"
 ```
 
@@ -530,7 +541,9 @@ faces face:create --name "Alice and Bob" --alias alice-and-bob --formula "alice 
 ```
 
 For "who is most **different / unlike / opposite**", add `--direction furthest`. Both commands
-refuse a face with nothing compiled.
+refuse a face with nothing compiled. Similarity runs from -1 to 1. `face:neighbors` on a face that
+is not yours (`owner:alias`) reports it rounded to one decimal place, such as `0.8`; between
+your own faces it is exact.
 
 Composites are **boolean set algebra** over faces: `|` union, `&` intersection, `-`
 difference, `^` symmetric difference, with parentheses to group. A formula whose result is
@@ -629,7 +642,8 @@ faces account:preferences api_fallback true              # allow credits when Ch
 faces account:preferences auto_style off                 # stop automatic style builds
 ```
 
-Do not turn automatic style builds on for a Free account unless the user asked: each one bills.
+Do not turn automatic style builds on unless the user asked: off a linked ChatGPT account on
+Connect or Pro, each one is charged to credits.
 
 ## Important: never run `config:clear`
 
@@ -656,7 +670,9 @@ with `faces config:set`.
 | `422 oauth_only_unavailable` | The ChatGPT route cannot serve this request (always on Free; on Connect or Pro when the model or link cannot). Nothing was charged. Drop `--oauth-only` to pay from credits |
 | `409 duplicate_topup` | The same top-up went through moments ago; nothing was charged this time. Check `faces billing:balance` first; repeat only if the user confirms, with `--allow-duplicate` |
 | `409 cancellation_pending` | A plan change while the plan is set to cancel; nothing was charged. `faces billing:subscription:activate` first |
-| `409 chatgpt_not_linked` | A style build that can only run on ChatGPT, with none linked. Nothing was started. `faces auth:connect openai`, or `--allow-paid` if the user agrees to pay |
+| `409 chatgpt_not_linked` | A style build without `--allow-paid` that cannot run on a linked ChatGPT account (none is linked, or `--model` cannot run there). Nothing was started. `faces auth:connect openai` on Connect or Pro, or `--allow-paid` if the user agrees to pay from credits |
+| `402 insufficient_credit_for_style_build` | A style build charged to credits, and the balance cannot cover it. `estimated_usd` is the most it is expected to cost, `balance_usd` the balance. Nothing was started or charged. Top up (`faces billing:topup --amount <USD>`), or link ChatGPT on Connect or Pro |
+| `409 compile_already_started` | `--rush` on a compile that has already started. It carries on as it is; nothing was charged |
 | `409 build_in_progress` | A style build for that face and medium is running. `faces style:status JOB_ID --wait`; do not start another |
 | `422 empty_composite` | The formula's result is empty. Show the message; use a formula whose result is not empty |
 | `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry |

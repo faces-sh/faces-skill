@@ -122,7 +122,9 @@ When ChatGPT refuses and fallback is off, the error is under `detail`:
 | `oauth_incomplete` (`502`) | ChatGPT stopped its reply before finishing, twice | Retry. Nothing was charged |
 
 With `api_fallback` on, a reply that ChatGPT stops short twice is answered from credits instead.
-The same rule covers interviews and style builds.
+The same rule covers interviews. Style builds do not follow `api_fallback`: off a linked ChatGPT
+account they are charged to credits, which the CLI asks for with `--allow-paid` (see
+[REFERENCE.md → Style](REFERENCE.md#style-how-a-face-writes-style)).
 
 ## Connect and Pro onboarding
 

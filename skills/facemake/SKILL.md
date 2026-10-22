@@ -484,9 +484,9 @@ faces style:make <alias> --source DOC_OR_THREAD_ID --source "OTHER_ID:essay" --n
 faces style:status --face <alias>
 ```
 
-On Connect and Pro a build is not billed. On Free it is paid from credits, so it needs
-`--allow-paid`: pass it only if the user agrees to pay. Building does not apply it: chat with
-`--style <medium>`. See the `/faces` skill's REFERENCE.md, "Style".
+On Connect or Pro with a linked ChatGPT account a build runs there at no charge. Anywhere else
+it is charged to credits, so it needs `--allow-paid`: pass it only if the user agrees to pay.
+Building does not apply it: chat with `--style <medium>`. See the `/faces` skill's REFERENCE.md, "Style".
 
 ### Step 7: Done
 
