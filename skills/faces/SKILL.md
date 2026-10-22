@@ -120,7 +120,7 @@ faces face:create --name "Name" --alias slug --default-model MODEL \
 > between speakers is a thread**: upload it with `--kind thread` (`--type thread` on
 > `compile:import`) and `--face-speaker` naming the face, so only the face's turns are used. A
 > labelled dialogue uploaded as a document is read as entirely the face's own words, other
-> speakers included. Writing *about* the face by someone else (a biography, a profile) can
+> speakers included, and the upload comes back with a `looks_like_transcript` warning. Writing *about* the face by someone else (a biography, a profile) can
 > still be a document, with `--perspective third-person`.
 
 > **Check the speaker mapping of every thread with `compile:thread:get` before you compile
@@ -450,9 +450,9 @@ cause for this turn, and the model answers on it. No cause is generated, so **no
 user already know how the face reads the moment.
 
 **Streaming.** Every `chat:*` command streams by default, and a streamed request waits for the
-cause however long it takes. `--no-stream` and `--json` are not streamed: if the server answers
-`503` with `Retry-After` while causes warm up, the CLI waits and asks once more by itself. Do
-not add your own retry loop.
+cause however long it takes. `--no-stream` and `--json` wait for the answer too: a slow one is
+held open, and a refusal after that point is still reported with its real status. Do not add
+your own retry loop.
 
 Refusals of a face chat end "Nothing was charged.":
 
@@ -460,15 +460,16 @@ Refusals of a face chat end "Nothing was charged.":
 |---|---|---|
 | `409` | The face has nothing compiled (asked for its cause) | Compile a source into it (for a composite, into each face); do not retry |
 | `422` | No message in the conversation for the face to answer | Fix the request; do not retry |
-| `503` + `Retry-After` | Causes warming up (not streamed) | Wait that long, retry once |
 | `503` | The cause failed | Retry |
+| `504` | The face did not finish within 300 seconds | Retry |
 
 A refusal can also arrive **inside** a stream that already started `200`: the CLI prints it and
 exits non-zero. A face with nothing compiled still answers a chat, from its name, profile
 addendum and attributes, with no cause.
 
-**Calling the API yourself instead of the CLI?** Send `"stream": true` for any chat with a face;
-if you cannot stream, honour `Retry-After` on a `503`. A hand-written SSE reader must skip lines
+**Calling the API yourself instead of the CLI?** Set a timeout of at least 300 seconds for any
+request with a face. Not streamed, a response with `X-Faces-Held: 1` can carry an `error` in
+its `200` body, so check for it before reading the answer. A hand-written SSE reader must skip lines
 starting with `:` (keep-alives) and treat an error event as a failure. See
 [REFERENCE.md → Streaming](references/REFERENCE.md#streaming-face-chats).
 
@@ -526,7 +527,7 @@ guides a **decision model** (`--model`: `jev-latest`, `clef` or `clef-flash`; `f
 numbers; `--baseline` asks the decision model alone, the number to compare a face's answer
 against. `causes` holds one cause per question. `--format openai` uses OpenAI's Decisions format
 instead of TypeSafe's System One. A face's answer takes 10 to 20 seconds and a slow one is held
-open, so allow at least 60 seconds; the CLI waits out a warm-up `503` by itself. The cause counts
+open, so allow at least 300 seconds. The cause counts
 against a Connect or Pro allowance (or is paid on Free), and the decision model is **always paid
 from credits**, on every plan: with no credit it is a `402`. See
 [REFERENCE.md → Decisions](references/REFERENCE.md#decisions-decide).

@@ -386,7 +386,7 @@ their own on the server, so start them all, then poll at the end.
 > between speakers is a thread**: upload it with `--kind thread` (`--type thread` on
 > `compile:import`) and `--face-speaker` naming the face, so only the face's turns are used. A
 > labelled dialogue uploaded as a document is read as entirely the face's own words, other
-> speakers included. Writing *about* the face by someone else (a biography, a profile) can
+> speakers included, and the upload comes back with a `looks_like_transcript` warning. Writing *about* the face by someone else (a biography, a profile) can
 > still be a document, with `--perspective third-person`.
 > For public figures especially, most talks are interviews: check before using
 > `--type document`.
@@ -467,7 +467,9 @@ When reporting back:
 For audio and video sources, always review the transcript with the user before compiling:
 transcription quality varies and speaker labels may need correcting.
 
-**Read the upload's warnings.** A thread upload reports `warnings`:
+**Read the upload's warnings.** A document upload can report `looks_like_transcript`: the file
+reads as a conversation. Upload it again as a thread with `--face-speaker`, then delete the
+document. A thread upload reports `warnings` too:
 
 - `face_speaker_not_found`: the `--face-speaker` name matched nobody in the file, so the face
   has **no lines of its own**. Upload again with a name that appears in the file; the warning

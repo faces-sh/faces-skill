@@ -113,7 +113,7 @@ Keep the **alias** (`alice`): every command after this takes it.
 > between speakers is a thread**: upload it with `--kind thread` (`--type thread` on
 > `compile:import`) and `--face-speaker` naming the face, so only the face's turns are used. A
 > labelled dialogue uploaded as a document is read as entirely the face's own words, other
-> speakers included. Writing *about* the face by someone else (a biography, a profile) can
+> speakers included, and the upload comes back with a `looks_like_transcript` warning. Writing *about* the face by someone else (a biography, a profile) can
 > still be a document, with `--perspective third-person`.
 
 > **By them or about them? Always pass `--perspective`.** `compile:doc` and
