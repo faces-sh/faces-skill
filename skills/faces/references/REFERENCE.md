@@ -142,7 +142,7 @@ faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--me
                                                        # third-person here. A legacy .doc is a 400 (save it as .docx); a
                                                        # .docx with no text is a 422 (images and text boxes are not read).
 
-faces compile:doc          <alias>  (--content TEXT | --file PATH...)  --medium MEDIUM  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--no-wait]
+faces compile:doc          <alias>  (--content TEXT | --file PATH...)  --medium MEDIUM  [--label]  [--perspective first-person|third-person]  [--timeout N]  [--rush]  [--no-wait]
                                                        # --file is repeatable: each file becomes its OWN document.
                                                        # Returns {"documents":[{file, document_id}...]} in input order; a
                                                        # bad file is reported in place and the rest still compile.
@@ -150,7 +150,11 @@ faces compile:doc          <alias>  (--content TEXT | --file PATH...)  --medium 
                                                        # A source that would cost $1 or more to compile on credits is noted,
                                                        # with its price, before the compile starts (compile:doc:make too).
 faces compile:doc:create   <alias>  [--label]  (--content TEXT | --file PATH)  --medium MEDIUM  [--perspective first-person|third-person]
-faces compile:doc:make     <doc_id>  [--timeout N]  [--no-wait]
+faces compile:doc:make     <doc_id>  [--timeout N]  [--rush]  [--no-wait]
+                                                       # A compile may have a scheduled start: the answer's starts_at,
+                                                       # null when it starts at once. Without --no-wait the CLI waits
+                                                       # for it, and --timeout counts from the start. --rush starts it
+                                                       # now at the rush rate (rush: true); see compile:stats.
 faces compile:doc:pause    <doc_id>  [--no-wait]  [--timeout N]
 faces compile:doc:reset    <doc_id>  [--yes]       # withdraw it from the face, keep the document
 faces compile:doc:list     <alias>  [--verbose]    # text left out unless --verbose (--json always has it)
@@ -174,17 +178,20 @@ faces compile:thread:replace  <thread_id>  --file PATH  [--face-speaker NAME]
 faces compile:thread:message  <thread_id>  -m MSG  [--oauth-only]
                                                        # NOT the same thing: this continues a built-in INTERVIEW. It
                                                        # stores your answer AND writes the next question, and it bills.
-faces compile:thread:make     <thread_id>  [--timeout N]  [--no-wait]
+faces compile:thread:make     <thread_id>  [--timeout N]  [--rush]  [--no-wait]    # starts_at and --rush as compile:doc:make
 faces compile:thread:pause    <thread_id>  [--no-wait]  [--timeout N]
 faces compile:thread:reset    <thread_id>  [--yes]    # withdraw it from the face, keep the thread
 faces compile:thread:delete   <thread_id>  [--yes]
 
-faces compile:all         [--timeout N]
+faces compile:all         [--timeout N]  [--rush]
+                                                       # a compile with a scheduled start is left to start on its own and
+                                                       # listed as scheduled, with its start time; --rush starts them now
 faces compile:status      [--watch]  [--interval SECONDS]
                                                        # what is compiling on the ACCOUNT, grouped by face, in one small
                                                        # call. Branch on sources_active. --watch polls until nothing is in
                                                        # flight. Paused sources are listed apart, under `paused`.
-faces compile:stats                                    # this month's compiling against the allowance, and the rate
+faces compile:stats                                    # this month's compiling against the allowance, and the rates,
+                                                       # standard and rush
 
 faces style:upload      <alias>  <file>  [--type jsonl|email_jsonl|thread_json]  [--messages-per-thread N]  [--strict]
                                                        # load a corpus of the person's OWN writing. Stores only: nothing

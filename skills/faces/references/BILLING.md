@@ -46,6 +46,7 @@ user still needs credit for most chats, and always for `faces decide`.
 |---|---|
 | A cause (chat, causes, decisions) | $0.75 per million tokens: the tokens it read plus 1,500 |
 | Compile | $25 per million source tokens |
+| Rush compile (`--rush`) | the rush rate, `compile.rush_usd_per_million_source_tokens` in `GET /v1/rates` |
 | Any model you name (`@model`, a decision model) | the provider's price plus 5% |
 
 The live figures are public at `GET /v1/rates` (no key needed), and per model in the model
@@ -159,9 +160,32 @@ Compiled this month: 4,072 of 250,000 source tokens (2%), resets 2026-10-28
 Pay-as-you-go compile rate: $25 per million source tokens (past the allowance, with api_fallback on)
 ```
 
-`--json` is `{plan, compile_this_month: {limit, used, remaining, resets_at}, pay_as_you_go:
-{usd_per_million_source_tokens}}`; `compile_this_month` is `null` on Free. Per-face numbers are
-in `faces face:stats`.
+A last line gives the rush rate. `--json` is `{plan, compile_this_month: {limit, used,
+remaining, resets_at}, pay_as_you_go: {usd_per_million_source_tokens}, rush:
+{usd_per_million_source_tokens}}`; `compile_this_month` is `null` on a plan with no compile
+allowance, such as Free. Per-face numbers are in `faces face:stats`.
+
+Compile, upload and thread responses carry `tokens_used` and `tokens_limit`: the source tokens
+compiled in the current subscription window, against the plan's monthly compile allowance.
+`tokens_limit` is `0` on a plan with no allowance (compiles are paid per source token) and `-1`
+when unlimited.
+
+## Rush compiles
+
+A compile may have a scheduled start: `/make` answers with `starts_at`, or `null` when it starts
+at once. `--rush` starts it now at the rush rate. Quote both rates from `faces compile:stats` or
+`GET /v1/rates`, not from memory; the compile model `faces-compile-latest` also lists
+`rush_input_cost_per_million_tokens`.
+
+- **Paid as you go** (Free, or past an allowance with `api_fallback` on): a rush costs the rush
+  rate instead of the standard one.
+- **Within a plan's compile allowance:** the allowance covers the standard rate, and the rush
+  adds the difference, paid from credit. Without enough credit, `/make` refuses with a `402`,
+  `error_code: "insufficient_credit_for_rush"`, and `rush_premium_usd` (the amount), before
+  anything is queued. A compile without `--rush` is never refused for this.
+- Where a compile starts at once anyway, `--rush` changes nothing and costs nothing extra; the
+  answer says `rush: false`.
+- A rush's extra charge appears in usage under `faces-compile-latest`, like the compile itself.
 
 ## Model prices
 
@@ -187,6 +211,10 @@ Group by `api_key`, `model`, `llm` or `date`. A face's causes appear as `faces-c
 and compiling as `faces-compile-latest`. COST is what you were charged.
 
 ## What to do on
+
+**402 insufficient_credit_for_rush:** a `--rush` compile within the allowance, without the
+credit for its premium. Show `rush_premium_usd`, then top up, or compile without `--rush` to
+start at the scheduled time.
 
 **402:** no credit for the request. `faces billing:balance --json` to confirm, then
 `faces billing:topup --amount <USD>` (with no card saved, `faces billing:card-setup` first),
