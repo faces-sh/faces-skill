@@ -672,7 +672,7 @@ refused before work starts (`400`, `402`, `403`, `409`, `422`, `429`).
 | `429` naming an allowance | The cause allowance is used up and `api_fallback` is off | Wait for the reset, or turn on `api_fallback` |
 | `429 Rate limit` | The account's per-minute limit | The CLI waits `Retry-After` once; then wait the seconds named |
 | `503` + `Retry-After` | Warming up | The CLI waits it out |
-| `503` | The cause or the decision model failed, or TypeSafe is unavailable on `jev-latest` | Retry, or another `--model` |
+| `503` | The cause failed, or the decision model is unavailable | Retry, or another `--model` |
 
 ## Benchmark (`benchmark:*`)
 
