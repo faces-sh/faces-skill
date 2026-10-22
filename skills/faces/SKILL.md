@@ -284,7 +284,7 @@ Use `--kind document --medium lecture` for a solo speaker.
 
 **`--face-speaker` labels:**
 - Audio or video: speakers are transcribed as `A`, `B`, `C`; use the label (`--face-speaker B`).
-- Text transcripts: use the speaker name as it appears in the file (`--face-speaker Troy`).
+- Text transcripts: use the speaker name as it appears in the file (`--face-speaker Ada`).
 - The match is case-insensitive but exact. If the upload warns `face_speaker_not_found`, the
   name matched nobody and the face has no lines of its own: upload again with a name in the
   file. `unattributed_lines` are lines before the first `Speaker:` prefix, and are not in the
