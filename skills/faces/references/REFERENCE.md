@@ -45,7 +45,6 @@ faces face:sources      <alias>  [--type doc|thread]
                                                        # every source on the face, documents and threads in one table:
                                                        # label, tokens, status, medium, updated. STATUS reads `finishing`
                                                        # first: a source still in hand (retries included) needs NO action.
-                                                       # GAVE is how much it contributed; 0 means nothing usable.
                                                        # Exits 4 for a face that does not exist (a face with no sources
                                                        # exits 0). Never prints content. --json has a stable id per row.
 faces face:stats
@@ -1025,9 +1024,6 @@ failure goes back to `queued` and resumes by itself.
 
 `/make` is the only compile call. A second `/make` of an unchanged, compiled source is a `409
 already_compiled`, and nothing is charged: edit the source or reset it to compile it again.
-
-**A synced source with `GAVE 0`** had nothing usable in it, such as a PDF that is only images.
-Recompiling costs again and usually gives the same result.
 
 ## Is anything compiling? (`compile:status`)
 

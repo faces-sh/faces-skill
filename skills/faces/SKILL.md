@@ -707,13 +707,11 @@ attributes:
   occupation: mathematician
 tags: [research, mathematics]
 formula: null
-component_counts: 140
 compiled_tokens: 47200
 ---
 ```
 
-`component_counts` is a single total, written by the CLI. It is not a test of whether a face is
-compiled. `compiled_tokens` is the source tokens currently compiled into the face. To know
+`compiled_tokens` is the source tokens currently compiled into the face. To know
 whether a face is compiled, ask the server: `faces face:sources <alias>` (a source reading
 `synced` has compiled).
 
