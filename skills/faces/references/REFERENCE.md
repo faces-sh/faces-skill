@@ -216,8 +216,6 @@ faces billing:subscription:activate  [--plan connect|pro]    # alias billing:sub
 faces billing:subscription:plan      <connect|pro>  [--yes]  # already subscribed: switch in place, prorated
 faces billing:subscription:cancel    [--yes]
 faces billing:usage      [--group-by api_key|model|llm|date]  [--from DATE]  [--to DATE]
-                                                       # a COVERED column (absorbed_cost_usd), when there is any, is what
-                                                       # Faces paid on your behalf, which you were not charged.
 faces billing:topup      --amount F  [--card PM_ID]  [--yes]  [--allow-duplicate]
                                                        # a repeat of a recent top-up is a 409 duplicate_topup unless
                                                        # --allow-duplicate is given. --yes does not imply it.
