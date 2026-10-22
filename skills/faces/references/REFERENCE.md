@@ -407,7 +407,7 @@ faces session:close fs_... --yes                 # takes no more turns; its comp
 - **Expiry:** a session expires 30 days after its last turn; a compaction 30 days after it is
   written. An expired one answers `404`, as one that does not exist, and nothing is charged.
 - Compacting a session with no turns is a `422`. A compaction is held open like a cause, so
-  allow at least 60 seconds.
+  allow at least 300 seconds.
 
 ## The `me` face
 
@@ -528,11 +528,15 @@ A face's cause can take a while. Every `chat:*` command streams by default, and 
 request waits for the cause as long as it takes. Most turns start within 20 seconds; past that,
 the response starts `200` and carries `: keep-alive` comment lines until the answer begins.
 
-`--no-stream` and `--json` are not streamed. A request that is not streamed has a time limit,
-and past it gets a `503` with `Retry-After`: the CLI waits that long and asks once more by
-itself. Do not wrap it in a retry loop.
+`--no-stream` and `--json` are not streamed, and wait for the answer too. Past about 40 seconds
+the response starts `200` with `X-Faces-Held: 1`, then spaces, then the JSON. A refusal after
+that point comes back inside the `200` as `{"detail": ..., "error": {...}}` (Anthropic's error
+shape on `/v1/messages`), and the CLI reports its real status. A held response has no
+`X-Faces-Cost-USD`; the charge is in `usage`. Any face request still working after 300 seconds
+is stopped with a `504`. Do not wrap it in a retry loop.
 
-**Calling the API yourself:** stream any chat with a face. A hand-written SSE reader must
+**Calling the API yourself:** set a timeout of at least 300 seconds for any request with a
+face, and when `X-Faces-Held` is set check the body for `error` first. A hand-written SSE reader must
 (1) skip every line starting with `:` and (2) treat an error event as a failure, since a late
 refusal can only arrive inside the stream:
 
@@ -549,8 +553,8 @@ before the model is called, and nothing is charged.
 |---|---|---|
 | `409` | The face has nothing compiled (asked for its cause) | Compile a source into it. Do not retry |
 | `422` | No message in the conversation for the face to answer | Fix the request. Do not retry |
-| `503` + `Retry-After` | Causes are warming up from a cold start (not streamed) | Wait `Retry-After` seconds, then retry once |
 | `503` | The cause failed | Retry |
+| `504` | The face did not finish within 300 seconds | Retry |
 
 ## OAuth-only mode (`--oauth-only`): Connect and Pro
 
@@ -654,7 +658,7 @@ With `--json` (systemone) the result is `{"model", "answers", "usage", "cause", 
 decision model's versioned id (`alice@jev-1.13.0`).
 
 **Timing.** A face's answer takes about 10 to 20 seconds; a baseline about one. Allow at least
-60 seconds. Past about 40 seconds the server answers `200` with `X-Faces-Held: 1`, sends spaces
+300 seconds. Past about 40 seconds the server answers `200` with `X-Faces-Held: 1`, sends spaces
 to keep the connection open, then the JSON. A held call that fails still answers `200`, with
 `{"detail": ..., "error": {"status": ...}}` and no `answers`; the CLI reports the real status.
 After an idle spell the decision models warm up for about two minutes: every request gets a
@@ -679,6 +683,7 @@ refused before work starts (`400`, `402`, `403`, `409`, `422`, `429`).
 | `429` naming an allowance | The cause allowance is used up and `api_fallback` is off | Wait for the reset, or turn on `api_fallback` |
 | `429 Rate limit` | The account's per-minute limit | The CLI waits `Retry-After` once; then wait the seconds named |
 | `503` + `Retry-After` | Warming up | The CLI waits it out |
+| `504` | The face did not finish within 300 seconds | Retry |
 | `503` | The cause failed, or the decision model is unavailable | Retry, or another `--model` |
 
 ## Benchmark (`benchmark:*`)
