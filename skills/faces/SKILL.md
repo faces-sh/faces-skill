@@ -109,7 +109,8 @@ faces face:create --name "Name" --alias slug --default-model MODEL \
   characters) stores a system prompt fragment sent with every chat request to this face,
   alongside any per-request `--system`. Use it for durable rules: tone, format, hard
   constraints. Edit with `face:edit --profile-addendum …`, remove with `face:edit
-  --clear-profile-addendum`. Only the owner ever sees it.
+  --clear-profile-addendum`. Only the owner can read it through the API, but a determined
+  caller can get the model to reveal it: never put anything there the face's users shouldn't see.
 
 ### 2. Add source material
 

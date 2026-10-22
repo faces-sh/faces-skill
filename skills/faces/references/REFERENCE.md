@@ -731,7 +731,8 @@ faces face:edit ada --specialty ""                   # clears it
 
 A face can store a system prompt fragment, sent to the model on every chat request with that
 face, alongside any per-request `--system` or `--instructions`. Use it for durable rules: output
-format, guardrails, tone, tool conventions.
+format, guardrails, tone, tool conventions. It is sent like a system prompt, so a determined
+caller can get the model to reveal it: never put anything there the face's users shouldn't see.
 
 ```bash
 faces face:create --name "Support Bot" --alias support-bot --default-model claude-sonnet-4-6 \
