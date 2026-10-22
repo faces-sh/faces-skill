@@ -219,6 +219,15 @@ current one, and a later compile can still refine it, so check them after a big 
 **Always use `--no-wait`** for compiles and uploads. Each runs on its own on the server: upload
 every source, start every compile, then poll at the end.
 
+**A compile may have a scheduled start.** `/make` answers with `starts_at`: the time the
+compile will start, or `null` when it starts at once (once it has started, `starts_at` is when it
+did). Until then it is `queued` and starts on its own, so say when it starts and do not treat the
+wait as a stall. `--rush` (on `compile:doc`, `compile:doc:make`, `compile:thread:make` and
+`compile:all`) starts it now at the rush rate, and the answer says `rush: true`. Quote the rates
+from `faces compile:stats` or `GET /v1/rates`, and use `--rush` only when the user wants the
+compile now and accepts that rate. Where a compile starts at once anyway, `--rush` changes
+nothing and costs nothing extra.
+
 **Poll with `--status-only`**, which leaves the text out of every tick:
 ```bash
 faces compile:thread:get ID --status-only --json | jq '{status, progress, finishing}'
@@ -248,7 +257,7 @@ invisible: check before reporting work finished.
 |---|---|---|
 | `not_compiled` | Never compiled (or transcription finished) | `compile:doc:make` or `compile:thread:make` |
 | `transcribing` | Audio or video being transcribed | Keep polling |
-| `queued` | Waiting behind the face's other sources, or about to resume by itself | Keep polling; say "queued" |
+| `queued` | Waiting behind the face's other sources, for its scheduled start (`starts_at`), or about to resume by itself | Keep polling; say "queued", with the start time when `starts_at` is set |
 | `compiling` | Running; `progress` says how far | Keep polling |
 | `compiled` | Done; `progress` is 1 | Finished. For a document, its writing style catches up within about a minute; do not wait for it |
 | `paused` | Paused; nothing moves until it is resumed | Resume with `compile:*:make`, or `compile:*:reset` |
@@ -638,6 +647,7 @@ with `faces config:set`.
 | status `queued` or `compiling` | Poll with `compile:*:get ID --status-only --json`, or `compile:status` for everything |
 | `409 already_compiled` | Compiled and unchanged; nothing was charged. Edit it or `compile:*:reset` it to compile again |
 | status `failed` | If `finishing` is `true` the server is still on it: wait and offer nothing. Otherwise `stall_reason` says why; do not re-run without fixing it |
+| `402 insufficient_credit_for_rush` | A `--rush` compile that a plan's allowance covers still pays the rush premium from credit, and there is not enough. `rush_premium_usd` is the amount. Nothing was queued. Top up (`faces billing:topup --amount <USD>`), or compile without `--rush` to start at the scheduled time |
 | `402` | No credit. `faces billing:balance --json`, then `faces billing:topup --amount <USD>` (min $1; `--card pm_…` for a card other than the default; with no card, `faces billing:card-setup` first). Connect and Pro still need credit for the answering model and for `decide`. See [BILLING.md](references/BILLING.md) |
 | `422 oauth_rejected` | Connect and Pro: ChatGPT refused and fallback is off. `faces account:preferences api_fallback true` (top up first if needed). See [OAUTH.md](references/OAUTH.md) |
 | `429` naming an allowance | A Connect or Pro allowance (causes over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is. Wait, or, if the user agrees to pay, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
