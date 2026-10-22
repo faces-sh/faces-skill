@@ -184,9 +184,7 @@ faces billing:usage --group-by model --from 2026-03-01 --to 2026-03-31
 ```
 
 Group by `api_key`, `model`, `llm` or `date`. A face's causes appear as `faces-causes-latest`
-and compiling as `faces-compile-latest`. `absorbed_cost_usd` is cost the platform paid that was
-not billed per token, such as a compile, which is billed by its source tokens instead.
-`faces billing:usage` shows it as a COVERED column when there is any.
+and compiling as `faces-compile-latest`. COST is what you were charged.
 
 ## What to do on
 
