@@ -92,7 +92,7 @@ npm install -g faces-cli@latest
 You can register manually at the [faces.sh](https://faces.sh/) website, or via the cli:
 
 ```bash
-# Free: add $5 of credit to start, then pay as you go (models at the provider's price plus 5%)
+# Free: add $5 of credit to start, then pay as you go (models at the model's listed price plus 5%)
 faces auth:register --email you@example.com --password 'Your-password-1' --username your_username
 
 # Connect ($17/month) or Pro ($49/month): monthly allowances for compiling and causes, and

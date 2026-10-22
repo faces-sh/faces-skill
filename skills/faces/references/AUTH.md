@@ -136,7 +136,7 @@ read it back.
 
 Pay-as-you-go rates, on Free and past an allowance: a cause $0.75 per million tokens (the
 tokens it reads plus 1,500), compiling $25 per million source tokens, and any model you name
-at the provider's price plus 5%. Read the live figures from `GET /v1/rates`. Details in
+at the model's listed price plus 5%. Read the live figures from `GET /v1/rates`. Details in
 [BILLING.md](BILLING.md); the ChatGPT route in [OAUTH.md](OAUTH.md).
 
 On Connect and Pro, a ChatGPT failure or a used-up allowance is refused by default rather than
