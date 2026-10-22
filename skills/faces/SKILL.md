@@ -642,7 +642,7 @@ with `faces config:set`.
 | `429` naming an allowance | A Connect or Pro allowance (causes over 5 hours, the week or the month, or compiling) is used up and `api_fallback` is off. Show the message as it is. Wait, or, if the user agrees to pay, `faces account:preferences api_fallback true`. `faces billing:subscription` shows every meter |
 | `429 Rate limit: N requests per minute` | The account's per-minute limit. Nothing was charged. The CLI waits `Retry-After` once; refused again, wait the seconds named. Never retry in a loop: parallel agents share one account's limit |
 | `422 oauth_only_unavailable` | The ChatGPT route cannot serve this request (always on Free; on Connect or Pro when the model or link cannot). Nothing was charged. Drop `--oauth-only` to pay from credits |
-| `409 duplicate_topup` | The same top-up went through moments ago; nothing was charged this time. Check `faces billing:balance` first |
+| `409 duplicate_topup` | The same top-up went through moments ago; nothing was charged this time. Check `faces billing:balance` first; repeat only if the user confirms, with `--allow-duplicate` |
 | `409 cancellation_pending` | A plan change while the plan is set to cancel; nothing was charged. `faces billing:subscription:activate` first |
 | `409 chatgpt_not_linked` | A style build that can only run on ChatGPT, with none linked. Nothing was started. `faces auth:connect openai`, or `--allow-paid` if the user agrees to pay |
 | `409 build_in_progress` | A style build for that face and medium is running. `faces style:status JOB_ID --wait`; do not start another |
