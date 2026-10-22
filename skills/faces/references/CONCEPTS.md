@@ -38,6 +38,11 @@ and a face is not tied to any one model: pair it with any chat model in the cata
 source and compile it; delete one and what it contributed goes with it. A face's cost per
 request does not depend on how much has been compiled into it.
 
+Sources come in two kinds. A **document** is the face's own writing (an essay, letter, paper,
+book or poem), and every word in it is read as the face's. An **interview, transcript or
+dialogue is a thread**, uploaded with the face's speaker named, so only the face's turns are
+used.
+
 ## Composable and comparable
 
 Faces combine with **boolean set algebra** into composites:

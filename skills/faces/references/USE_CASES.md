@@ -3,8 +3,8 @@
 **1. Historical thinkers.** Compile the complete works of a thinker into a face. Ask it the
 questions they never answered, and let its cause steer whichever model answers.
 
-**2. Customer panel from transcripts.** Upload 20 interview transcripts, one face per
-participant. Run `face:diff` across the panel to see who is alike before reading a word, then
+**2. Customer panel from transcripts.** Upload 20 interview transcripts as threads, one face
+per participant, with `--face-speaker` naming the participant so only their turns are used. Run `face:diff` across the panel to see who is alike before reading a word, then
 ask the whole panel the same question with `faces decide` and compare the numbers.
 
 **3. A board of advisors.** Assemble a scientist, an artist, a pragmatist and a mystic. Route

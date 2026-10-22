@@ -49,7 +49,8 @@ Agent: What shaped your worldview?
 Johnny: Reading philosophy as a teenager changed everything.
 ```
 
-**Step 3: Upload, check, compile.**
+**Step 3: Upload, check, compile.** Always as a thread: an interview uploaded as a document is
+read as entirely the face's words, your questions included.
 
 ```bash
 THREAD_ID=$(faces compile:upload alias --file transcript.txt --kind thread \

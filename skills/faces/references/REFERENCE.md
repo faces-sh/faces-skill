@@ -137,6 +137,9 @@ faces compile:import       <alias>  --url YOUTUBE_URL  [--type document|thread] 
                                                        # --medium is required with --type document and refused with thread.
                                                        # --perspective defaults to third-person here.
 faces compile:upload       <alias>  --file PATH  [--kind document|thread]  [--medium MEDIUM]  [--perspective first-person|third-person]  [--face-speaker NAME]  [--no-wait]
+                                                       # --kind document is the face's own writing; an interview, transcript
+                                                       # or dialogue is --kind thread with --face-speaker, so only the
+                                                       # face's turns are used.
                                                        # text, PDF, Word (.docx), audio and video. --medium is required with
                                                        # --kind document and refused with thread. --perspective defaults to
                                                        # third-person here. A legacy .doc is a 400 (save it as .docx); a
@@ -794,7 +797,13 @@ description, tags, members) and the protocol as the body. See the TEAM.md schema
 
 ## Compiling documents (`compile:doc`)
 
-`compile:doc` creates a document and compiles it in one step, with progress:
+`compile:doc` creates a document and compiles it in one step, with progress.
+
+**A document is the face's own writing** (an essay, letter, paper, book, poem), and every word
+in it is read as the face's. An interview, transcript, dialogue or any other exchange between
+speakers is a **thread**: upload it with `compile:upload --kind thread --face-speaker NAME`, so
+only the face's turns are used. A labelled dialogue uploaded as a document is read as entirely
+the face's own words, other speakers included.
 
 ```bash
 faces compile:doc alice --file essay.txt --medium essay --perspective first-person
@@ -818,7 +827,8 @@ not save one without it (a `422` naming the eleven). Eleven values, spelled exac
 `other`, `social post`, `text message`, `thread reply`. Only case and surrounding spaces are
 forgiven; any other word is a `422` naming all eleven. Never guess one: ask.
 
-- `conversation` is dialogue: a transcript, an interview, a call. `lecture` is prepared speech
+- `conversation` is the face speaking informally on their own: a voice memo, dictation. A
+  conversation with anyone else is a thread, not a document. `lecture` is prepared speech
   nobody interrupts: a talk, a sermon, a keynote.
 - **`other`** is for writing in none of the named forms, read as prose with no form-specific
   conventions. It is not a shrug: a letter, a diary entry or a memo has rules of its own, and

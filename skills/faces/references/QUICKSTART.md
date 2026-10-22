@@ -107,12 +107,14 @@ Keep the **alias** (`alice`): every command after this takes it.
 
 ## 4. Add source material
 
-> **Thread or document? Decide this first.** Any source with more than one speaker (an
-> interview, podcast, conversation, Q&A, panel) is a **thread**: it keeps who said what, and
-> `--face-speaker` names the face's own lines. Only single-voice material (an essay, article,
-> solo talk, the person's own writing) is a **document**. Compiling a multi-speaker source as a
-> document reads every speaker as the face, so if two or more people are talking, it is a
-> thread.
+> **Document or thread? Decide this first.** A **document** is the face's own writing: an
+> essay, letter, paper, book, poem or notes. It has one author, and every word in it is read as
+> the face's. An **interview, transcript, dialogue, podcast, Q&A, panel or any other exchange
+> between speakers is a thread**: upload it with `--kind thread` (`--type thread` on
+> `compile:import`) and `--face-speaker` naming the face, so only the face's turns are used. A
+> labelled dialogue uploaded as a document is read as entirely the face's own words, other
+> speakers included. Writing *about* the face by someone else (a biography, a profile) can
+> still be a document, with `--perspective third-person`.
 
 > **By them or about them? Always pass `--perspective`.** `compile:doc` and
 > `compile:doc:create` default to `first-person`; `compile:upload` and `compile:import` default

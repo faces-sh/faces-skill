@@ -397,6 +397,11 @@ For each face it names, follow the `/facemake` skill's Step 5 (compile) flow:
    - Local file: `faces compile:doc <alias> --file <path> --medium <medium> --perspective first-person --no-wait --json`
    - Text in hand (not on disk): `faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --perspective first-person --no-wait --json`
      (pass it verbatim: do not retype or summarise it)
+   - **A document is the face's own writing.** An interview, transcript, podcast or any
+     other exchange between speakers is a thread, never a document:
+     `faces compile:upload <alias> --file <path> --kind thread --face-speaker "<name in file>" --no-wait --json`
+     (`--type thread` on `compile:import`). Only the face's turns are used; uploaded as a
+     document, every speaker's words would be read as the face's.
    - `--medium` is required on every document and must not be guessed: the server never
      infers one. Eleven values, spelled exactly:
      `academic paper`, `blog post`, `conversation`, `email`, `essay`, `lecture`,

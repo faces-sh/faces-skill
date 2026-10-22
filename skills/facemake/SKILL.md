@@ -343,7 +343,7 @@ Recipe body (everything below the CLI's closing `---`):
 
 ## Queued
 
-- [ ] <url>: <what this source brings to the face>
+- [ ] <url> (<document, or thread with the face's speaker>): <what this source brings to the face>
 
 ## Sources
 
@@ -380,11 +380,14 @@ Revise until they are satisfied.
 When the user is ready, go through each queued item. Always use `--no-wait`: compiles run on
 their own on the server, so start them all, then poll at the end.
 
-> **Thread or document? Decide this per source.** Any source with more than one speaker (an
-> interview, podcast, conversation, Q&A, panel) is a **thread**: compile it with
-> `--type thread` / `--kind thread` and map the face's own lines with `--face-speaker`. Only
-> single-voice material (a solo talk, an essay, an article, the person's own writing) is a
-> **document**. Compiling a multi-speaker source as a document reads every speaker as the face.
+> **Document or thread? Decide this per source.** A **document** is the face's own writing: an
+> essay, letter, paper, book, poem or notes. It has one author, and every word in it is read as
+> the face's. An **interview, transcript, dialogue, podcast, Q&A, panel or any other exchange
+> between speakers is a thread**: upload it with `--kind thread` (`--type thread` on
+> `compile:import`) and `--face-speaker` naming the face, so only the face's turns are used. A
+> labelled dialogue uploaded as a document is read as entirely the face's own words, other
+> speakers included. Writing *about* the face by someone else (a biography, a profile) can
+> still be a document, with `--perspective third-person`.
 > For public figures especially, most talks are interviews: check before using
 > `--type document`.
 
@@ -410,9 +413,13 @@ faces compile:thread:get "$THREAD_ID"                                         # 
 faces compile:thread:edit "$THREAD_ID" --face-speaker "B"
 faces compile:thread:make "$THREAD_ID" --no-wait --json
 
-# Text you already have (a transcript in hand, a draft, anything not on disk).
+# Text the subject wrote that you already have (a draft, notes, anything not on disk).
 # Pass it verbatim: do NOT retype or summarise it.
 faces compile:doc <alias> --content "<text>" --label "<name>" --medium <medium> --perspective first-person --no-wait --json
+# A transcript or interview as text (on disk, or saved as "Speaker: text" lines): a thread
+THREAD_ID=$(faces compile:upload <alias> --file <path> --kind thread --face-speaker "<name in file>" \
+  --no-wait --json | jq -r '.thread_id // .id')
+faces compile:thread:get "$THREAD_ID"                                         # check the speakers
 # A local text file, by the subject
 faces compile:doc <alias> --file <path> --medium <medium> --perspective first-person --no-wait --json
 # Several at once: --file is repeatable, each becomes its own document. One --medium applies to all.
