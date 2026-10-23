@@ -542,9 +542,9 @@ refusal can only arrive inside the stream:
 
 | endpoint | late refusal |
 |---|---|
-| `/v1/chat/completions` | `data: {"error": {"message": "...", "code": 503}}`, then `data: [DONE]` |
-| `/v1/responses` | `event: error` with `{"type": "error", "code": "503", "message": "..."}` |
-| `/v1/messages` | `event: error` with `{"type": "error", "error": {"type": "overloaded_error", "message": "..."}}` |
+| `/v1/chat/completions` | `data: {"error": {"message": "...", "code": 503, "status": 503}}`, then `data: [DONE]` |
+| `/v1/responses` | `event: error` with `{"type": "error", "code": "503", "status": 503, "message": "..."}` |
+| `/v1/messages` | `event: error` with `{"type": "error", "error": {"type": "overloaded_error", "message": "...", "status": 503}}` |
 
 **Refusals.** No cause, no answer: when the cause cannot be given, the request is refused
 before the model is called, and nothing is charged.
