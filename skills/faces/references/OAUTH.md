@@ -119,7 +119,7 @@ When ChatGPT refuses and fallback is off, the error is under `detail`:
 | `model_not_supported` | The model is not available on this ChatGPT plan | Pick another model |
 | `oauth_workspace_residency` | The workspace's data-residency setting does not allow it | No client-side fix |
 | `oauth_rate_limited` | The ChatGPT plan's usage limit is reached | Try later; `Retry-After` says when, if ChatGPT said |
-| `oauth_incomplete` (`502`) | ChatGPT stopped its reply before finishing, twice | Retry. Nothing was charged |
+| `oauth_incomplete` (`503`) | ChatGPT stopped its reply before finishing, twice | Retry. Nothing was charged |
 
 With `api_fallback` on, a reply that ChatGPT stops short twice is answered from credits instead.
 The same rule covers interviews. Style builds do not follow `api_fallback`: off a linked ChatGPT

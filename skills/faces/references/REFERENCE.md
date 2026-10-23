@@ -554,6 +554,7 @@ before the model is called, and nothing is charged.
 | `409` | The face has nothing compiled (asked for its cause) | Compile a source into it. Do not retry |
 | `422` | No message in the conversation for the face to answer | Fix the request. Do not retry |
 | `503` | The cause failed | Retry |
+| `503` | The model failed or is unavailable (`retryable` says whether to ask again) | Retry when `retryable` is true; when false, use another model |
 | `504` | The face did not finish within 300 seconds | Retry |
 
 ## OAuth-only mode (`--oauth-only`): Connect and Pro
@@ -1298,7 +1299,7 @@ Refusals that can come from many routes:
   final. Parallel agents share the account's limit.
 - **`402`.** No credit. On Connect and Pro the answering model and decision models are still
   paid from credits, so this can happen on any plan. Top up.
-- **`502 oauth_incomplete`.** ChatGPT stopped its reply partway, twice. Nothing was charged;
+- **`503 oauth_incomplete`.** ChatGPT stopped its reply partway, twice. Nothing was charged;
   retry.
 
 ## Global flags

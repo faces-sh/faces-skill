@@ -63,7 +63,8 @@ intersection between these two faces is null"). See
 
 Compiled faces are also **comparable**: `face:diff` scores how alike two faces are, from `-1` to
 `1`, and `face:neighbors` finds the most and least similar faces to one face. When either face
-is not yours, the similarity is rounded to one decimal place.
+is not yours, the similarity is rounded to one decimal place, and neighbors with the same rounded
+score are listed by owner, then alias.
 
 ## Style
 
