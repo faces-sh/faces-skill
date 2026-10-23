@@ -264,7 +264,7 @@ invisible: check before reporting work finished.
 | Status | Meaning | Action |
 |---|---|---|
 | `not_compiled` | Never compiled (or transcription finished) | `compile:doc:make` or `compile:thread:make` |
-| `transcribing` | Audio or video being transcribed | Keep polling |
+| `transcribing` | Audio or video being transcribed | Keep polling. If it ends `failed`, upload the file (or import the URL) again |
 | `queued` | Waiting behind the face's other sources, for its scheduled start (`starts_at`), or about to resume by itself | Keep polling; say "queued", with the start time when `starts_at` is set |
 | `compiling` | Running; `progress` says how far | Keep polling |
 | `compiled` | Done; `progress` is 1 | Finished. For a document, its writing style catches up within about a minute; do not wait for it |
