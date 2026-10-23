@@ -461,6 +461,7 @@ Refusals of a face chat end "Nothing was charged.":
 | `409` | The face has nothing compiled (asked for its cause) | Compile a source into it (for a composite, into each face); do not retry |
 | `422` | No message in the conversation for the face to answer | Fix the request; do not retry |
 | `503` | The cause failed | Retry |
+| `503` | The model failed or is unavailable (`retryable` says whether to ask again) | Retry when `retryable` is true; when false, use another model |
 | `504` | The face did not finish within 300 seconds | Retry |
 
 A refusal can also arrive **inside** a stream that already started `200`: the CLI prints it and
@@ -547,8 +548,8 @@ faces face:create --name "Alice and Bob" --alias alice-and-bob --formula "alice 
 
 For "who is most **different / unlike / opposite**", add `--direction furthest`. Both commands
 refuse a face with nothing compiled. Similarity runs from -1 to 1. `face:neighbors` on a face that
-is not yours (`owner:alias`) reports it rounded to one decimal place, such as `0.8`; between
-your own faces it is exact.
+is not yours (`owner:alias`) reports it rounded to one decimal place, such as `0.8`, and rows with the same rounded score are
+listed by owner, then alias. Between your own faces, scores and order are exact.
 
 Composites are **boolean set algebra** over faces: `|` union, `&` intersection, `-`
 difference, `^` symmetric difference, with parentheses to group. A formula whose result is
@@ -680,7 +681,7 @@ with `faces config:set`.
 | `409 compile_already_started` | `--rush` on a compile that has already started. It carries on as it is; nothing was charged |
 | `409 build_in_progress` | A style build for that face and medium is running. `faces style:status JOB_ID --wait`; do not start another |
 | `422 empty_composite` | The formula's result is empty. Show the message; use a formula whose result is not empty |
-| `502 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry |
+| `503 oauth_incomplete` | ChatGPT stopped its reply partway, twice. Nothing was charged; retry |
 | `404` on a session or compaction | Unknown, expired, closed, or another face's. Nothing was charged. Open a new session |
 | `422` on a thread import | Retry with `--type document` |
 | `409` read-only on edit | The content is read-only. Do not retry; say so. It can still be read or deleted, and `compile:thread:edit --label/--medium/--clear-medium` still work |
