@@ -1045,7 +1045,7 @@ skips them and says how many.
 | `status` | meaning |
 |---|---|
 | `not_compiled` | saved, not compiled yet (or reset); call `/make` |
-| `transcribing` | an audio or video source is being transcribed |
+| `transcribing` | an audio or video source is being transcribed; a transcription or import that ends `failed` is uploaded again |
 | `queued` | waiting behind the face's other sources, or about to resume by itself |
 | `compiling` | running; `progress` says how far |
 | `compiled` | done. For a document, its writing style catches up within about a minute; treat `compiled` as finished |
