@@ -451,7 +451,7 @@ user already know how the face reads the moment.
 
 **Streaming.** Every `chat:*` command streams by default, and a streamed request waits for the
 cause however long it takes. `--no-stream` and `--json` wait for the answer too: a slow one is
-held open, and a refusal after that point is still reported with its real status. Do not add
+held open, and a refusal after that point is still reported with its real status and code. Do not add
 your own retry loop.
 
 Refusals of a face chat end "Nothing was charged.":
