@@ -612,29 +612,29 @@ generated avatar; `organic` (the default) serves the generated one.
 `faces face:list --include avatar` marks each face's avatar state, and `--include owner_follow`
 whether you follow the account that published it.
 
-### 8. Teams
+### 8. Groups
 
 Named groups of faces, with an optional description, protocol (a mermaid diagram) and tags:
 ```bash
-TEAM=$(faces team:create --name "Review Panel" --description "Research critique" --tag review --json)
-TEAM_ID=$(echo "$TEAM" | jq -r '.id')
-faces team:add $TEAM_ID --face alice --face bob          # owner:alias for a face you do not own
-faces team:edit $TEAM_ID --protocol-file workflow.mmd    # the diagram alone, never TEAM.md itself
-faces team:list
-faces team:members $TEAM_ID
+GROUP=$(faces group:create --name "Review Panel" --description "Research critique" --tag review --json)
+GROUP_ID=$(echo "$GROUP" | jq -r '.id')
+faces group:add $GROUP_ID --face alice --face bob          # owner:alias for a face you do not own
+faces group:edit $GROUP_ID --protocol-file workflow.mmd    # the diagram alone, never TEAM.md itself
+faces group:list
+faces group:members $GROUP_ID
 ```
 
-Teams have a local TEAM.md at `~/.faces/teams/<slug>/TEAM.md`, where `<slug>` is the name
+Each group has a local TEAM.md at `~/.faces/teams/<slug>/TEAM.md`, where `<slug>` is the name
 lowercased with each run of other characters turned into `-` ("Review Panel" is
 `review-panel`). It has YAML frontmatter (id, name, description, tags, members) and the protocol
 as the body. To push a protocol edited there, strip the frontmatter first: `sed '1,/^---$/d'
-TEAM.md > protocol.md`, then `team:edit --protocol-file protocol.md`.
+TEAM.md > protocol.md`, then `group:edit --protocol-file protocol.md`.
 
 ### 9. Backup & restore
 
 ```bash
 faces catalog:backup                     # → ~/.faces/backups/<timestamp>.json
-faces catalog:restore                    # the newest backup: faces, teams, source material
+faces catalog:restore                    # the newest backup: faces, groups, source material
 faces catalog:restore --compile          # restore, then compile everything
 faces catalog:restore /path/to/file.json
 faces compile:all                        # compile every uncompiled document and thread
@@ -702,8 +702,8 @@ with `faces config:set`.
   config.json           # credentials, base_url, local settings
   catalog.json          # auto-generated index
   catalog/<alias>/      # one FACE.md per face
-  backups/              # timestamped JSON backups (faces and teams)
-  teams/<team-slug>/    # one TEAM.md per team, in a folder named by a slug of the team name
+  backups/              # timestamped JSON backups (faces and groups)
+  teams/<team-slug>/    # one TEAM.md per group, in a folder named by a slug of the group name
   threads/              # chat:thread conversation history
   models-cache.json     # cached model catalog for chat routing
 ```
@@ -753,9 +753,9 @@ members: [ada, einstein, skeptic]
 ```
 
 The body after the frontmatter is the protocol (usually a mermaid diagram). Written by
-`team:create`, updated by `team:edit`, `team:add` and `team:remove`, synced from the server by
+`group:create`, updated by `group:edit`, `group:add` and `group:remove`, synced from the server by
 `catalog:doctor --fix`. If `members:` holds ids rather than aliases, read the aliases with
-`faces team:members TEAM_ID`, or run `faces catalog:doctor --fix`.
+`faces group:members GROUP_ID`, or run `faces catalog:doctor --fix`.
 
 ## References
 

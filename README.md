@@ -293,7 +293,7 @@ A manyfaced skill's SKILL.md is a conductor's score. It says: "In step 1, use th
   catalog/                        # individual faces
     einstein/FACE.md
     skeptic/FACE.md
-  teams/                          # groups + protocols
+  teams/                          # teams of faces + protocols
     advisory-board/TEAM.md
   backups/                        # timestamped JSON backup snapshots
 ```

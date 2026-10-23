@@ -225,7 +225,7 @@ faces face:list --public --sort usage               # most used first: what othe
 ```
 
 A published face is chatted as `owner:alias` and **requires an explicit
-`@model`**. It can join a team by that same address (`faces team:add TEAM_ID
+`@model`**. It can join a team by that same address (`faces group:add GROUP_ID
 --face owner:alias`), but it cannot be edited or compiled, so a role that needs
 its own sources or prompt has to be its own face. `faces face:get owner:alias`
 and `faces face:neighbors owner:alias` work too, so you can read one before

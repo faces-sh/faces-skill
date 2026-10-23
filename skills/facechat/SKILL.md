@@ -81,20 +81,20 @@ protocol). Check both.
 # Check face first, then team
 faces face:get $ALIAS --json 2>/dev/null
 echo "---TEAM_CHECK---"
-faces team:list --json 2>/dev/null | jq -r '.[] | select(.name == "'$ALIAS'") | .id'
+faces group:list --json 2>/dev/null | jq -r '.[] | select(.name == "'$ALIAS'") | .id'
 # Local teams live under a slug of the name ("Review Panel" -> review-panel)
 SLUG=$(echo "$ALIAS" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
 ls ~/.faces/teams/$SLUG/TEAM.md 2>/dev/null
 ```
 
 - A face found: single-face chat (see **Chat** below).
-- A team found (by name in `team:list`, or a local TEAM.md): team chat (see **Team Chat** below).
+- A team found (by name in `group:list`, or a local TEAM.md): team chat (see **Team Chat** below).
 - Both found: the face wins (teams should have distinct names).
 - If neither found, check for close matches:
 
 ```bash
 cat ~/.faces/catalog.json | jq -r '.[].alias'
-faces team:list --json 2>/dev/null | jq -r '.[].name'
+faces group:list --json 2>/dev/null | jq -r '.[].name'
 ls ~/.faces/teams/ 2>/dev/null
 ```
 
@@ -197,7 +197,7 @@ Then parse the mermaid flowchart: this is the entire execution spec, round
 limits included.
 
 If `members:` holds ids rather than aliases, read the aliases with
-`faces team:members TEAM_ID`, or run `faces catalog:doctor --fix` to rewrite
+`faces group:members GROUP_ID`, or run `faces catalog:doctor --fix` to rewrite
 the file.
 
 ### Walk the graph
