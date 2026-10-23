@@ -124,7 +124,7 @@ faces models:list       [--kind chat|image|transcription|decision|cause|compile[
 
 faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
                       [--question TEXT [--type noul|choice|score] [--option NAME[=DESCRIPTION]... | --level DESCRIPTION...] [--id KEY] | --questions-file PATH]
-                      [--model jev-latest|clef|clef-flash]  [--format systemone|openai]  [--show-cause]
+                      [--model jev-latest|clef|clef-flash|gpt-6-luna]  [--format systemone|openai]  [--show-cause]
                       [--session ID]  [--compaction ID]  [--no-retry]
                                                        # typed answers, as this face, or with no face for --baseline.
                                                        # A face with no questions gives its cause alone. See Decisions.
@@ -642,6 +642,9 @@ At most **10 questions with a face**, 32 with `--baseline`. A noul's `criteria` 
   (`faces models:list --kind decision`). On the wire this is `face@decision-model`. Call them
   "decision models" to the user. The face can be a saved composite or a formula
   (`"(a | b)"`), priced like one face.
+- **`gpt-6-luna`** is OpenAI's Decisions model: pass `--format openai` with it (it isn't served
+  in System One). Up to 400 questions alone, 10 with a face. It's paid from credits only.
+- **Images** aren't supported in decisions or with a face (`422`); bare chat models still take them.
 - **`--baseline`** asks the decision model alone, with no face: the number to compare a face's
   answer against, in about a second, costing only the decision model.
 - **`--format`** picks the request shape: `systemone` (the default; TypeSafe's Jev System One,

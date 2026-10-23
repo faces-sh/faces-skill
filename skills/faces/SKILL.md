@@ -523,11 +523,12 @@ faces decide alias --state-file situation.txt          # no questions: the face'
 
 The type follows from the flags: `--option` makes a choice, `--level` a score, neither a noul.
 Make option descriptions specific and mutually exclusive. The face's cause for each question
-guides a **decision model** (`--model`: `jev-latest`, `clef` or `clef-flash`; `faces models:list
---kind decision`), which gives the
+guides a **decision model** (`--model`: `jev-latest`, `clef`, `clef-flash`, or OpenAI's `gpt-6-luna` with
+`--format openai`; `faces models:list --kind decision`), which gives the
 numbers; `--baseline` asks the decision model alone, the number to compare a face's answer
 against. `causes` holds one cause per question. `--format openai` uses OpenAI's Decisions format
-instead of TypeSafe's System One. A face's answer takes 10 to 20 seconds and a slow one is held
+instead of TypeSafe's System One. Images aren't supported in decisions or with a face; send
+the situation as text. A face's answer takes 10 to 20 seconds and a slow one is held
 open, so allow at least 300 seconds. The cause counts
 against a Connect or Pro allowance (or is paid on Free), and the decision model is **always paid
 from credits**, on every plan: with no credit it is a `402`. See
