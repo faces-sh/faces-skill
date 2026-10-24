@@ -118,9 +118,9 @@ faces session:get       <session_id>
 faces session:compact   <session_id>
 faces session:close     <session_id>  [--yes]
 
-faces models:list       [--kind chat|image|transcription|decision|cause|compile[,...] | --kind all]  [--provider LAB]  [--chatgpt]
+faces models:list       [--kind chat|image|transcription|decision|cause|compile[,...] | --kind all]  [--provider LAB]  [--codex]
                                                        # the model catalog, once each, with kind, endpoint and price.
-                                                       # CHATGPT marks ChatGPT-eligible models. No sign-in needed.
+                                                       # CODEX marks Codex-eligible models. No sign-in needed.
 
 faces decide (<alias> | --baseline)  (--state TEXT | --state-file PATH)
                       [--question TEXT [--type noul|choice|score] [--option NAME[=DESCRIPTION]... | --level DESCRIPTION...] [--id KEY] | --questions-file PATH]
@@ -313,7 +313,7 @@ locally for about an hour), so no model name needs hard-coding:
 **One model, one id.** The catalog lists each model once, under the id its lab gives it, and
 its `provider` (and `owned_by`) is that **lab**: `openai`, `anthropic`, `xai`, `qwen`, `z-ai`,
 `moonshot`, and so on. Do not group or reason about models by anything else. List them, with
-kind, endpoint, ChatGPT eligibility and price, with `faces models:list`.
+kind, endpoint, Codex eligibility and price, with `faces models:list`.
 
 **Kinds.** Each catalog entry has a `kind`: `chat`, `image`, `transcription`, `decision`,
 `cause` or `compile`. With no `--kind` (`?kind=` on the API) the list is chat models only;
@@ -321,7 +321,7 @@ kind, endpoint, ChatGPT eligibility and price, with `faces models:list`.
 a chat naming a decision model (`alias@jev-latest`) is refused before sending: use
 `faces decide`.
 
-**ChatGPT-eligible models** (`codex_eligible: true`; `faces models:list --chatgpt` lists them) run
+**Codex-eligible models** (`codex_eligible: true`; `faces models:list --codex` lists them) run
 on a linked ChatGPT plan at `/v1/responses` (Connect or Pro), and are paid from credits
 otherwise. Their catalog endpoint is
 `/v1/responses`, so `chat:chat` sends them there. Eligible means the model **can** run there; a
@@ -561,7 +561,7 @@ before the model is called, and nothing is charged.
 
 `--oauth-only` and the `api_fallback` preference only matter on **Connect and Pro** with a
 linked ChatGPT account. `--oauth-only` guarantees the model's part is not paid from credits: a
-request the ChatGPT route cannot serve (a model that is not ChatGPT-eligible, no link, a ChatGPT
+request the ChatGPT route cannot serve (a model that is not Codex-eligible, no link, a ChatGPT
 plan that does not serve it) is refused with `422 oauth_only_unavailable`, and nothing is
 charged. The cause still counts against the plan's allowance as usual. Available on `chat:chat`,
 `chat:messages`, `chat:responses`, `chat:thread`, `compile:thread:create` and
@@ -705,7 +705,7 @@ faces benchmark:list --face alice
   (default 100).
 - **Price:** run `--dry-run` first. `--max-spend USD` is a hard ceiling: the run stops there and
   reports what it scored. Paid from credits; on Connect or Pro with ChatGPT linked, calls on
-  ChatGPT-eligible models run on the ChatGPT plan, except the reference model's answers, which are
+  Codex-eligible models run on the ChatGPT plan, except the reference model's answers, which are
   always paid from credits. A balance below what it needs is a `402` before anything runs.
 - **Reading it:** `winner` is `face`, `reference`, or `null` when the run did not resolve a
   difference. `gap` is the face's score minus the reference's, and `ci95.resolved` says whether

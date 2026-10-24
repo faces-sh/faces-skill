@@ -285,7 +285,7 @@ need to tell which are the latest. Present exactly four options:
 
 | Option | Category | Notes |
 |---|---|---|
-| A | Flagship (recommended) | Connect or Pro with ChatGPT linked: the latest ChatGPT-eligible GPT model (`codex_eligible: true` in `GET /v1/models`), which runs on their ChatGPT plan. Otherwise: the latest Claude Sonnet |
+| A | Flagship (recommended) | Connect or Pro with ChatGPT linked: the latest Codex-eligible GPT model (`codex_eligible: true` in `GET /v1/models`), which runs on their ChatGPT plan. Otherwise: the latest Claude Sonnet |
 | B | Flagship alternative | The other of the two |
 | C | High-quality open weights | Strong reasoning, open weights |
 | D | Fast and cheap open weights | Good for iteration, brainstorming, high volume |
