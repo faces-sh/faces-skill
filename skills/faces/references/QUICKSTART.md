@@ -49,7 +49,7 @@ faces auth:whoami
 > A) **Free**: add $5 of credit to start, then everything is paid as it goes. No monthly fee.
 >    Good for trying it out.
 > B) **Connect ($17/month)**: monthly allowances for compiling and for causes, and the
->    ChatGPT-eligible models run on your linked ChatGPT plan. Other models are paid as they go.
+>    Codex-eligible models run on your linked ChatGPT plan. Other models are paid as they go.
 > C) **Pro ($49/month)**: Connect with larger allowances.
 
 Then register:

@@ -8,7 +8,7 @@ output.
 | plan | price | what it includes |
 |---|---|---|
 | `free` | $0 | Everything is paid as it goes, from credits |
-| `connect` | $17/month | The allowances below; ChatGPT-eligible models (`codex_eligible: true` in `GET /v1/models`) run on a linked ChatGPT plan at `/v1/responses` |
+| `connect` | $17/month | The allowances below; Codex-eligible models (`codex_eligible: true` in `GET /v1/models`) run on a linked ChatGPT plan at `/v1/responses` |
 | `pro` | $49/month | Larger allowances, and the same ChatGPT route |
 
 A subscription is an **allowance**, not a fee per request. It covers compiling and a face's

@@ -96,7 +96,7 @@ You can register manually at the [faces.sh](https://faces.sh/) website, or via t
 faces auth:register --email you@example.com --password 'Your-password-1' --username your_username
 
 # Connect ($17/month) or Pro ($49/month): monthly allowances for compiling and causes, and
-# ChatGPT-eligible models run on your linked ChatGPT plan
+# Codex-eligible models run on your linked ChatGPT plan
 faces auth:register --email you@example.com --password 'Your-password-1' --username your_username --plan connect
 ```
 
