@@ -292,13 +292,13 @@ cat > /tmp/<team-slug>-protocol.md << 'PROTOCOL'
 <the mermaid block>
 PROTOCOL
 
-# 2. Create the team on the server with that protocol
-TEAM=$(faces team:create --name "<team-name>" --description "<what this team does>" \
+# 2. Create the team on the server, as a group, with that protocol
+GROUP=$(faces group:create --name "<team-name>" --description "<what this team does>" \
   --tag review --protocol-file /tmp/<team-slug>-protocol.md --json)
-TEAM_ID=$(echo "$TEAM" | jq -r '.id')
+GROUP_ID=$(echo "$GROUP" | jq -r '.id')
 
 # 3. Add members (this also fills in members: in the local TEAM.md)
-faces team:add $TEAM_ID --face alias-1 --face alias-2 --face alias-3
+faces group:add $GROUP_ID --face alias-1 --face alias-2 --face alias-3
 
 # 4. Check what the CLI wrote
 cat ~/.faces/teams/<team-slug>/TEAM.md
@@ -320,19 +320,19 @@ strip the frontmatter first:
 
 ```bash
 sed '1,/^---$/d' ~/.faces/teams/$SLUG/TEAM.md > /tmp/$SLUG-protocol.md
-faces team:edit $TEAM_ID --protocol-file /tmp/$SLUG-protocol.md
+faces group:edit $GROUP_ID --protocol-file /tmp/$SLUG-protocol.md
 ```
 
-`team:edit` rewrites the local TEAM.md. If `members:` then lists ids rather than aliases,
+`group:edit` rewrites the local TEAM.md. If `members:` then lists ids rather than aliases,
 `faces catalog:doctor --fix` puts the aliases back for your own faces, or read them with
-`faces team:members $TEAM_ID`.
+`faces group:members $GROUP_ID`.
 
 **TEAM.md format.** Deterministic: YAML frontmatter + mermaid body, written by the CLI.
 The frontmatter holds structured metadata. Everything after the closing `---` is the protocol (mermaid diagram), as stored on the server. These are the only frontmatter keys; the CLI drops any other.
 
 ```markdown
 ---
-id: <team id>
+id: <group id>
 name: <team-name>
 description: <what this team does>
 tags: [review, research]

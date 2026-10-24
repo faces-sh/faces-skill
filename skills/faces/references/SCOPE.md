@@ -17,7 +17,7 @@ All under `~/.faces/`:
 |---|---|
 | `config.json` | credentials (JWT, API key), base URL, local settings |
 | `catalog.json`, `catalog/<alias>/FACE.md` | the local face catalog, rewritten from the server by face commands and `catalog:doctor --fix` |
-| `teams/<team-slug>/TEAM.md` | the local team catalog, written by `team:*` commands and `catalog:doctor --fix` |
+| `teams/<team-slug>/TEAM.md` | the local team catalog, written by `group:*` commands and `catalog:doctor --fix` |
 | `backups/` | snapshots from `catalog:backup` |
 | `threads/` | `chat:thread` conversation history |
 | `models-cache.json` | the cached model catalog used for chat routing |

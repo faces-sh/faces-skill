@@ -13,7 +13,7 @@ faces auth:disconnect   <provider>
 faces auth:connections
 
 faces face:create       --name  --alias  [--default-model MODEL]  [--description TEXT]  [--specialty TEXT]  [--tag TAG...]  [--formula EXPR | --attr KEY=VALUE... --tool NAME...]  [--profile-addendum TEXT | --profile-addendum-file PATH]
-faces face:list         [--has-style]  [--tag TAG...]  [--team TEAM_ID...]  [--include tags,teams,profile,sharing,avatar,usage,owner_follow]  [--public]  [--shared]  [--system]  [--from-users USER...]  [--not-from-users USER...]
+faces face:list         [--has-style]  [--tag TAG...]  [--group GROUP_ID...]  [--include tags,groups,profile,sharing,avatar,usage,owner_follow]  [--public]  [--shared]  [--system]  [--from-users USER...]  [--not-from-users USER...]
                         [--search TEXT]  [--sort created|alias|relevance|usage]  [--order asc|desc]
                                                        # --search matches alias, name and description.
                                                        # OMIT --order to keep each field's own direction: newest first for
@@ -21,7 +21,7 @@ faces face:list         [--has-style]  [--tag TAG...]  [--team TEAM_ID...]  [--i
                                                        # A to Z for alias. --sort relevance needs --search.
                                                        # --public = open to everybody; --shared = shared with YOU. They are
                                                        # independent and compose. Faces you do not own print as owner:alias.
-faces face:get          <alias | owner:alias>  [--include tags,teams,profile,sharing,avatar,usage]  [--full]
+faces face:get          <alias | owner:alias>  [--include tags,groups,profile,sharing,avatar,usage]  [--full]
                                                        # prints `styles:` with the media the face has a built style for.
                                                        # A face you do not own prints an `access:` line saying so.
 faces face:attributes
@@ -77,7 +77,7 @@ faces face:tag:add      <alias>  --tag TAG  [--tag TAG...]
 faces face:tag:set      <alias>  --tag TAG  [--tag TAG...]
 faces face:tag:remove   <alias>  <tag>
 faces face:tag:all
-faces face:teams        <alias>  --team TEAM_ID  [--team TEAM_ID...]
+faces face:groups       <alias>  --group GROUP_ID  [--group GROUP_ID...]
 
 faces chat:chat         <alias | owner:alias | "(a | b)">[@model]  -m MSG  [--llm MODEL]  [--system TEXT]  [--file PATH]
                         [--style MEDIUM]  [--medium MEDIUM]  [--session ID]  [--compaction ID]
@@ -238,22 +238,22 @@ faces billing:card:default  <PM_ID>
 faces billing:card:remove   <PM_ID>  [--yes]
 faces billing:llm-costs  [--lab LAB]                   # one row per model, under its lab's id
 
-faces team:create       --name  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]  [--tag TAG...]
-faces team:list
-faces team:get          <team_id>
-faces team:edit         <team_id>  [--name]  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]
-faces team:delete       <team_id>  [--yes]
-faces team:members      <team_id>                      # a member whose owner unpublished, unshared or deleted it stays
+faces group:create      --name  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]  [--tag TAG...]
+faces group:list
+faces group:get         <group_id>
+faces group:edit        <group_id>  [--name]  [--description TEXT]  [--protocol TEXT]  [--protocol-file PATH]
+faces group:delete      <group_id>  [--yes]
+faces group:members     <group_id>                     # a member whose owner unpublished, unshared or deleted it stays
                                                        # LISTED, marked unreachable, with the reason
-faces team:add          <team_id>  --face ALIAS | owner:alias  [--face ...]
+faces group:add         <group_id>  --face ALIAS | owner:alias  [--face ...]
                                                        # your own faces, published ones, and ones shared with you. Name
                                                        # someone else's as owner:alias. Never copy a face to add it.
-faces team:remove       <team_id>  <alias>
+faces group:remove      <group_id>  <alias>
 
-faces team:tag:list     <team_id>
-faces team:tag:add      <team_id>  --tag TAG  [--tag TAG...]
-faces team:tag:set      <team_id>  --tag TAG  [--tag TAG...]
-faces team:tag:remove   <team_id>  <tag>
+faces group:tag:list    <group_id>
+faces group:tag:add     <group_id>  --tag TAG  [--tag TAG...]
+faces group:tag:set     <group_id>  --tag TAG  [--tag TAG...]
+faces group:tag:remove  <group_id>  <tag>
 
 faces account:state
 faces account:preferences [KEY] [VALUE]  [--allow-paid]
@@ -419,7 +419,7 @@ Another account's is `<username>:me`, readable only if that account publishes it
   an answer needs a model named (`me@gpt-5.4-mini`).
 - **Edit it like any face:** `faces face:edit me --name ... --description ... --attr key=value`.
 - **It cannot be made or removed:** creating another face aliased `me` is a `400`, and
-  `face:delete me` is a `409`. Publishing, sharing, locking, tags and teams work as on any
+  `face:delete me` is a `409`. Publishing, sharing, locking, tags and groups work as on any
   face.
 - **Nothing goes to it by itself:** uploads, compiles and style builds go to the face named. To
   build the user's own style: `faces style:upload me <file>`, then `faces style:make me --all`.
@@ -450,7 +450,7 @@ faces chat:chat logician@gpt-5.4 -m "..."      # your own faces stay bare
 ```
 
 The same handle works on `chat:messages`, `chat:responses`, `chat:thread`, `decide`,
-`face:get`, `face:neighbors`, `face:avatar:*` and `team:add`. The **caller** pays for the
+`face:get`, `face:neighbors`, `face:avatar:*` and `group:add`. The **caller** pays for the
 answer at normal rates; the owner is never charged. The bare handle with no model returns the
 face's cause alone.
 
@@ -777,28 +777,28 @@ faces face:tag:remove ada old-tag
 faces face:tag:list ada
 faces face:tag:all                                       # every tag across your faces
 faces face:list --tag research --tag physics             # filter (AND)
-faces face:list --team TEAM_ID                           # filter by team (OR), composes with --tag
-faces face:list --include tags,teams,profile             # extra fields
-faces face:teams ada --team TEAM_ID_1 --team TEAM_ID_2   # set a face's teams (replaces all)
+faces face:list --group GROUP_ID                         # filter by group (OR), composes with --tag
+faces face:list --include tags,groups,profile            # extra fields
+faces face:groups ada --group GROUP_ID_1 --group GROUP_ID_2  # set a face's groups (replaces all)
 ```
 
-## Teams
+## Groups
 
 Named groups of faces with an optional description, protocol (usually a mermaid diagram) and
 tags.
 
 ```bash
-faces team:create --name "Review Panel" --description "Research critique panel" --tag review
-faces team:add TEAM_ID --face alice --face bob
-faces team:add TEAM_ID --face head:socrates        # a face you do not own, by owner:alias
-faces team:list                                    # your personal team is left out
-faces team:edit TEAM_ID --protocol-file workflow.mmd
-faces team:members TEAM_ID
-faces team:remove TEAM_ID alice
-faces team:tag:add TEAM_ID --tag urgent
+faces group:create --name "Review Panel" --description "Research critique panel" --tag review
+faces group:add GROUP_ID --face alice --face bob
+faces group:add GROUP_ID --face head:socrates       # a face you do not own, by owner:alias
+faces group:list                                    # your personal group is left out
+faces group:edit GROUP_ID --protocol-file workflow.mmd
+faces group:members GROUP_ID
+faces group:remove GROUP_ID alice
+faces group:tag:add GROUP_ID --tag urgent
 ```
 
-Each team also has a local `~/.faces/teams/<slug>/TEAM.md`, with YAML frontmatter (id, name,
+Each group also has a local `~/.faces/teams/<slug>/TEAM.md`, with YAML frontmatter (id, name,
 description, tags, members) and the protocol as the body. See the TEAM.md schema in SKILL.md.
 
 ## Compiling documents (`compile:doc`)
@@ -1204,7 +1204,7 @@ plus your notes), and an index at `~/.faces/catalog.json`. `face:create`, `face:
   renamed, so `Fixed 0` does not mean nothing changed. A FACE.md body is kept.
 - `faces catalog:doctor --generate`: `--fix`, plus missing descriptions written by a model and
   saved to the server.
-- `faces catalog:backup`: every face (descriptions, tags), team, document (with its medium) and
+- `faces catalog:backup`: every face (descriptions, tags), group, document (with its medium) and
   thread, to `~/.faces/backups/<timestamp>.json`.
 - `faces catalog:restore [FILE]`: restore from a backup (default: the newest). `--compile` runs
   `compile:all` afterwards. A document the backup records no medium for is refused by the
