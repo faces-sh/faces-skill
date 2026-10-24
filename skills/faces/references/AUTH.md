@@ -18,7 +18,7 @@ faces auth:register \
   --json
 
 # Connect ($17/month) or Pro ($49/month): monthly allowances for compiling and causes,
-# and Codex-eligible models run on a linked ChatGPT plan
+# and ChatGPT-eligible models run on a linked ChatGPT plan
 faces auth:register \
   --email user@example.com \
   --password 'SecurePass123' \
@@ -131,7 +131,7 @@ read it back.
 | plan | price | what it includes |
 |---|---|---|
 | Free | $0 | Everything is paid as it goes from credits; start by adding $5 |
-| Connect | $17/month | Allowances for compiling and causes; Codex-eligible models run on a linked ChatGPT plan |
+| Connect | $17/month | Allowances for compiling and causes; ChatGPT-eligible models run on a linked ChatGPT plan |
 | Pro | $49/month | Larger allowances, and the same ChatGPT route |
 
 Pay-as-you-go rates, on Free and past an allowance: a cause $0.75 per million tokens (the

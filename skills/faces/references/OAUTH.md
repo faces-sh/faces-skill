@@ -1,14 +1,14 @@
 # Connect ChatGPT (Connect and Pro plans)
 
-On the **Connect** and **Pro** plans, a user can link a ChatGPT account. A **Codex-eligible**
+On the **Connect** and **Pro** plans, a user can link a ChatGPT account. A **ChatGPT-eligible**
 model (`codex_eligible: true` in `GET /v1/models`) then runs on the linked ChatGPT plan at
 `/v1/responses`: the model's part of the request costs no credits and carries no 5% markup.
 
 **The cause is billed as usual**, from the plan's allowance and then from credits. Linking
 ChatGPT changes who pays for the model, not for the face.
 
-Which models are Codex-eligible changes, so read `codex_eligible` from the catalog
-(`faces models:list --codex`, or `GET /v1/models`) rather than keeping a list.
+Which models are ChatGPT-eligible changes, so read `codex_eligible` from the catalog
+(`faces models:list --chatgpt`, or `GET /v1/models`) rather than keeping a list.
 
 **The human approves once in their browser.** After that the link is stored on the account and
 renews itself. Linking uses a device code, so it works over SSH, in containers and headless: no
@@ -67,7 +67,7 @@ authorization for Codex' at chatgpt.com, Settings, Security first."*
 `openai  connected as you@example.com (Plus)`. A ChatGPT plan of `free`, or none, cannot be used
 this way: tell the human.
 
-Once linked, nothing else is needed: `chat:chat` sends Codex-eligible models to
+Once linked, nothing else is needed: `chat:chat` sends ChatGPT-eligible models to
 `/v1/responses`, where they run on the ChatGPT plan.
 
 ## If `auth:connect` errors
@@ -83,11 +83,11 @@ Once linked, nothing else is needed: `chat:chat` sends Codex-eligible models to
 
 | Caller | `/v1/responses` | `/v1/chat/completions` |
 |---|---|---|
-| ChatGPT linked | a Codex-eligible model runs on the ChatGPT plan | `409 use_responses_for_free_oauth`: use `/v1/responses` |
+| ChatGPT linked | a ChatGPT-eligible model runs on the ChatGPT plan | `409 use_responses_for_free_oauth`: use `/v1/responses` |
 | Not linked | the model is paid from credits, plus 5% | the model is paid from credits, plus 5% |
 
 Every other model, on any endpoint, is paid from credits at the model's listed price plus 5%.
-`chat:chat` routes each model to its catalog endpoint, so Codex-eligible models go to
+`chat:chat` routes each model to its catalog endpoint, so ChatGPT-eligible models go to
 `/v1/responses` without a flag.
 
 **Was a call paid?** Read `_meta.billing` in `--json` chat output (the `X-Faces-Billing`
@@ -129,7 +129,7 @@ account they are charged to credits, which the CLI asks for with `--allow-paid` 
 ## Connect and Pro onboarding
 
 A new Connect or Pro user with no ChatGPT linked and `api_fallback` off gets a `422` for a
-Codex-eligible model at `/v1/responses` rather than a charge, until they either:
+ChatGPT-eligible model at `/v1/responses` rather than a charge, until they either:
 
 1. link ChatGPT: `faces auth:connect openai`, or
 2. allow paid fallback: `faces account:preferences api_fallback true`.
